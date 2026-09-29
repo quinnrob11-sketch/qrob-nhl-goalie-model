@@ -1,0 +1,38 @@
+name: Rebuild goalie model
+
+on:
+  schedule:
+    # 15:00 UTC = 11am ET (after fastRhockey's overnight refresh);
+    # 21:30 UTC = 5:30pm ET (picks up the evening slate / late goalie news)
+    - cron: '0 15 * * *'
+    - cron: '30 21 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: goalie-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - name: Build dashboard
+        run: python model/build_site.py
+      - name: Commit & push
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add index.html
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m "auto: rebuild $(date -u +'%Y-%m-%d %H:%M UTC')"
+          for i in 1 2 3; do git push && exit 0; git pull --rebase origin "${GITHUB_REF_NAME}"; sleep $((i*3)); done
+          exit 1
