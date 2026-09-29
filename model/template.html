@@ -255,9 +255,13 @@ for (const r of (D.pp || [])){
   if (!date){ const g = D.slate.find(x => x.home === r.team || x.away === r.team); date = g && g.date; }
   if (date && r.team) PP[date + "|" + r.team] = r;
 }
+// DraftKings (via The Odds API): same idea, a posted saves line = expected starter
+const DK = {};
+for (const r of (D.dk || [])) if (r.date && r.team) DK[r.date + "|" + r.team] = r;
 function starterFor(team, date){
   const k = date + "|" + team;
   if (STARTER[k]) return {gid: +STARTER[k], src: "manual"};
+  if (DK[k]) return {gid: DK[k].goalie_id, src: "dk"};
   if (PP[k]) return {gid: PP[k].goalie_id, src: "pp", pp: PP[k]};
   return {gid: (D.depth[team] || [])[0], src: "depth"};
 }
@@ -277,23 +281,23 @@ function slateRows(){
       const b2b = last && (new Date(g.date) - new Date(last)) / 864e5 === 1;
       const pr = project(gid, team, opp, side === "home", b2b, g.type === "P");
       const key = g.date + "|" + gid;
-      const pp = PP[g.date + "|" + team];
+      const pp = PP[g.date + "|" + team], dk = DK[g.date + "|" + team];
       const ppLine = pp && pp.goalie_id === gid ? pp.line : null;
-      const line = LINES[key] ?? ppLine;
-      const lineSrc = LINES[key] != null ? "manual" : ppLine != null ? "pp" : "";
+      const dkLine = dk && dk.goalie_id === gid ? dk.line : null;
+      const line = LINES[key] ?? dkLine ?? ppLine;
+      const lineSrc = LINES[key] != null ? "manual" : dkLine != null ? "dk" : ppLine != null ? "pp" : "";
       const edge = line != null ? pr.proj - line : null;
-      rows.push({g, team, opp, gid, side, b2b, ...pr, key, line, lineSrc, pp, src: st.src, edge});
+      rows.push({g, team, opp, gid, side, b2b, ...pr, key, line, lineSrc, pp, dk, src: st.src, edge});
     }
   }
   return rows;
 }
 function renderSlate(){
-  const nPP = (D.pp || []).length;
-  $("#ppNote").textContent = nPP
-    ? `Starters and lines auto-filled from ${nPP} goalie saves props on the PrizePicks board (as of ${D.built}). PrizePicks posting a goalie isn't an official confirmation, so check warmups on close calls. Change the goalie or line to override.`
-    : D.pp_error
-      ? `Couldn't read the PrizePicks board at build time (${D.pp_error}), so each team shows its default starter (marked unconfirmed). Pick the goalie and enter the line on each row.`
-      : `No goalie saves props on the PrizePicks board at build time (${D.built}), so each team shows its default starter (marked unconfirmed). PrizePicks usually posts them the morning of the game.`;
+  const nPP = (D.pp || []).length, nDK = (D.dk || []).length;
+  const dkMsg = nDK ? `DraftKings: saves lines for ${nDK} goalie${nDK===1?"":"s"}${D.odds_remaining ? ` (${D.odds_remaining} API requests left)` : ""}.`
+    : D.dk_error ? `DraftKings: unavailable (${D.dk_error}).` : `DraftKings: no saves lines posted yet for games in the next 18 hours.`;
+  const ppMsg = nPP ? `PrizePicks: ${nPP} goalie saves prop${nPP===1?"":"s"}.` : D.pp_error ? `PrizePicks: unavailable (${D.pp_error}).` : `PrizePicks: no goalie saves props posted yet.`;
+  $("#ppNote").textContent = `As of ${D.built}. ${dkMsg} ${ppMsg} Starter order: a DraftKings line, then a PrizePicks prop, then the roster default (unconfirmed). A posted line isn't an official confirmation, so check warmups on close calls. Change the goalie or line on any row to override.`;
   const dates = [...new Set(D.slate.map(g => g.date))];
   const dSel = $("#dateF");
   if (!dSel.options.length){ dSel.innerHTML = `<option value="">All</option>` + dates.map(d => `<option>${d}</option>`).join(""); }
@@ -316,9 +320,10 @@ function renderSlate(){
     const ph = hasE ? (side === "OVER" ? pOver(r.proj, r.line) : 1 - pOver(r.proj, r.line)) : null;
     html += `<tr class="${cls}"><td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp}<div class="muted" style="font-size:11px">${r.g.date}${r.b2b?" · B2B":""}${r.g.type==="P"?" · Playoffs":""}</div></td>
       <td class="l"><select data-st="${r.g.date}|${r.team}">${goalieOptions(r.team, r.gid)}</select>
-        <div style="font-size:11px">${r.src==="pp"?'<span class="good">✓ on PrizePicks board</span>':r.src==="manual"?'<span class="muted">set by you</span>':(D.rosters_ok?'<span class="muted">roster #1 · unconfirmed</span>':'<span class="muted">depth chart · unconfirmed</span>')}${(G[r.gid]||{}).new?' <span class="muted">· no NHL history</span>':""}</div></td>
+        <div style="font-size:11px">${r.src==="dk"?'<span class="good">✓ DraftKings line posted</span>':r.src==="pp"?'<span class="good">✓ on PrizePicks board</span>':r.src==="manual"?'<span class="muted">set by you</span>':(D.rosters_ok?'<span class="muted">roster #1 · unconfirmed</span>':'<span class="muted">depth chart · unconfirmed</span>')}${(G[r.gid]||{}).new?' <span class="muted">· no NHL history</span>':""}</div></td>
       <td>${fmt(r.sa)}</td><td>${fmt(r.sv,3)}</td><td><b>${fmt(r.proj)}</b></td>
       <td><input type="number" step="0.5" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line">
+        ${r.lineSrc==="dk"?`<div style="font-size:11px" class="muted">DK o${r.dk.over ?? "–"} / u${r.dk.under ?? "–"}</div>`:""}
         ${r.lineSrc==="pp"?`<div style="font-size:11px"><a href="${r.pp.url}" target="_blank" rel="noopener" class="muted">PrizePicks</a></div>`:""}</td>
       <td>${hasE ? (r.edge>0?"+":"") + fmt(r.edge) : "–"}</td><td class="l side">${play ? side : (hasE ? "PASS" : "")}</td>
       <td>${ph!=null?pct(ph,0):"–"}</td><td class="l">${t?`<span class="pill ${t}">${t}</span>`:""}</td>

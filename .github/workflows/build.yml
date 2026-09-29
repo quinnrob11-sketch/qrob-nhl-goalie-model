@@ -30,6 +30,8 @@ jobs:
           cache: 'pip'
       - run: pip install -r requirements.txt
       - name: Build dashboard
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python model/build_site.py
       - name: Commit & push
         run: |
