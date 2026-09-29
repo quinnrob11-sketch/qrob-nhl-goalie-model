@@ -89,6 +89,8 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 </header>
 <nav id="tabs">
   <button data-t="proj" class="on">Projections</button>
+  <button data-t="win">Game Winners</button>
+  <button data-t="sogt">SOG Props</button>
   <button data-t="bt">Backtest</button>
   <button data-t="track">Tracker &amp; Slip</button>
   <button data-t="goalies">Goalies</button>
@@ -122,6 +124,42 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
       <label>Line<input type="number" id="mbL" step="0.5" value="24.5"></label>
     </div>
     <div class="stats" style="margin-top:14px" id="mbOut"></div>
+  </div>
+</section>
+
+<section id="win">
+  <div class="card"><h2>Game winners</h2>
+    <p class="sub">Win probability from expected goals for each side, using the same shot model and starting goalies as the Projections tab (change a goalie there and it updates here). Enter each side's moneyline to see the edge vs the book. With both prices entered, the vig is removed.</p>
+    <div class="row" style="margin-bottom:10px"><label>Min edge (%)<input type="number" id="wEdge" value="3" step="0.5" min="0"></label></div>
+    <div class="tbl"><table id="winT"></table></div>
+    <p class="muted" id="winEmpty" style="display:none">No games in this build's slate yet.</p>
+  </div>
+  <div class="card"><h2>Backtest: fit on 2024-25, tested on 2025-26</h2>
+    <div class="stats" id="winStats" style="margin-bottom:12px"></div>
+    <p class="sub">There are no historical moneylines in the public data, so this measures how good the probabilities are, not ROI. For reference, public NHL models usually top out around 58–60% accuracy.</p>
+    <div class="tbl"><table id="winCal"></table></div>
+  </div>
+</section>
+
+<section id="sogt">
+  <div class="card"><h2>Shots on goal props</h2>
+    <p class="sub" id="sogNote"></p>
+    <div class="row" style="margin-bottom:10px">
+      <label>Game<select id="sGame"><option value="">All games</option></select></label>
+      <label>Position<select id="sPos"><option value="">All</option><option value="F">Forwards</option><option value="D">Defense</option></select></label>
+      <label>Min P(hit)<input type="number" id="sMinP" value="0" step="0.01" min="0" max="0.9"></label>
+      <label>Players per team<select id="sTop"><option>8</option><option>12</option><option value="99">All</option></select></label>
+    </div>
+    <div class="tbl"><table id="sogT"></table></div>
+  </div>
+  <div class="card"><h2>Backtest</h2>
+    <div class="stats" id="sogStats" style="margin-bottom:12px"></div>
+    <div class="note"><b>No proven edge yet.</b> Against 475 real PrizePicks SOG lines from the 2026 playoffs, the model hit about 51–54%, roughly break-even. Against stand-in lines the same model hits 63–70%, so stand-in backtests badly overstate what real lines allow. Use this tab to read matchups, and trust only picks your Tracker proves out.</div>
+    <h3>Real PrizePicks lines, 2026 playoffs</h3>
+    <div class="tbl"><table id="sogReal"></table></div>
+    <h3>Stand-in lines, 2025-26 (out-of-sample)</h3>
+    <p class="sub">Each player's line is the x.5 closest to a 50/50 over for his last-10 average, which is how a naive book would set it. Real lines are sharper, so treat these as a ceiling.</p>
+    <div class="tbl"><table id="sogProxy"></table></div>
   </div>
 </section>
 
@@ -273,14 +311,17 @@ function parsePP(js){
   for (const inc of js.included || []) if (inc.type === "new_player" || inc.type === "player") players[inc.id] = inc.attributes || {};
   const byKey = {};
   for (const g of D.goalies) (byKey[nameKey(g.name)] ||= []).push(g);
-  const rows = [];
+  const rows = [], sogRows = [];
   for (const p of js.data || []){
     const a = p.attributes || {};
-    if (a.stat_type !== "Goalie Saves" || (a.odds_type || "standard").toLowerCase() !== "standard" || a.is_promo || a.flash_sale_line_score != null || a.line_score == null) continue;
+    if ((a.odds_type || "standard").toLowerCase() !== "standard" || a.is_promo || a.flash_sale_line_score != null || a.line_score == null) continue;
+    const isSog = ["Shots On Goal", "Shots", "Player Shots"].includes(a.stat_type);
+    if (a.stat_type !== "Goalie Saves" && !isSog) continue;
     const rel = p.relationships || {}, ref = ((rel.new_player || rel.player || {}).data) || {};
     const pl = players[ref.id] || {}, name = pl.name || pl.display_name;
     if (!name) continue;
     let team = String(pl.team || pl.team_abbreviation || "").toUpperCase(); team = PP_TEAM_FIX[team] || team;
+    if (isSog){ sogRows.push({name, team, line: +a.line_score, date: a.start_time ? etDate(a.start_time) : null, url: `https://app.prizepicks.com/projections/${p.id}`}); continue; }
     let cands = byKey[nameKey(name)] || [];
     if (cands.length > 1) cands = cands.filter(g => g.team === team).concat(cands).slice(0, 1);
     let g = cands[0];
@@ -291,6 +332,7 @@ function parsePP(js){
     rows.push({name, team: team || g.team, line: +a.line_score, date: a.start_time ? etDate(a.start_time) : null,
                url: `https://app.prizepicks.com/projections/${p.id}`, goalie_id: g.id});
   }
+  PP_SOG = sogRows;
   return rows;
 }
 async function pullPrizePicksLive(){
@@ -305,7 +347,7 @@ async function pullPrizePicksLive(){
   } catch (e){
     ppLive = {state: "fail", err: e.name === "AbortError" ? "timed out" : (e.message === "Failed to fetch" || e.name === "TypeError") ? "blocked by PrizePicks for other websites" : e.message};
   } finally { clearTimeout(timer); }
-  renderSlate(); renderSlip();
+  renderSlate(); renderSlip(); renderWinners(); renderSOG();
 }
 // DraftKings (via The Odds API): same idea, a posted saves line = expected starter
 const DK = {};
@@ -392,7 +434,7 @@ function renderSlate(){
     store.set("gm_lines", LINES); renderSlate(); renderSlip();
   });
   $("#slateT").querySelectorAll("select[data-st]").forEach(s => s.onchange = () => {
-    STARTER[s.dataset.st] = +s.value; store.set("gm_starter", STARTER); renderSlate(); renderSlip();
+    STARTER[s.dataset.st] = +s.value; store.set("gm_starter", STARTER); renderSlate(); renderSlip(); renderWinners();
   });
   $("#slateT").querySelectorAll("button[data-log]").forEach(b => b.onclick = () => {
     const r = slateRows().find(x => x.key === b.dataset.log); logPick(r); b.textContent = "Logged"; b.disabled = true;
@@ -424,7 +466,7 @@ function renderBuilder(){
 // ---------- backtest ----------
 function renderBacktest(){
   const B = D.backtest, T = B["2026"], F = B["2025"];
-  $("#btNote").innerHTML = `<b>How to read this.</b> Historical sportsbook saves lines aren't in any public dataset, so each start is graded against a <b>proxy line</b>: floor(goalie's last-10-start average) + 0.5, the way a lazy book would hang it. Parameters were fit on 2024-25 only, and <b>2025-26 is fully out-of-sample</b>. Real DK/PrizePicks lines are sharper than this proxy, so treat these hit rates as a <b>ceiling</b>. The stress-test view grades against a tougher proxy that already prices team shot suppression, save% and pull risk, which is closer to a real book. Your true number builds in the Tracker tab.`;
+  $("#btNote").innerHTML = `<b>How to read this.</b> Historical sportsbook saves lines aren't in any public dataset, so each start is graded against a <b>proxy line</b>: floor(goalie's last-10-start average) + 0.5, the way a lazy book would hang it. Parameters were fit on 2024-25 only, and <b>2025-26 is fully out-of-sample</b>. Real DK/PrizePicks lines are sharper than this proxy, so treat these hit rates as a <b>ceiling</b>. The stress-test view grades against a tougher proxy that already prices team shot suppression, save% and pull risk, which is closer to a real book. Your true number builds in the Tracker tab. <b>Warning from the SOG model:</b> it hit 63–70% against the same kind of stand-in line but only about 51–54% against 475 real PrizePicks lines. Expect a similar drop here.`;
   const b15 = T.buckets.find(b => b.min_edge === 1.5) || {}, b25 = T.buckets.find(b => b.min_edge === 2.5) || {};
   $("#btStats").innerHTML = `
     <div class="stat hero"><div class="k">2025-26 hit rate, edge ≥ 1.5</div><div class="v">${pct(b15.hit)}</div><div class="s">${b15.n} picks · ${b15.units>0?"+":""}${fmt(b15.units)}u at -115</div></div>
@@ -589,9 +631,157 @@ function renderLogic(){
   document.querySelectorAll(".carry").forEach(e => e.textContent = Math.round(P.carry*100) + "%");
 }
 
-$("#q").addEventListener("input", () => { renderSlate(); renderGoalies(); renderTeams(); if (window.drawBtGames) window.drawBtGames(); });
+$("#q").addEventListener("input", () => { renderSlate(); renderGoalies(); renderTeams(); renderWinners(); renderSOG(); if (window.drawBtGames) window.drawBtGames(); });
+
+// ---------- game winners ----------
+const W = D.win.params;
+function poissonPmf(l){ const p = [Math.exp(-l)]; for (let k = 1; k <= 12; k++) p.push(p[k-1] * l / k); return p; }
+function winProb(lh, la){
+  const ph = poissonPmf(lh), pa = poissonPmf(la); let home = 0, tie = 0, cum = 0;
+  for (let i = 0; i <= 12; i++){ if (i > 0){ cum += pa[i-1]; home += ph[i] * cum; } tie += ph[i] * pa[i]; }
+  return home + tie * W.ot_home;
+}
+function gameLambdas(g){
+  const lg = D.win.lg_goals, th = D.teams[g.home] || {}, ta = D.teams[g.away] || {};
+  const sh = starterFor(g.home, g.date).gid, sa = starterFor(g.away, g.date).gid;
+  const la_ = D.last_played;
+  const b2b = t => la_[t] && (new Date(g.date) - new Date(la_[t])) / 864e5 === 1;
+  const pAwayG = project(sa, g.away, g.home, false, b2b(g.away), g.type === "P");   // shots on the away goalie
+  const pHomeG = project(sh, g.home, g.away, true, b2b(g.home), g.type === "P");
+  const shot_h = pAwayG.sa * (1 - pAwayG.sv), shot_a = pHomeG.sa * (1 - pHomeG.sv);
+  const r = (f, a) => lg * ((f ?? lg) / lg) * ((a ?? lg) / lg);
+  const rate_h = (1 - W.x) * r(th.gf, ta.ga) + W.x * r(th.xgf, ta.xga);
+  const rate_a = (1 - W.x) * r(ta.gf, th.ga) + W.x * r(ta.xgf, th.xga);
+  const lh = (W.w * shot_h + (1 - W.w) * rate_h) * W.home, la = (W.w * shot_a + (1 - W.w) * rate_a) / W.home;
+  return {lh, la, sh, sa};
+}
+const toAmerican = p => p >= 0.5 ? Math.round(-100 * p / (1 - p)) : "+" + Math.round(100 * (1 - p) / p);
+const implied = o => { o = +o; if (!o) return null; return o < 0 ? -o / (-o + 100) : 100 / (o + 100); };
+const ML = store.get("gm_ml", {});
+function renderWinners(){
+  $("#winEmpty").style.display = D.slate.length ? "none" : "block";
+  const minE = +$("#wEdge").value / 100;
+  let html = `<thead><tr><th class="l">Game</th><th class="l">Goalies</th><th>xG</th><th>Model win %</th><th>Fair odds</th><th>Away ML</th><th>Home ML</th><th>Edge</th><th class="l">Pick</th></tr></thead><tbody>`;
+  for (const g of D.slate){
+    if (!matchQ(g.home, g.away, (G[starterFor(g.home, g.date).gid]||{}).name, (G[starterFor(g.away, g.date).gid]||{}).name)) continue;
+    const {lh, la, sh, sa} = gameLambdas(g), ph = winProb(lh, la), pa = 1 - ph;
+    const k = g.date + "|" + g.id, mh = ML[k + "|h"], ma = ML[k + "|a"];
+    let ih = implied(mh), ia = implied(ma);
+    if (ih != null && ia != null){ const s = ih + ia; ih /= s; ia /= s; }
+    const eh = ih != null ? ph - ih : null, ea = ia != null ? pa - ia : null;
+    let pick = "", cls = "", edge = null;
+    if (eh != null && eh >= minE && (ea == null || eh >= ea)){ pick = g.home; edge = eh; cls = "over"; }
+    else if (ea != null && ea >= minE){ pick = g.away; edge = ea; cls = "over"; }
+    const best = Math.max(eh ?? -1, ea ?? -1);
+    const strong = Math.max(ph, pa) >= 0.65 ? ' <span class="pill HIGH">65%+</span>' : "";
+    html += `<tr class="${cls}"><td class="l">${g.away} @ ${g.home}<div class="muted" style="font-size:11px">${g.date}</div></td>
+      <td class="l" style="font-size:12.5px">${(G[sa]||{}).name || "?"} / ${(G[sh]||{}).name || "?"}</td>
+      <td>${fmt(la,2)}–${fmt(lh,2)}</td>
+      <td>${g.away} <b>${pct(pa,0)}</b> · ${g.home} <b>${pct(ph,0)}</b>${strong}</td>
+      <td>${toAmerican(pa)} / ${toAmerican(ph)}</td>
+      <td><input type="number" step="5" data-ml="${k}|a" value="${ma ?? ""}" placeholder="+120"></td>
+      <td><input type="number" step="5" data-ml="${k}|h" value="${mh ?? ""}" placeholder="-140"></td>
+      <td>${best > -1 ? (best > 0 ? "+" : "") + (100*best).toFixed(1) + "%" : "–"}</td>
+      <td class="l side">${pick ? pick + " ML" : (best > -1 ? "PASS" : "")}</td></tr>`;
+  }
+  $("#winT").innerHTML = html + "</tbody>";
+  $("#winT").querySelectorAll("input[data-ml]").forEach(i => i.onchange = () => {
+    if (i.value === "") delete ML[i.dataset.ml]; else ML[i.dataset.ml] = +i.value;
+    store.set("gm_ml", ML); renderWinners();
+  });
+}
+function renderWinBacktest(){
+  const T = D.win.backtest["2026"], F = D.win.backtest["2025"];
+  $("#winStats").innerHTML = `
+    <div class="stat hero"><div class="k">2025-26 accuracy (out-of-sample)</div><div class="v">${pct(T.accuracy)}</div><div class="s">${T.games} games · always-home ${pct(T.accuracy_home_only)}</div></div>
+    <div class="stat"><div class="k">Log loss (lower is better)</div><div class="v">${fmt(T.logloss,3)}</div><div class="s">vs ${fmt(T.logloss_home_only,3)} for home-only</div></div>
+    <div class="stat"><div class="k">2024-25 accuracy (fit)</div><div class="v">${pct(F.accuracy)}</div></div>`;
+  $("#winCal").innerHTML = `<thead><tr><th>Model confidence</th><th>Games</th><th>Predicted</th><th>Actual</th></tr></thead><tbody>` +
+    T.buckets.map(b => `<tr><td>${pct(b.lo,0)}–${pct(b.hi,0)}</td><td>${b.n}</td><td>${pct(b.pred)}</td><td class="${b.hit>=.65?"good":""}">${pct(b.hit)}</td></tr>`).join("") + "</tbody>";
+}
+$("#wEdge").oninput = renderWinners;
+
+// ---------- SOG props ----------
+const SP = D.sog.params;
+function nbCdf(k, mean, size){
+  if (k < 0) return 0; const p = size / (size + mean); let term = Math.pow(p, size), tot = term;
+  for (let i = 1; i <= k; i++){ term *= (i - 1 + size) / i * (1 - p); tot += term; }
+  return Math.min(tot, 1);
+}
+function sogOver(mean, line){   // P(over | no push); whole-number lines push on X == line
+  mean = Math.max(mean, 0.05);
+  const over = 1 - nbCdf(Math.floor(line), mean, SP.disp);
+  if (line !== Math.floor(line)) return over;
+  const under = nbCdf(line - 1, mean, SP.disp);
+  return over + under > 0 ? over / (over + under) : 0.5;
+}
+const SOGL = store.get("gm_sogl", {});
+let PP_SOG = [];
+function sogLineFor(pl, team, date){
+  const k = date + "|" + pl.id;
+  if (SOGL[k] != null) return {line: SOGL[k], src: "manual"};
+  const key = nameKey(pl.name);
+  const dk = (D.dk_sog || []).find(r => r.date === date && r.teams.includes(team) && nameKey(r.name) === key);
+  if (dk) return {line: dk.line, src: "DK", over: dk.over, under: dk.under};
+  const pp = PP_SOG.find(r => (!r.date || r.date === date) && (!r.team || r.team === team) && nameKey(r.name) === key);
+  if (pp) return {line: pp.line, src: "PP", url: pp.url};
+  return {line: null, src: ""};
+}
+function renderSOG(){
+  const sel = $("#sGame");
+  if (sel.options.length === 1) sel.innerHTML += D.slate.map(g => `<option value="${g.date}|${g.id}">${g.date.slice(5)} ${g.away} @ ${g.home}</option>`).join("");
+  const nDK = (D.dk_sog || []).length;
+  $("#sogNote").textContent = `Projection = shots/60 × expected TOI × opponent shots-allowed factor × home/road. P(hit) uses a negative binomial (shots vary more than a simple Poisson). Lines: your entry, then DraftKings (${nDK} this build), then the PrizePicks board pulled live in your browser${PP_SOG.length ? ` (${PP_SOG.length} SOG props)` : ""}. Tiers: 62%+ HIGH, 58%+ MED, 55%+ LOW.`;
+  const gSel = sel.value, pos = $("#sPos").value, minP = +$("#sMinP").value, top = +$("#sTop").value;
+  const rows = [];
+  for (const g of D.slate){
+    if (gSel && gSel !== g.date + "|" + g.id) continue;
+    for (const [team, opp, home] of [[g.away, g.home, false], [g.home, g.away, true]]){
+      const list = (D.sog.players[team] || []).filter(p => !pos || p.pos === pos).slice(0, top);
+      for (const pl of list){
+        if (!matchQ(pl.name, team, opp)) continue;
+        const proj = pl.r60 / 60 * pl.toi * (D.sog.opp[opp] ?? 1) * (home ? SP.home : 1 / SP.home);
+        const L = sogLineFor(pl, team, g.date);
+        let po = null, side = "", ph = null, tier = "";
+        if (L.line != null){ po = sogOver(proj, L.line); side = po >= 0.5 ? "OVER" : "UNDER"; ph = Math.max(po, 1 - po);
+          tier = ph >= .62 ? "HIGH" : ph >= .58 ? "MED" : ph >= .55 ? "LOW" : "PASS"; }
+        if (minP && (ph == null || ph < minP)) continue;
+        rows.push({g, team, opp, home, pl, proj, L, po, side, ph, tier});
+      }
+    }
+  }
+  rows.sort((a, b) => (b.ph ?? 0) - (a.ph ?? 0) || b.proj - a.proj);
+  $("#sogT").innerHTML = `<thead><tr><th class="l">Player</th><th class="l">Game</th><th>Shots/60</th><th>TOI</th><th>Last 10</th><th>Proj</th><th>Line</th><th>P(over)</th><th class="l">Pick</th><th>P(hit)</th><th class="l">Tier</th></tr></thead><tbody>` +
+    (rows.length ? rows.map(r => `<tr class="${r.tier && r.tier !== "PASS" ? r.side.toLowerCase() : ""}">
+      <td class="l">${r.pl.name} <span class="muted">${r.pl.pos}</span>${r.pl.new ? ' <span class="muted">· no NHL history</span>' : ""}</td>
+      <td class="l">${r.team} ${r.home ? "vs" : "@"} ${r.opp}</td>
+      <td>${fmt(r.pl.r60,1)}</td><td>${fmt(r.pl.toi,1)}</td>
+      <td style="font-size:11.5px">${(r.pl.l10||[]).join(" ") || "–"}</td><td><b>${fmt(r.proj,2)}</b></td>
+      <td><input type="number" step="0.5" style="width:64px" data-sl="${r.g.date}|${r.pl.id}" value="${r.L.line ?? ""}" placeholder="line">${r.L.src && r.L.src !== "manual" ? `<div class="muted" style="font-size:11px">${r.L.src}${r.L.over != null ? ` o${r.L.over}/u${r.L.under ?? "–"}` : ""}</div>` : ""}</td>
+      <td>${r.po != null ? pct(r.po,0) : "–"}</td><td class="l side">${r.tier && r.tier !== "PASS" ? r.side : r.tier ? "PASS" : ""}</td>
+      <td>${r.ph != null ? pct(r.ph,0) : "–"}</td><td class="l">${r.tier ? `<span class="pill ${r.tier}">${r.tier}</span>` : ""}</td></tr>`).join("")
+    : `<tr><td colspan="11" class="l muted">No players match.</td></tr>`) + "</tbody>";
+  $("#sogT").querySelectorAll("input[data-sl]").forEach(i => i.onchange = () => {
+    if (i.value === "") delete SOGL[i.dataset.sl]; else SOGL[i.dataset.sl] = +i.value;
+    store.set("gm_sogl", SOGL); renderSOG();
+  });
+}
+function renderSogBacktest(){
+  const B = D.sog.backtest, T = B["2026"], R = B.real_pp_2026_playoffs;
+  const r58 = (R.buckets.find(b => b.min_p === 0.58) || {}), r55 = (R.buckets.find(b => b.min_p === 0.55) || {});
+  $("#sogStats").innerHTML = `
+    <div class="stat hero"><div class="k">Real PrizePicks lines, P(hit) ≥ 55%</div><div class="v">${pct(r55.hit)}</div><div class="s">${r55.n ?? 0} props · 2026 playoffs</div></div>
+    <div class="stat"><div class="k">Real lines, P(hit) ≥ 58%</div><div class="v">${pct(r58.hit)}</div><div class="s">${r58.n ?? 0} props</div></div>
+    <div class="stat"><div class="k">Avg miss per player-game</div><div class="v">${fmt(T.mae_model,2)}</div><div class="s">vs ${fmt(T.mae_l10,2)} for last-10 avg</div></div>`;
+  const tbl = bs => `<thead><tr><th>Min P(hit)</th><th>Props</th><th>Hit %</th><th>OVER n</th><th>OVER hit</th><th>UNDER n</th><th>UNDER hit</th><th>Units @ -115</th></tr></thead><tbody>` +
+    bs.map(b => `<tr><td>${pct(b.min_p,0)}</td><td>${b.n}</td><td class="${b.hit>=.65?"good":b.hit<.524?"bad":""}"><b>${pct(b.hit)}</b></td><td>${b.over_n}</td><td>${pct(b.over_hit)}</td><td>${b.under_n}</td><td>${pct(b.under_hit)}</td><td>${b.units>0?"+":""}${fmt(b.units)}</td></tr>`).join("") + "</tbody>";
+  $("#sogReal").innerHTML = tbl(R.buckets);
+  $("#sogProxy").innerHTML = tbl(T.buckets);
+}
+["#sGame","#sPos","#sMinP","#sTop"].forEach(s => $(s).oninput = renderSOG);
+
 $("#ppRefresh").onclick = pullPrizePicksLive;
-renderSlate(); initBuilder(); renderBacktest(); renderTracker(); renderSlip(); initGoalies(); renderTeams(); renderLogic();
+renderSlate(); initBuilder(); renderWinners(); renderWinBacktest(); renderSOG(); renderSogBacktest(); renderBacktest(); renderTracker(); renderSlip(); initGoalies(); renderTeams(); renderLogic();
 if (D.slate.length) pullPrizePicksLive();
 </script>
 </body>

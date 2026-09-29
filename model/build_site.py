@@ -21,6 +21,8 @@ import data
 import engine
 import odds
 import prizepicks
+import sog
+import winners
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -59,6 +61,38 @@ def fetch_slate(today: dt.date):
     return games
 
 
+def goal_rates(st: engine.State, team):
+    return {k: round(st.goal_rate(tbl, team), 4) for k, tbl in
+            (("gf", st.gf), ("ga", st.ga), ("xgf", st.xgf), ("xga", st.xga))}
+
+
+def sog_export(teams, sst: sog.State, sp: sog.SogParams, skater_df: pd.DataFrame):
+    """Per-team skater list for the SOG tab: current roster when we have it,
+    otherwise players who played for the team in its last 25 games (wide enough
+    to keep regulars who were hurt at the end of the season)."""
+    out = {}
+    recent = skater_df.sort_values("game_date")
+    for team in sorted(teams):
+        if team in ROSTER_SKATERS:
+            players = ROSTER_SKATERS[team]
+        else:
+            last_games = recent[recent.team_abbrev == team].game_id.drop_duplicates().tail(25)
+            r = recent[recent.game_id.isin(last_games) & (recent.team_abbrev == team)]
+            players = [{"id": int(i), "name": sst.name.get(int(i), n), "pos": sst.posn.get(int(i), p)}
+                       for i, n, p in r[["player_id", "player_name", "pos"]].drop_duplicates("player_id").values
+                       if sst.team.get(int(i)) == team]
+        rows = []
+        for pl in players:
+            pid, pos = pl["id"], pl["pos"]
+            h = list(sst.hist.get(pid, []))
+            rows.append({"id": pid, "name": sst.name.get(pid, pl["name"]), "pos": pos,
+                         "r60": round(sst.rate60(pid, pos), 3), "toi": round(sst.exp_toi(pid, pos), 2),
+                         "gp": len(h), "l10": h, "new": pid not in sst.shots})
+        rows.sort(key=lambda r: -r["r60"] * r["toi"])
+        out[team] = rows
+    return out
+
+
 def team_table(tg: pd.DataFrame, st: engine.State, season: int):
     s = tg[tg.season == season]
     out = {}
@@ -77,13 +111,14 @@ def team_table(tg: pd.DataFrame, st: engine.State, season: int):
             "pim": round(x.pim.mean(), 2), "opp_pim": round(x.opp_pim.mean(), 2),
             "rate_off": round(st.team_rate(st.off, team), 3),
             "rate_def": round(st.team_rate(st.dfn, team), 3),
+            **goal_rates(st, team),
         }
     # early in a season, teams that haven't played yet still need ratings
     # (limited to last season's teams so relocated franchises like ARI drop out)
     active = set(tg[tg.season >= season - 1].team_abbrev)
     for team in active - set(out):
         out[team] = {"gp": 0, "rate_off": round(st.team_rate(st.off, team), 3),
-                     "rate_def": round(st.team_rate(st.dfn, team), 3)}
+                     "rate_def": round(st.team_rate(st.dfn, team), 3), **goal_rates(st, team)}
     return out
 
 
@@ -114,8 +149,12 @@ def goalie_table(starts: pd.DataFrame, st: engine.State, season: int):
     return res
 
 
+ROSTER_SKATERS: dict = {}
+
+
 def fetch_rosters(teams):
-    """Current goalies on each NHL roster: {team: [{"id", "name"}]}. Best-effort per team."""
+    """Current goalies on each NHL roster: {team: [{"id", "name"}]}. Best-effort per team.
+    Skaters (forwards + defense) are collected into ROSTER_SKATERS the same way."""
     out = {}
     for team in sorted(teams):
         try:
@@ -133,7 +172,15 @@ def fetch_rosters(teams):
             gs.append({"id": int(p["id"]), "name": f"{first[:1]}. {last}".strip(". ")})
         if gs:
             out[team] = gs
-    print(f"  [roster] goalies for {len(out)} teams")
+        sk = []
+        for grp, pos in (("forwards", "F"), ("defensemen", "D")):
+            for p in js.get(grp, []):
+                first = (p.get("firstName") or {}).get("default", "")
+                last = (p.get("lastName") or {}).get("default", "")
+                sk.append({"id": int(p["id"]), "name": f"{first[:1]}. {last}".strip(". "), "pos": pos})
+        if sk:
+            ROSTER_SKATERS[team] = sk
+    print(f"  [roster] goalies for {len(out)} teams, skaters for {len(ROSTER_SKATERS)}")
     return out
 
 
@@ -200,6 +247,11 @@ def main():
 
     display_season = latest
     report = json.load(open(os.path.join(OUT, "backtest.json")))
+    sp = sog.SogParams(**json.load(open(os.path.join(OUT, "sog_params.json"))))
+    skater_df = sog.load(years)
+    _, sst = sog.run(skater_df, sp, record_from=10**6)
+    if latest < cur:
+        sst.new_season(cur)
     bt = pd.read_csv(os.path.join(OUT, "backtest_games.csv"))
     bt = bt[(bt.season == 2026) & (bt.edge.abs() >= 1.0)]
 
@@ -247,7 +299,15 @@ def main():
         "goalies": goalies,
         "pp": pp,
         "pp_error": prizepicks.last_error,
+        "sog": {"params": sp.to_dict(), "players": sog_export(teams, sst, sp, skater_df),
+                "opp": {t: round(sst.opp_factor(t), 4) for t in sst.team_sa},
+                "backtest": json.load(open(os.path.join(OUT, "sog_backtest.json")))},
+        "win": {"params": json.load(open(os.path.join(OUT, "winners_params.json"))),
+                "lg_goals": round(state.lg_goals.s / state.lg_goals.w, 4),
+                "backtest": json.load(open(os.path.join(OUT, "winners_backtest.json")))},
         "dk": dk,
+        "dk_sog": [{"name": r["name"], "teams": r["teams"], "date": r["date"], "line": r["line"],
+                    "over": r.get("over"), "under": r.get("under")} for r in odds.sog_rows],
         "dk_error": odds.last_error,
         "odds_remaining": odds.remaining,
         "depth": depth_charts(st_df[st_df.season == display_season], rosters,

@@ -23,6 +23,7 @@ FILES = {
     "team": "team_box/parquet/team_box_{y}.parquet",
     "sched": "schedules/parquet/nhl_schedule_{y}.parquet",
     "pbp": "pbp_lite/parquet/play_by_play_lite_{y}.parquet",
+    "skater": "skater_box/parquet/skater_box_{y}.parquet",
 }
 
 SHOT_EVENTS = ["SHOT", "GOAL", "MISSED_SHOT", "BLOCKED_SHOT"]
