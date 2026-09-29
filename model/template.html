@@ -73,6 +73,7 @@ tr.over{background:var(--over-bg)} tr.under{background:var(--under-bg)} tr.dim t
 #tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.15);display:none;z-index:10}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.search{display:block;width:100%;max-width:420px;margin-top:12px;padding:9px 12px;font-size:15px}
 code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.5px}
 .gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
 .gc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px}
@@ -84,6 +85,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 <header>
   <h1>QRob Goalie Saves Model</h1>
   <div class="sub" id="meta"></div>
+  <input type="search" id="q" class="search" placeholder="Search goalie or team (e.g. Hart, VGK)" aria-label="Search goalie or team" autocomplete="off">
 </header>
 <nav id="tabs">
   <button data-t="proj" class="on">Projections</button>
@@ -209,6 +211,11 @@ const store = {
   set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
 };
 
+// ---------- search ----------
+const Q = () => ($("#q").value || "").trim().toLowerCase();
+const fold = s => (s || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+function matchQ(...fields){ const q = fold(Q()); return !q || fields.some(f => fold(f).includes(q)); }
+
 // ---------- model (mirrors model/engine.py) ----------
 function erfc(x){ // Numerical Recipes erfc approximation
   const z = Math.abs(x), t = 1/(1+0.5*z);
@@ -284,7 +291,9 @@ function renderSlate(){
   const nPP = (D.pp || []).length;
   $("#ppNote").textContent = nPP
     ? `Starters and lines auto-filled from ${nPP} goalie saves props on the PrizePicks board (as of ${D.built}). PrizePicks posting a goalie isn't an official confirmation, so check warmups on close calls. Change the goalie or line to override.`
-    : `No goalie saves props on the PrizePicks board at build time (${D.built}), so starters come from depth charts. PrizePicks usually posts them the morning of the game.`;
+    : D.pp_error
+      ? `Couldn't read the PrizePicks board at build time (${D.pp_error}), so starters come from depth charts. Pick the goalie and enter the line on each row.`
+      : `No goalie saves props on the PrizePicks board at build time (${D.built}), so starters come from depth charts. PrizePicks usually posts them the morning of the game.`;
   const dates = [...new Set(D.slate.map(g => g.date))];
   const dSel = $("#dateF");
   if (!dSel.options.length){ dSel.innerHTML = `<option value="">All</option>` + dates.map(d => `<option>${d}</option>`).join(""); }
@@ -294,7 +303,10 @@ function renderSlate(){
   let rows = slateRows().filter(r => !dateF || r.g.date === dateF);
   rows.sort((a,b) => (Math.abs(b.edge ?? -1)) - (Math.abs(a.edge ?? -1)) || b.proj - a.proj);
   let html = `<thead><tr><th class="l">Game</th><th class="l">Goalie</th><th>Exp SA</th><th>SV%</th><th>Proj</th><th>Line</th><th>Edge</th><th class="l">Pick</th><th>P(hit)</th><th class="l">Tier</th><th></th></tr></thead><tbody>`;
+  let shown = 0;
   for (const r of rows){
+    if (!matchQ((G[r.gid]||{}).name, r.team, r.opp)) continue;
+    shown++;
     const hasE = r.edge != null;
     const side = hasE ? (r.edge > 0 ? "OVER" : "UNDER") : "";
     const t = hasE ? tier(r.edge) : "";
@@ -312,6 +324,7 @@ function renderSlate(){
       <td>${ph!=null?pct(ph,0):"–"}</td><td class="l">${t?`<span class="pill ${t}">${t}</span>`:""}</td>
       <td>${play ? `<button class="ghost" data-log="${r.key}">Log</button>` : ""}</td></tr>`;
   }
+  if (!shown) html += `<tr><td colspan="11" class="l muted">No slate goalies match "${Q().replace(/[<>&]/g,"")}".</td></tr>`;
   $("#slateT").innerHTML = html + "</tbody>";
   $("#slateT").querySelectorAll("input[data-line]").forEach(i => i.onchange = () => {
     if (i.value === "") delete LINES[i.dataset.line]; else LINES[i.dataset.line] = +i.value;
@@ -369,12 +382,12 @@ function renderBacktest(){
   $("#calT").innerHTML = `<thead><tr><th>Model P(side)</th><th>Picks</th><th>Predicted</th><th>Actual hit</th></tr></thead><tbody>` +
     T.calibration.map(c => `<tr><td>${pct(c.p_lo,0)}–${pct(c.p_hi,0)}</td><td>${c.n}</td><td>${pct(c.pred)}</td><td>${pct(c.hit)}</td></tr>`).join("") + "</tbody>";
   const drawGames = () => {
-    const q = $("#btQ").value.toLowerCase();
-    const rows = D.bt_games.filter(g => !q || g.goalie.toLowerCase().includes(q)).slice(-400).reverse();
+    const q = fold($("#btQ").value) || fold(Q());
+    const rows = D.bt_games.filter(g => !q || [g.goalie, g.team, g.opp].some(f => fold(f).includes(q))).slice(-400).reverse();
     $("#btGamesT").innerHTML = `<thead><tr><th class="l">Date</th><th class="l">Goalie</th><th class="l">Matchup</th><th>Proj</th><th>Proxy line</th><th>Edge</th><th class="l">Pick</th><th>Saves</th><th class="l">Result</th></tr></thead><tbody>` +
       rows.map(g => `<tr class="${g.side.toLowerCase()}"><td class="l">${g.date}</td><td class="l">${g.goalie}</td><td class="l">${g.team} ${g.is_home?"vs":"@"} ${g.opp}</td><td>${fmt(g.proj)}</td><td>${g.line}</td><td>${g.edge>0?"+":""}${fmt(g.edge)}</td><td class="l side">${g.side}</td><td>${g.saves}</td><td class="l">${g.hit?'<span class="good">✓ Hit</span>':'<span class="bad">✗ Miss</span>'}</td></tr>`).join("") + "</tbody>";
   };
-  $("#btQ").oninput = drawGames; drawGames();
+  $("#btQ").oninput = drawGames; drawGames(); window.drawBtGames = drawGames;
 }
 
 // ---------- charts (inline SVG) ----------
@@ -477,8 +490,8 @@ function renderSlip(){
 function gTier(g){ const x = g.gsax60; if (x == null) return "Average"; return x >= 0.25 ? "Elite" : x >= 0.05 ? "Solid" : x >= -0.15 ? "Average" : "Below"; }
 function renderGoalies(){
   const team = $("#gTeam").value, t = $("#gTier").value, min = +$("#gMin").value;
-  const rows = D.goalies.filter(g => (g.gp||0) >= min && (!team || g.team === team) && (!t || gTier(g) === t)).sort((a,b) => (b.gp||0) - (a.gp||0));
-  $("#gCards").innerHTML = rows.map(g => `<div class="gc"><div class="n">${g.name} <span class="muted">${g.team}</span></div>
+  const rows = D.goalies.filter(g => (g.gp||0) >= min && (!team || g.team === team) && (!t || gTier(g) === t) && matchQ(g.name, g.team)).sort((a,b) => (b.gp||0) - (a.gp||0));
+  $("#gCards").innerHTML = (rows.length ? "" : `<p class="muted">No goalies match.</p>`) + rows.map(g => `<div class="gc"><div class="n">${g.name} <span class="muted">${g.team}</span></div>
     <div class="muted" style="font-size:12px">${gTier(g)} · ${g.gp} GP in ${D.display_season}</div>
     <dl><dt>Model SV% (shrunk)</dt><dd>${fmt(g.sv,3)}</dd><dt>Season SV%</dt><dd>${fmt(g.sv_pct,3)}</dd>
     <dt>GA/60</dt><dd>${fmt(g.ga60,2)}</dd><dt>GSAx/60</dt><dd class="${g.gsax60>0?"good":g.gsax60<0?"bad":""}">${g.gsax60>0?"+":""}${fmt(g.gsax60,2)}</dd>
@@ -496,7 +509,7 @@ let teamSort = ["rate_def", -1];
 function renderTeams(){
   $("#teamsH").textContent = `Team shot profile · ${D.display_season}`;
   const cols = [["team","Team",0],["gp","GP",0],["rate_off","Model SF/G",2],["rate_def","Model SA/G",2],["sf","SF/G",1],["sa","SA/G",1],["gf","GF/G",2],["ga","GA/G",2],["cf_pct","CF%",-1],["xgf_pct","xGF%",-1],["block_pct","Block%",-1],["pace","Pace (att/G)",1],["opp_pim","Opp PIM/G",1]];
-  const rows = TEAMS.map(t => ({team: t, ...D.teams[t]})).filter(r => r.gp > 0 || D.preseason);
+  const rows = TEAMS.map(t => ({team: t, ...D.teams[t]})).filter(r => (r.gp > 0 || D.preseason) && matchQ(r.team));
   const [k, dir] = teamSort;
   rows.sort((a,b) => ((a[k] ?? -1e9) > (b[k] ?? -1e9) ? 1 : -1) * dir * (k==="team"?-1:1));
   $("#teamT").innerHTML = `<thead><tr>${cols.map(c => `<th data-k="${c[0]}">${c[1]}</th>`).join("")}</tr></thead><tbody>` +
@@ -515,6 +528,7 @@ function renderLogic(){
   document.querySelectorAll(".carry").forEach(e => e.textContent = Math.round(P.carry*100) + "%");
 }
 
+$("#q").addEventListener("input", () => { renderSlate(); renderGoalies(); renderTeams(); if (window.drawBtGames) window.drawBtGames(); });
 renderSlate(); initBuilder(); renderBacktest(); renderTracker(); renderSlip(); initGoalies(); renderTeams(); renderLogic();
 </script>
 </body>

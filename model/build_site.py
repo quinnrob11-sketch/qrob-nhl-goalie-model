@@ -184,6 +184,7 @@ def main():
         "teams": team_table(tg, state, display_season),
         "goalies": goalies,
         "pp": pp,
+        "pp_error": prizepicks.last_error,
         "depth": depth_charts(st_df[st_df.season == display_season]),
         "last_played": {k: str(v) for k, v in state.last_played.items()},
         "slate": fetch_slate(today),
