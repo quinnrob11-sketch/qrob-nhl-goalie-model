@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QRob Goalie Saves</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f6f6f4; --surface:#fcfcfb; --surface-2:#f0efec; --border:#e2e1dc;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#7a7974;
+  --accent:#2a78d6; --accent-soft:#cde2fb;
+  --over:#0f7a3d; --over-bg:#e3f4ea; --under:#c23b3a; --under-bg:#fbe7e6;
+  --warn:#9a6700; --warn-bg:#fff4d6; --grid:#e8e7e3;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#121211; --surface:#1a1a19; --surface-2:#242422; --border:#34332f;
+    --text:#ffffff; --text-2:#c3c2b7; --muted:#8f8e86;
+    --accent:#3987e5; --accent-soft:#1c3553;
+    --over:#4cc47f; --over-bg:#15301f; --under:#f07472; --under-bg:#3a1b1a;
+    --warn:#e0b44a; --warn-bg:#352a10; --grid:#2c2c29;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#121211; --surface:#1a1a19; --surface-2:#242422; --border:#34332f;
+  --text:#ffffff; --text-2:#c3c2b7; --muted:#8f8e86;
+  --accent:#3987e5; --accent-soft:#1c3553;
+  --over:#4cc47f; --over-bg:#15301f; --under:#f07472; --under-bg:#3a1b1a;
+  --warn:#e0b44a; --warn-bg:#352a10; --grid:#2c2c29;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:20px 16px 0;max-width:1200px;margin:0 auto}
+h1{font-size:22px;margin:0 0 4px}
+.sub{color:var(--text-2);font-size:13px}
+nav{display:flex;gap:4px;overflow-x:auto;padding:14px 16px 0;max-width:1200px;margin:0 auto;border-bottom:1px solid var(--border)}
+nav button{background:none;border:0;border-bottom:2px solid transparent;color:var(--text-2);padding:8px 12px;font:inherit;cursor:pointer;white-space:nowrap}
+nav button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+main{max-width:1200px;margin:0 auto;padding:16px}
+section{display:none} section.on{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+.card h2{font-size:16px;margin:0 0 10px}
+.card h3{font-size:14px;margin:14px 0 6px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+label{font-size:12px;color:var(--text-2);display:flex;flex-direction:column;gap:4px}
+select,input{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 8px;min-width:0}
+input[type=number]{width:84px}
+button.btn{font:inherit;background:var(--accent);color:#fff;border:0;border-radius:6px;padding:7px 12px;cursor:pointer}
+button.ghost{font:inherit;background:none;color:var(--text-2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+th{font-size:12px;color:var(--text-2);font-weight:600;cursor:pointer;position:sticky;top:0;background:var(--surface)}
+th:first-child,td:first-child,th.l,td.l{text-align:left}
+tr.over td.side{color:var(--over);font-weight:700} tr.under td.side{color:var(--under);font-weight:700}
+tr.over{background:var(--over-bg)} tr.under{background:var(--under-bg)} tr.dim td{color:var(--muted)}
+.pill{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid var(--border)}
+.HIGH{background:var(--over-bg);color:var(--over)} .MED{background:var(--accent-soft);color:var(--accent)}
+.LOW{background:var(--surface-2);color:var(--text-2)} .PASS{color:var(--muted)}
+.note{background:var(--warn-bg);color:var(--text);border-left:3px solid var(--warn);padding:10px 12px;border-radius:6px;font-size:13px;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px}
+.stat .k{font-size:12px;color:var(--text-2)} .stat .v{font-size:26px;font-weight:650;margin-top:2px} .stat .s{font-size:12px;color:var(--muted)}
+.hero .v{font-size:48px}
+.muted{color:var(--muted)} .good{color:var(--over)} .bad{color:var(--under)}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--text-2);font-size:11px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--text-2);margin:6px 0}
+.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+#tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.15);display:none;z-index:10}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.gc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px}
+.gc .n{font-weight:650} .gc dl{display:grid;grid-template-columns:1fr auto;gap:2px 10px;margin:8px 0 0;font-size:12.5px}
+.gc dt{color:var(--text-2)} .gc dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<header>
+  <h1>QRob Goalie Saves Model</h1>
+  <div class="sub" id="meta"></div>
+</header>
+<nav id="tabs">
+  <button data-t="proj" class="on">Projections</button>
+  <button data-t="bt">Backtest</button>
+  <button data-t="track">Tracker &amp; Slip</button>
+  <button data-t="goalies">Goalies</button>
+  <button data-t="teams">Teams</button>
+  <button data-t="logic">Model Logic</button>
+</nav>
+<main>
+<section id="proj" class="on">
+  <div id="preNote"></div>
+  <div class="card">
+    <h2>Slate</h2>
+    <div class="row" style="margin-bottom:10px">
+      <label>Min edge (saves)<input type="number" id="minEdge" value="1.5" step="0.5" min="0"></label>
+      <label>Side<select id="sideF"><option value="">Both</option><option>OVER</option><option>UNDER</option></select></label>
+      <label>Date<select id="dateF"></select></label>
+    </div>
+    <div class="tbl"><table id="slateT"></table></div>
+    <p class="muted" id="slateEmpty" style="display:none">No NHL schedule in this build yet. It fills in once the season's games are published. Use the matchup builder below meanwhile.</p>
+  </div>
+  <div class="card">
+    <h2>Matchup builder</h2>
+    <div class="row">
+      <label>Goalie<select id="mbG"></select></label>
+      <label>Goalie's team<select id="mbT"></select></label>
+      <label>Opponent<select id="mbO"></select></label>
+      <label>Venue<select id="mbH"><option value="1">Home</option><option value="0">Away</option></select></label>
+      <label>Back-to-back<select id="mbB"><option value="0">No</option><option value="1">Yes</option></select></label>
+      <label>Playoffs<select id="mbP"><option value="0">No</option><option value="1">Yes</option></select></label>
+      <label>Line<input type="number" id="mbL" step="0.5" value="24.5"></label>
+    </div>
+    <div class="stats" style="margin-top:14px" id="mbOut"></div>
+  </div>
+</section>
+
+<section id="bt">
+  <div class="note" id="btNote"></div>
+  <div class="stats" id="btStats" style="margin-bottom:16px"></div>
+  <div class="grid2">
+    <div class="card"><h2>Hit rate by minimum edge, 2025-26</h2>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Hit rate</span><span><i style="background:var(--over)"></i>65% target</span><span><i style="background:var(--muted)"></i>52.4% break-even at -115</span></div>
+      <svg class="chart" id="bucketChart" viewBox="0 0 520 260"></svg></div>
+    <div class="card"><h2>Monthly hit rate, edge ≥ 1.5, 2025-26</h2>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Hit rate</span><span><i style="background:var(--over)"></i>65% target</span></div>
+      <svg class="chart" id="monthChart" viewBox="0 0 520 260"></svg></div>
+  </div>
+  <div class="card"><h2>Edge buckets</h2><div class="row" style="margin-bottom:8px">
+    <label>Season<select id="btSeason"><option value="2026">2025-26 (out-of-sample test)</option><option value="2025">2024-25 (fit season)</option></select></label>
+    <label>Games<select id="btSplit"><option value="buckets">All</option><option value="buckets_regular">Regular season</option><option value="buckets_playoffs">Playoffs</option><option value="buckets_sharp">Stress test: sharper proxy line</option></select></label></div>
+    <div class="tbl"><table id="bucketT"></table></div></div>
+  <div class="card"><h2>Calibration (does a 60% call hit 60%?)</h2><div class="tbl"><table id="calT"></table></div></div>
+  <div class="card"><h2>Graded 2025-26 starts, edge ≥ 1.0</h2>
+    <div class="row" style="margin-bottom:8px"><label>Search goalie<input id="btQ" placeholder="e.g. Hellebuyck"></label></div>
+    <div class="tbl" style="max-height:520px;overflow:auto"><table id="btGamesT"></table></div></div>
+</section>
+
+<section id="track">
+  <div class="card"><h2>Pick tracker</h2>
+    <p class="sub">Picks you log from the slate are saved in this browser and graded automatically from box scores on each rebuild. This is your real hit rate against real lines.</p>
+    <div class="stats" id="trStats" style="margin:12px 0"></div>
+    <div class="row" style="margin-bottom:8px"><button class="ghost" id="trExport">Export CSV</button><button class="ghost" id="trClear">Clear all</button></div>
+    <div class="tbl"><table id="trT"></table></div></div>
+  <div class="card"><h2>Slip builder</h2>
+    <div class="row"><label>Legs<input type="number" id="slLegs" value="3" min="2" max="6"></label>
+      <label>Min edge<input type="number" id="slEdge" value="2" step="0.5"></label>
+      <label>Payout (x)<input type="number" id="slPay" value="5" step="0.25"></label></div>
+    <div id="slOut" style="margin-top:12px"></div></div>
+</section>
+
+<section id="goalies">
+  <div class="card"><div class="row"><label>Team<select id="gTeam"><option value="">All</option></select></label>
+    <label>Tier<select id="gTier"><option value="">All</option><option>Elite</option><option>Solid</option><option>Average</option><option>Below</option></select></label>
+    <label>Min GP<input type="number" id="gMin" value="10"></label></div></div>
+  <div class="gcards" id="gCards"></div>
+</section>
+
+<section id="teams">
+  <div class="card"><h2 id="teamsH">Team shot profile</h2>
+    <p class="sub">Model rates are recency-weighted, shrunk to league average and are what the projection uses. Other columns are season-to-date totals.</p>
+    <div class="tbl"><table id="teamT"></table></div></div>
+</section>
+
+<section id="logic">
+  <div class="card"><h2>Formula</h2>
+    <p><code>exp_SA = LG × (TeamSA/LG)<sup>a</sup> × (OppSF/LG)<sup>b</sup> × home × playoff × b2b</code></p>
+    <p><code>Projected saves = exp_SA × time-in-net share × save%</code> &nbsp; <code>Edge = Projected − Line</code></p>
+    <div class="tbl"><table id="parT"></table></div>
+    <h3>What each piece does</h3>
+    <ul>
+      <li><b>Team shots against / opponent shots for:</b> recency-weighted per-game SOG, shrunk to league average early on. They replace the old fixed 60/40 blend with fitted weights <i>a</i> and <i>b</i>.</li>
+      <li><b>Time-in-net share:</b> covers pull risk. Early hooks and injuries are why raw SA/G overstates saves, and this replaces the flat ~12% empty-net haircut.</li>
+      <li><b>Save%:</b> shrunk toward .900 with a prior of <span class="k_sv"></span> shots, so a hot 10 games doesn't swing the number.</li>
+      <li><b>Home, playoff and back-to-back:</b> multipliers measured from 2024-25 shot volume.</li>
+      <li><b>Between seasons:</b> team shot rates keep <span class="carry"></span> of last year's weight, because rosters turn over. Early-season numbers lean on the league average and firm up after about 15 games.</li>
+    </ul>
+    <h3>Bet rules (your markers)</h3>
+    <ul>
+      <li>No bet under <b>1.0</b> saves of edge (PASS). <b>1.5+</b> is the standard play. <b>2.5+</b> is HIGH confidence.</li>
+      <li>Green rows are OVER, red rows are UNDER.</li>
+      <li><b>Confirm the starter</b> (morning skate or warmups) before locking. Every projection is for the goalie shown.</li>
+      <li>Overtime inflates raw saves past the per-60 projection. In a tight, high-event series, lean OVER on close calls.</li>
+      <li>Play-by-play extras (GSAx/60, rebound%, block%, CF%, xGF%) are on the Goalies and Teams tabs for reading a matchup. They aren't in the formula yet, and any that go in will only be added if they improve out-of-sample accuracy.</li>
+    </ul>
+    <h3>Data</h3>
+    <p class="sub">Box scores and play-by-play come from the public <code>sportsdataverse/fastRhockey-nhl-data</code> set, rebuilt daily from the NHL API. The schedule comes from <code>api-web.nhle.com</code>. The page rebuilds via GitHub Actions.</p>
+  </div>
+</section>
+</main>
+<div id="tip"></div>
+<script>
+const D = /*__DATA__*/null;
+const P = D.params;
+const $ = s => document.querySelector(s);
+const fmt = (x, d=1) => x == null || isNaN(x) ? "–" : Number(x).toFixed(d);
+const pct = (x, d=1) => x == null || isNaN(x) ? "–" : (100*x).toFixed(d) + "%";
+const G = Object.fromEntries(D.goalies.map(g => [g.id, g]));
+const TEAMS = Object.keys(D.teams).sort();
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+
+// ---------- model (mirrors model/engine.py) ----------
+function erfc(x){ // Numerical Recipes erfc approximation
+  const z = Math.abs(x), t = 1/(1+0.5*z);
+  const r = t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));
+  return x >= 0 ? r : 2 - r;
+}
+const pOver = (proj, line) => 0.5*erfc((line - proj)/D.sd/Math.SQRT2);
+function project(gid, team, opp, isHome, b2b, playoff){
+  const lg = D.league, t = D.teams[team] || {}, o = D.teams[opp] || {};
+  const d = t.rate_def ?? lg, off = o.rate_off ?? lg;
+  let sa = lg * Math.pow(d/lg, P.a) * Math.pow(off/lg, P.b);
+  sa *= isHome ? P.home : 1/P.home;
+  if (playoff) sa *= P.playoff;
+  if (b2b) sa *= P.b2b;
+  const g = G[gid] || {sv: .900, share: D.lg_share};
+  return {sa, sv: g.sv, share: g.share, proj: sa * g.share * g.sv};
+}
+function tier(e){ e = Math.abs(e); return e >= 2.5 ? "HIGH" : e >= 1.5 ? "MED" : e >= 1.0 ? "LOW" : "PASS"; }
+
+// ---------- header / tabs ----------
+$("#meta").textContent = `${D.season} season · data through ${D.data_through} · built ${D.built}`;
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll("main section").forEach(s => s.classList.toggle("on", s.id === b.dataset.t));
+  store.set("gm_tab", b.dataset.t);
+});
+{ const t = store.get("gm_tab"); const b = t && document.querySelector(`#tabs button[data-t="${t}"]`); if (b) b.click(); }
+if (D.preseason) $("#preNote").innerHTML = `<div class="note"><b>Preseason build.</b> Ratings are ${D.display_season} numbers regressed toward league average, the same way the backtest handles a new season. Starters come from last season's depth charts, so check offseason moves and <b>confirm starters</b> before betting. Numbers sharpen after about 15 games.</div>`;
+
+// ---------- slate ----------
+const LINES = store.get("gm_lines", {});
+const STARTER = store.get("gm_starter", {});
+function starterFor(team, date){
+  const k = date + "|" + team;
+  if (STARTER[k]) return +STARTER[k];
+  return (D.depth[team] || [])[0];
+}
+function goalieOptions(team, sel){
+  const ids = [...new Set([...(D.depth[team]||[]), ...D.goalies.filter(g => g.team === team).map(g => g.id)])];
+  const rest = D.goalies.filter(g => !ids.includes(g.id)).sort((a,b) => a.name.localeCompare(b.name));
+  const opt = g => `<option value="${g.id}" ${g.id===sel?"selected":""}>${g.name}${g.team && g.team!==team ? " ("+g.team+")" : ""}</option>`;
+  return ids.map(i => G[i]).filter(Boolean).map(opt).join("") + '<option disabled>──────</option>' + rest.map(opt).join("");
+}
+function slateRows(){
+  const rows = [];
+  for (const g of D.slate){
+    for (const side of ["home","away"]){
+      const team = g[side], opp = side === "home" ? g.away : g.home;
+      const gid = starterFor(team, g.date);
+      const last = D.last_played[team];
+      const b2b = last && (new Date(g.date) - new Date(last)) / 864e5 === 1;
+      const pr = project(gid, team, opp, side === "home", b2b, g.type === "P");
+      const key = g.date + "|" + gid;
+      const line = LINES[key];
+      const edge = line != null ? pr.proj - line : null;
+      rows.push({g, team, opp, gid, side, b2b, ...pr, key, line, edge});
+    }
+  }
+  return rows;
+}
+function renderSlate(){
+  const dates = [...new Set(D.slate.map(g => g.date))];
+  const dSel = $("#dateF");
+  if (!dSel.options.length){ dSel.innerHTML = `<option value="">All</option>` + dates.map(d => `<option>${d}</option>`).join(""); }
+  $("#slateEmpty").style.display = D.slate.length ? "none" : "block";
+  if (!D.slate.length){ $("#slateT").innerHTML = ""; return; }
+  const minE = +$("#minEdge").value, sideF = $("#sideF").value, dateF = dSel.value;
+  let rows = slateRows().filter(r => !dateF || r.g.date === dateF);
+  rows.sort((a,b) => (Math.abs(b.edge ?? -1)) - (Math.abs(a.edge ?? -1)) || b.proj - a.proj);
+  let html = `<thead><tr><th class="l">Game</th><th class="l">Goalie</th><th>Exp SA</th><th>SV%</th><th>Proj</th><th>Line</th><th>Edge</th><th class="l">Pick</th><th>P(hit)</th><th class="l">Tier</th><th></th></tr></thead><tbody>`;
+  for (const r of rows){
+    const hasE = r.edge != null;
+    const side = hasE ? (r.edge > 0 ? "OVER" : "UNDER") : "";
+    const t = hasE ? tier(r.edge) : "";
+    if (hasE && sideF && side !== sideF) continue;
+    const play = hasE && t !== "PASS" && Math.abs(r.edge) >= minE;
+    const cls = play ? side.toLowerCase() : hasE ? "dim" : "";
+    const ph = hasE ? (side === "OVER" ? pOver(r.proj, r.line) : 1 - pOver(r.proj, r.line)) : null;
+    html += `<tr class="${cls}"><td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp}<div class="muted" style="font-size:11px">${r.g.date}${r.b2b?" · B2B":""}${r.g.type==="P"?" · Playoffs":""}</div></td>
+      <td class="l"><select data-st="${r.g.date}|${r.team}">${goalieOptions(r.team, r.gid)}</select></td>
+      <td>${fmt(r.sa)}</td><td>${fmt(r.sv,3)}</td><td><b>${fmt(r.proj)}</b></td>
+      <td><input type="number" step="0.5" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line"></td>
+      <td>${hasE ? (r.edge>0?"+":"") + fmt(r.edge) : "–"}</td><td class="l side">${play ? side : (hasE ? "PASS" : "")}</td>
+      <td>${ph!=null?pct(ph,0):"–"}</td><td class="l">${t?`<span class="pill ${t}">${t}</span>`:""}</td>
+      <td>${play ? `<button class="ghost" data-log="${r.key}">Log</button>` : ""}</td></tr>`;
+  }
+  $("#slateT").innerHTML = html + "</tbody>";
+  $("#slateT").querySelectorAll("input[data-line]").forEach(i => i.onchange = () => {
+    if (i.value === "") delete LINES[i.dataset.line]; else LINES[i.dataset.line] = +i.value;
+    store.set("gm_lines", LINES); renderSlate(); renderSlip();
+  });
+  $("#slateT").querySelectorAll("select[data-st]").forEach(s => s.onchange = () => {
+    STARTER[s.dataset.st] = +s.value; store.set("gm_starter", STARTER); renderSlate(); renderSlip();
+  });
+  $("#slateT").querySelectorAll("button[data-log]").forEach(b => b.onclick = () => {
+    const r = slateRows().find(x => x.key === b.dataset.log); logPick(r); b.textContent = "Logged"; b.disabled = true;
+  });
+}
+["#minEdge","#sideF","#dateF"].forEach(s => $(s).onchange = renderSlate);
+
+// ---------- matchup builder ----------
+function initBuilder(){
+  const gs = D.goalies.filter(g => (g.gp||0) > 0).sort((a,b) => a.name.localeCompare(b.name));
+  $("#mbG").innerHTML = gs.map(g => `<option value="${g.id}">${g.name} (${g.team})</option>`).join("");
+  const tOpts = TEAMS.map(t => `<option>${t}</option>`).join("");
+  $("#mbT").innerHTML = tOpts; $("#mbO").innerHTML = tOpts;
+  $("#mbG").onchange = () => { $("#mbT").value = G[$("#mbG").value].team; renderBuilder(); };
+  ["#mbT","#mbO","#mbH","#mbB","#mbP","#mbL"].forEach(s => $(s).oninput = renderBuilder);
+  $("#mbG").onchange(); $("#mbO").value = TEAMS.find(t => t !== $("#mbT").value);
+  renderBuilder();
+}
+function renderBuilder(){
+  const gid = +$("#mbG").value, r = project(gid, $("#mbT").value, $("#mbO").value, $("#mbH").value==="1", $("#mbB").value==="1", $("#mbP").value==="1");
+  const line = +$("#mbL").value, e = r.proj - line, side = e > 0 ? "OVER" : "UNDER", t = tier(e);
+  const ph = side === "OVER" ? pOver(r.proj, line) : 1 - pOver(r.proj, line);
+  $("#mbOut").innerHTML = `
+    <div class="stat hero"><div class="k">Projected saves</div><div class="v">${fmt(r.proj)}</div><div class="s">${fmt(r.sa)} exp SA × ${fmt(r.share,3)} share × ${fmt(r.sv,3)} SV%</div></div>
+    <div class="stat"><div class="k">Edge vs ${line}</div><div class="v ${t==="PASS"?"":side==="OVER"?"good":"bad"}">${e>0?"+":""}${fmt(e)}</div><div class="s">${t==="PASS"?"PASS (under 1.0)":side+" · "+t}</div></div>
+    <div class="stat"><div class="k">Model P(${side.toLowerCase()})</div><div class="v">${pct(ph,0)}</div><div class="s">normal, sd ${fmt(D.sd,2)} saves</div></div>`;
+}
+
+// ---------- backtest ----------
+function renderBacktest(){
+  const B = D.backtest, T = B["2026"], F = B["2025"];
+  $("#btNote").innerHTML = `<b>How to read this.</b> Historical sportsbook saves lines aren't in any public dataset, so each start is graded against a <b>proxy line</b>: floor(goalie's last-10-start average) + 0.5, the way a lazy book would hang it. Parameters were fit on 2024-25 only, and <b>2025-26 is fully out-of-sample</b>. Real DK/PrizePicks lines are sharper than this proxy, so treat these hit rates as a <b>ceiling</b>. The stress-test view grades against a tougher proxy that already prices team shot suppression, save% and pull risk, which is closer to a real book. Your true number builds in the Tracker tab.`;
+  const b15 = T.buckets.find(b => b.min_edge === 1.5) || {}, b25 = T.buckets.find(b => b.min_edge === 2.5) || {};
+  $("#btStats").innerHTML = `
+    <div class="stat hero"><div class="k">2025-26 hit rate, edge ≥ 1.5</div><div class="v">${pct(b15.hit)}</div><div class="s">${b15.n} picks · ${b15.units>0?"+":""}${fmt(b15.units)}u at -115</div></div>
+    <div class="stat"><div class="k">Edge ≥ 2.5 (HIGH)</div><div class="v">${pct(b25.hit)}</div><div class="s">${b25.n} picks · ${b25.units>0?"+":""}${fmt(b25.units)}u</div></div>
+    <div class="stat"><div class="k">Avg miss per start (MAE)</div><div class="v">${fmt(T.mae_model,2)}</div><div class="s">vs ${fmt(T.mae_l10,2)} for last-10 avg</div></div>
+    <div class="stat"><div class="k">Stress test, edge ≥ 1.5</div><div class="v">${pct((T.buckets_sharp.find(b=>b.min_edge===1.5)||{}).hit)}</div><div class="s">vs a sharper line that already prices team defense, SV% and pull risk</div></div>
+    <div class="stat"><div class="k">2024-25 (fit) edge ≥ 1.5</div><div class="v">${pct((F.buckets.find(b=>b.min_edge===1.5)||{}).hit)}</div><div class="s">${T.starts} test starts graded</div></div>`;
+  barChart($("#bucketChart"), T.buckets.map(b => ({x: "≥"+b.min_edge, y: b.hit, n: b.n})));
+  lineChart($("#monthChart"), T.monthly.map(m => ({x: m.month.slice(2), y: m.hit, n: m.n})));
+  const drawBuckets = () => {
+    const src = B[$("#btSeason").value][$("#btSplit").value];
+    $("#bucketT").innerHTML = `<thead><tr><th>Min edge</th><th>Picks</th><th>Hit %</th><th>OVER n</th><th>OVER hit</th><th>UNDER n</th><th>UNDER hit</th><th>Units @ -115</th></tr></thead><tbody>` +
+      src.map(b => `<tr><td>${b.min_edge}</td><td>${b.n}</td><td class="${b.hit>=.65?"good":b.hit<.524?"bad":""}"><b>${pct(b.hit)}</b></td><td>${b.over_n}</td><td>${pct(b.over_hit)}</td><td>${b.under_n}</td><td>${pct(b.under_hit)}</td><td>${b.units>0?"+":""}${fmt(b.units)}</td></tr>`).join("") + "</tbody>";
+  };
+  $("#btSeason").onchange = $("#btSplit").onchange = drawBuckets; drawBuckets();
+  $("#calT").innerHTML = `<thead><tr><th>Model P(side)</th><th>Picks</th><th>Predicted</th><th>Actual hit</th></tr></thead><tbody>` +
+    T.calibration.map(c => `<tr><td>${pct(c.p_lo,0)}–${pct(c.p_hi,0)}</td><td>${c.n}</td><td>${pct(c.pred)}</td><td>${pct(c.hit)}</td></tr>`).join("") + "</tbody>";
+  const drawGames = () => {
+    const q = $("#btQ").value.toLowerCase();
+    const rows = D.bt_games.filter(g => !q || g.goalie.toLowerCase().includes(q)).slice(-400).reverse();
+    $("#btGamesT").innerHTML = `<thead><tr><th class="l">Date</th><th class="l">Goalie</th><th class="l">Matchup</th><th>Proj</th><th>Proxy line</th><th>Edge</th><th class="l">Pick</th><th>Saves</th><th class="l">Result</th></tr></thead><tbody>` +
+      rows.map(g => `<tr class="${g.side.toLowerCase()}"><td class="l">${g.date}</td><td class="l">${g.goalie}</td><td class="l">${g.team} ${g.is_home?"vs":"@"} ${g.opp}</td><td>${fmt(g.proj)}</td><td>${g.line}</td><td>${g.edge>0?"+":""}${fmt(g.edge)}</td><td class="l side">${g.side}</td><td>${g.saves}</td><td class="l">${g.hit?'<span class="good">✓ Hit</span>':'<span class="bad">✗ Miss</span>'}</td></tr>`).join("") + "</tbody>";
+  };
+  $("#btQ").oninput = drawGames; drawGames();
+}
+
+// ---------- charts (inline SVG) ----------
+const tip = $("#tip");
+function showTip(e, html){ tip.innerHTML = html; tip.style.display = "block"; tip.style.left = (e.clientX + 12) + "px"; tip.style.top = (e.clientY + 12) + "px"; }
+function hideTip(){ tip.style.display = "none"; }
+function axes(svg, W, H, m, lo, hi, refs){
+  let s = "";
+  for (let v = lo; v <= hi + 1e-9; v += 0.05){
+    const y = m.t + (H - m.t - m.b) * (1 - (v - lo)/(hi - lo));
+    s += `<line x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}" stroke="var(--grid)" stroke-width="1"/><text x="${m.l-6}" y="${y+4}" text-anchor="end">${Math.round(v*100)}%</text>`;
+  }
+  for (const [v, col, dash] of refs){
+    const y = m.t + (H - m.t - m.b) * (1 - (v - lo)/(hi - lo));
+    s += `<line x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}" stroke="${col}" stroke-width="2" ${dash?'stroke-dasharray="5 4"':""}/>`;
+  }
+  return s;
+}
+function barChart(svg, pts){
+  const W = 520, H = 260, m = {l:44, r:12, t:12, b:28}, lo = 0.40, hi = 0.80;
+  const bw = (W - m.l - m.r) / pts.length, y = v => m.t + (H - m.t - m.b) * (1 - (Math.max(lo, v) - lo)/(hi - lo));
+  let s = axes(svg, W, H, m, lo, hi, [[0.65, "var(--over)"], [0.524, "var(--muted)", 1]]);
+  pts.forEach((p, i) => {
+    const x = m.l + i*bw + bw/2, w = Math.min(24, bw*0.6), top = y(p.y), base = H - m.b;
+    s += `<path d="M${x-w/2},${base} V${top+4} q0,-4 4,-4 h${w-8} q4,0 4,4 V${base} Z" fill="var(--accent)"/>`;
+    s += `<text x="${x}" y="${top-5}" text-anchor="middle" style="fill:var(--text)">${Math.round(p.y*100)}%</text>`;
+    s += `<text x="${x}" y="${H-10}" text-anchor="middle">${p.x}</text>`;
+    s += `<rect x="${m.l+i*bw}" y="${m.t}" width="${bw}" height="${H-m.t-m.b}" fill="transparent" data-i="${i}"/>`;
+  });
+  svg.innerHTML = s;
+  svg.querySelectorAll("rect[data-i]").forEach(r => { const p = pts[+r.dataset.i];
+    r.onmousemove = e => showTip(e, `<b>Edge ${p.x}</b><br>${pct(p.y)} hit · ${p.n} picks`); r.onmouseleave = hideTip; });
+}
+function lineChart(svg, pts){
+  const W = 520, H = 260, m = {l:44, r:24, t:12, b:28}, lo = 0.40, hi = 0.85;
+  if (!pts.length){ svg.innerHTML = ""; return; }
+  const step = (W - m.l - m.r) / Math.max(1, pts.length - 1);
+  const X = i => m.l + i*step, Y = v => m.t + (H - m.t - m.b) * (1 - (Math.min(hi, Math.max(lo, v)) - lo)/(hi - lo));
+  let s = axes(svg, W, H, m, lo, hi, [[0.65, "var(--over)"]]);
+  s += `<polyline fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${pts.map((p,i)=>X(i)+","+Y(p.y)).join(" ")}"/>`;
+  pts.forEach((p, i) => {
+    s += `<circle cx="${X(i)}" cy="${Y(p.y)}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>`;
+    if (i % Math.ceil(pts.length/9) === 0 || i === pts.length-1) s += `<text x="${X(i)}" y="${H-10}" text-anchor="middle">${p.x}</text>`;
+    s += `<rect x="${X(i)-step/2}" y="${m.t}" width="${step}" height="${H-m.t-m.b}" fill="transparent" data-i="${i}"/>`;
+  });
+  svg.innerHTML = s;
+  svg.querySelectorAll("rect[data-i]").forEach(r => { const p = pts[+r.dataset.i];
+    r.onmousemove = e => showTip(e, `<b>${p.x}</b><br>${pct(p.y)} hit · ${p.n} picks`); r.onmouseleave = hideTip; });
+}
+
+// ---------- tracker + slip ----------
+let PICKS = store.get("gm_picks", []);
+function logPick(r){
+  const side = r.edge > 0 ? "OVER" : "UNDER";
+  PICKS.push({date: r.g.date, goalie_id: r.gid, goalie: (G[r.gid]||{}).name, team: r.team, opp: r.opp, line: r.line, proj: +r.proj.toFixed(2), edge: +r.edge.toFixed(2), side, tier: tier(r.edge)});
+  store.set("gm_picks", PICKS); renderTracker();
+}
+function gradePick(p){
+  const res = D.results.find(x => x.goalie_id === p.goalie_id && x.date === p.date);
+  if (!res) return null;
+  return {saves: res.saves, hit: p.side === "OVER" ? res.saves > p.line : res.saves < p.line};
+}
+function renderTracker(){
+  const graded = PICKS.map(p => ({...p, g: gradePick(p)}));
+  const done = graded.filter(p => p.g);
+  const hits = done.filter(p => p.g.hit).length;
+  const units = done.reduce((u, p) => u + (p.g.hit ? 100/115 : -1), 0);
+  $("#trStats").innerHTML = `
+    <div class="stat hero"><div class="k">Real hit rate</div><div class="v ${done.length && hits/done.length>=.65?"good":""}">${done.length?pct(hits/done.length):"–"}</div><div class="s">${hits}-${done.length-hits} · target 65%</div></div>
+    <div class="stat"><div class="k">Units at -115</div><div class="v">${done.length?(units>0?"+":"")+fmt(units):"–"}</div></div>
+    <div class="stat"><div class="k">Pending</div><div class="v">${graded.length - done.length}</div></div>`;
+  $("#trT").innerHTML = `<thead><tr><th class="l">Date</th><th class="l">Goalie</th><th class="l">Matchup</th><th>Line</th><th>Proj</th><th>Edge</th><th class="l">Pick</th><th class="l">Tier</th><th>Saves</th><th class="l">Result</th><th></th></tr></thead><tbody>` +
+    graded.map((p, i) => `<tr class="${p.side.toLowerCase()}"><td class="l">${p.date}</td><td class="l">${p.goalie}</td><td class="l">${p.team} v ${p.opp}</td><td>${p.line}</td><td>${fmt(p.proj)}</td><td>${p.edge>0?"+":""}${fmt(p.edge)}</td><td class="l side">${p.side}</td><td class="l"><span class="pill ${p.tier}">${p.tier}</span></td><td>${p.g?p.g.saves:"–"}</td><td class="l">${!p.g?'<span class="muted">pending</span>':p.g.hit?'<span class="good">✓ Hit</span>':'<span class="bad">✗ Miss</span>'}</td><td><button class="ghost" data-del="${i}">✕</button></td></tr>`).reverse().join("") + "</tbody>";
+  $("#trT").querySelectorAll("button[data-del]").forEach(b => b.onclick = () => { PICKS.splice(+b.dataset.del, 1); store.set("gm_picks", PICKS); renderTracker(); });
+}
+$("#trClear").onclick = () => { if (confirm("Delete all logged picks?")) { PICKS = []; store.set("gm_picks", PICKS); renderTracker(); } };
+$("#trExport").onclick = () => {
+  const rows = [["date","goalie","team","opp","line","proj","edge","side","tier","saves","hit"]].concat(
+    PICKS.map(p => { const g = gradePick(p); return [p.date,p.goalie,p.team,p.opp,p.line,p.proj,p.edge,p.side,p.tier,g?g.saves:"",g?g.hit:""]; }));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([rows.map(r => r.join(",")).join("\n")], {type: "text/csv"}));
+  a.download = "goalie_picks.csv"; a.click();
+};
+function renderSlip(){
+  const legs = +$("#slLegs").value, minE = +$("#slEdge").value, pay = +$("#slPay").value;
+  const cands = D.slate.length ? slateRows().filter(r => r.edge != null && Math.abs(r.edge) >= minE) : [];
+  cands.sort((a,b) => Math.abs(b.edge) - Math.abs(a.edge));
+  const seenGame = new Set(), pick = [];
+  for (const r of cands){ if (pick.length >= legs) break; if (seenGame.has(r.g.id)) continue; seenGame.add(r.g.id); pick.push(r); }
+  if (!pick.length){ $("#slOut").innerHTML = `<p class="muted">Enter lines on the slate. The builder picks the biggest edges at or above your minimum, one goalie per game.</p>`; return; }
+  const probs = pick.map(r => r.edge > 0 ? pOver(r.proj, r.line) : 1 - pOver(r.proj, r.line));
+  const pAll = probs.reduce((a, b) => a*b, 1);
+  $("#slOut").innerHTML = `<div class="tbl"><table><thead><tr><th class="l">Goalie</th><th class="l">Pick</th><th>Line</th><th>Proj</th><th>P(hit)</th></tr></thead><tbody>` +
+    pick.map((r, i) => `<tr class="${r.edge>0?"over":"under"}"><td class="l">${(G[r.gid]||{}).name} (${r.team})</td><td class="l side">${r.edge>0?"OVER":"UNDER"}</td><td>${r.line}</td><td>${fmt(r.proj)}</td><td>${pct(probs[i],0)}</td></tr>`).join("") +
+    `</tbody></table></div><p>${pick.length < legs ? `<span class="bad">Only ${pick.length} legs qualify.</span> ` : ""}Model P(all hit) <b>${pct(pAll)}</b> · EV at ${pay}x: <b class="${pAll*pay>1?"good":"bad"}">${pAll*pay>1?"+":""}${pct(pAll*pay-1)}</b></p>`;
+}
+["#slLegs","#slEdge","#slPay"].forEach(s => $(s).oninput = renderSlip);
+
+// ---------- goalies ----------
+function gTier(g){ const x = g.gsax60; if (x == null) return "Average"; return x >= 0.25 ? "Elite" : x >= 0.05 ? "Solid" : x >= -0.15 ? "Average" : "Below"; }
+function renderGoalies(){
+  const team = $("#gTeam").value, t = $("#gTier").value, min = +$("#gMin").value;
+  const rows = D.goalies.filter(g => (g.gp||0) >= min && (!team || g.team === team) && (!t || gTier(g) === t)).sort((a,b) => (b.gp||0) - (a.gp||0));
+  $("#gCards").innerHTML = rows.map(g => `<div class="gc"><div class="n">${g.name} <span class="muted">${g.team}</span></div>
+    <div class="muted" style="font-size:12px">${gTier(g)} · ${g.gp} GP in ${D.display_season}</div>
+    <dl><dt>Model SV% (shrunk)</dt><dd>${fmt(g.sv,3)}</dd><dt>Season SV%</dt><dd>${fmt(g.sv_pct,3)}</dd>
+    <dt>GA/60</dt><dd>${fmt(g.ga60,2)}</dd><dt>GSAx/60</dt><dd class="${g.gsax60>0?"good":g.gsax60<0?"bad":""}">${g.gsax60>0?"+":""}${fmt(g.gsax60,2)}</dd>
+    <dt>Rebound %</dt><dd>${pct(g.rebound_pct)}</dd><dt>SA/60</dt><dd>${fmt(g.sa60)}</dd>
+    <dt>Avg saves</dt><dd>${fmt(g.avg_sv)}</dd><dt>Last-10 avg</dt><dd>${fmt(g.l10)}</dd><dt>Time-in-net share</dt><dd>${pct(g.share)}</dd></dl>
+    <div class="muted" style="font-size:11.5px;margin-top:6px">Last 10: ${(g.last10||[]).join(", ")}</div></div>`).join("");
+}
+function initGoalies(){
+  $("#gTeam").innerHTML += TEAMS.map(t => `<option>${t}</option>`).join("");
+  ["#gTeam","#gTier","#gMin"].forEach(s => $(s).oninput = renderGoalies); renderGoalies();
+}
+
+// ---------- teams ----------
+let teamSort = ["rate_def", -1];
+function renderTeams(){
+  $("#teamsH").textContent = `Team shot profile · ${D.display_season}`;
+  const cols = [["team","Team",0],["gp","GP",0],["rate_off","Model SF/G",2],["rate_def","Model SA/G",2],["sf","SF/G",1],["sa","SA/G",1],["gf","GF/G",2],["ga","GA/G",2],["cf_pct","CF%",-1],["xgf_pct","xGF%",-1],["block_pct","Block%",-1],["pace","Pace (att/G)",1],["opp_pim","Opp PIM/G",1]];
+  const rows = TEAMS.map(t => ({team: t, ...D.teams[t]})).filter(r => r.gp > 0 || D.preseason);
+  const [k, dir] = teamSort;
+  rows.sort((a,b) => ((a[k] ?? -1e9) > (b[k] ?? -1e9) ? 1 : -1) * dir * (k==="team"?-1:1));
+  $("#teamT").innerHTML = `<thead><tr>${cols.map(c => `<th data-k="${c[0]}">${c[1]}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map(r => `<tr>${cols.map(c => `<td>${c[0]==="team"?r.team:c[2]===-1?pct(r[c[0]]):fmt(r[c[0]],c[2])}</td>`).join("")}</tr>`).join("") + "</tbody>";
+  $("#teamT").querySelectorAll("th").forEach(th => th.onclick = () => { teamSort = [th.dataset.k, teamSort[0]===th.dataset.k ? -teamSort[1] : -1]; renderTeams(); });
+}
+
+// ---------- logic ----------
+function renderLogic(){
+  const rows = [["League SOG per team-game (LG)", fmt(D.league,2)], ["a: weight on own team's shots against", P.a], ["b: weight on opponent's shots for", P.b],
+    ["Team rate half-life (games)", P.half_life], ["Team prior strength (games)", P.k_team], ["Carry-over between seasons", P.carry],
+    ["Save% prior (shots)", P.k_sv], ["Save% half-life (starts)", P.sv_half_life], ["Home multiplier", P.home], ["Playoff multiplier", P.playoff],
+    ["Back-to-back multiplier", P.b2b], ["League time-in-net share", pct(D.lg_share)], ["Residual sd (saves)", fmt(D.sd,2)]];
+  $("#parT").innerHTML = `<tbody>${rows.map(r => `<tr><td class="l">${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</tbody>`;
+  document.querySelectorAll(".k_sv").forEach(e => e.textContent = P.k_sv);
+  document.querySelectorAll(".carry").forEach(e => e.textContent = Math.round(P.carry*100) + "%");
+}
+
+renderSlate(); initBuilder(); renderBacktest(); renderTracker(); renderSlip(); initGoalies(); renderTeams(); renderLogic();
+</script>
+</body>
+</html>
