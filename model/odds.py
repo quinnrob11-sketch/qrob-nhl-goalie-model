@@ -4,8 +4,11 @@ DraftKings only hangs a saves prop on the goalie it expects to start, so a
 posted line doubles as a starter signal. Needs ODDS_API_KEY in the environment
 (a GitHub Actions secret); without it this is a no-op.
 
-Quota: one request to list events (free on The Odds API) plus one credit per
-game, and only for games starting in the next 18 hours.
+Also pulls DraftKings player shots-on-goal lines in the same request (module
+variable `sog_rows`) for the SOG props tab.
+
+Quota: listing events is free on The Odds API; each game costs one credit per
+market (2: saves + shots), and only games starting in the next 18 hours are pulled.
 """
 from __future__ import annotations
 
@@ -20,6 +23,7 @@ import prizepicks  # name matching helpers
 
 BASE = "https://api.the-odds-api.com/v4/sports/icehockey_nhl"
 MARKET = "player_total_saves"
+SOG_MARKET = "player_shots_on_goal"
 BOOK = "draftkings"
 ET = ZoneInfo("America/New_York")
 WINDOW_H = 18
@@ -40,6 +44,7 @@ TEAM_ABBR = {
 
 last_error: str | None = None
 remaining: str | None = None
+sog_rows: list[dict] = []
 
 
 def _get(url, params):
@@ -51,8 +56,8 @@ def _get(url, params):
         return json.load(r)
 
 
-def parse_event(ev: dict, js: dict) -> list[dict]:
-    """One row per goalie with a DraftKings saves line in this event."""
+def parse_event(ev: dict, js: dict, market: str = MARKET) -> list[dict]:
+    """One row per player with a DraftKings line for `market` in this event."""
     home, away = TEAM_ABBR.get(ev["home_team"]), TEAM_ABBR.get(ev["away_team"])
     date = dt.datetime.fromisoformat(ev["commence_time"].replace("Z", "+00:00")).astimezone(ET).date().isoformat()
     by_player = {}
@@ -60,7 +65,7 @@ def parse_event(ev: dict, js: dict) -> list[dict]:
         if bm.get("key") != BOOK:
             continue
         for m in bm.get("markets", []):
-            if m.get("key") != MARKET:
+            if m.get("key") != market:
                 continue
             for o in m.get("outcomes", []):
                 name, side = o.get("description"), (o.get("name") or "").lower()
@@ -94,8 +99,9 @@ def match(rows: list[dict], goalies: list[dict]) -> list[dict]:
 
 
 def fetch(goalies: list[dict], now: dt.datetime | None = None) -> list[dict]:
-    global last_error
+    global last_error, sog_rows
     last_error = None
+    sog_rows = []
     key = os.environ.get("ODDS_API_KEY")
     if not key:
         last_error = "ODDS_API_KEY not set"
@@ -114,13 +120,16 @@ def fetch(goalies: list[dict], now: dt.datetime | None = None) -> list[dict]:
         if not (now - dt.timedelta(hours=1) <= start <= now + dt.timedelta(hours=WINDOW_H)):
             continue
         try:
-            js = _get(f"{BASE}/events/{ev['id']}/odds", {"apiKey": key, "regions": "us", "markets": MARKET,
+            js = _get(f"{BASE}/events/{ev['id']}/odds", {"apiKey": key, "regions": "us",
+                                                        "markets": f"{MARKET},{SOG_MARKET}",
                                                         "bookmakers": BOOK, "oddsFormat": "american"})
         except Exception as e:
             last_error = str(e)
             print(f"  [odds] {ev['away_team']} @ {ev['home_team']}: {e}")
             continue
         rows += parse_event(ev, js)
+        sog_rows += parse_event(ev, js, SOG_MARKET)
     rows = match(rows, goalies)
-    print(f"  [odds] {len(rows)} DraftKings saves lines (requests remaining: {remaining})")
+    print(f"  [odds] {len(rows)} DraftKings saves lines, {len(sog_rows)} SOG lines "
+          f"(requests remaining: {remaining})")
     return rows

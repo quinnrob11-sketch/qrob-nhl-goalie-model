@@ -1,0 +1,2520 @@
+{
+"source": "PrizePicks NHL board, standard Shots On Goal lines, scraped by quinnrob11-sketch/nhl (2026 playoffs)",
+"props": [
+{
+"date": "2026-05-01",
+"player": "Christian Dvorak",
+"line": 1.5
+},
+{
+"date": "2026-05-01",
+"player": "Clayton Keller",
+"line": 2.5
+},
+{
+"date": "2026-05-01",
+"player": "Dylan Guenther",
+"line": 3.5
+},
+{
+"date": "2026-05-01",
+"player": "Ivan Barbashev",
+"line": 1.5
+},
+{
+"date": "2026-05-01",
+"player": "Jaccob Slavin",
+"line": 1.5
+},
+{
+"date": "2026-05-01",
+"player": "K'Andre Miller",
+"line": 1.5
+},
+{
+"date": "2026-05-01",
+"player": "Matvei Michkov",
+"line": 1.5
+},
+{
+"date": "2026-05-01",
+"player": "Michael Carcone",
+"line": 1.5
+},
+{
+"date": "2026-05-01",
+"player": "Noah Hanifin",
+"line": 1.5
+},
+{
+"date": "2026-05-01",
+"player": "Rasmus Ristolainen",
+"line": 1.5
+},
+{
+"date": "2026-05-01",
+"player": "Trevor Zegras",
+"line": 1.5
+},
+{
+"date": "2026-05-02",
+"player": "Anthony Cirelli",
+"line": 1.5
+},
+{
+"date": "2026-05-02",
+"player": "Christian Dvorak",
+"line": 1.5
+},
+{
+"date": "2026-05-02",
+"player": "Darren Raddysh",
+"line": 3.5
+},
+{
+"date": "2026-05-02",
+"player": "Devon Toews",
+"line": 1.5
+},
+{
+"date": "2026-05-02",
+"player": "J.J. Moser",
+"line": 1.5
+},
+{
+"date": "2026-05-02",
+"player": "Josh Manson",
+"line": 1.5
+},
+{
+"date": "2026-05-02",
+"player": "Juraj Slafkovsk\u00fd",
+"line": 2.5
+},
+{
+"date": "2026-05-02",
+"player": "Lane Hutson",
+"line": 1.5
+},
+{
+"date": "2026-05-02",
+"player": "Matvei Michkov",
+"line": 1.5
+},
+{
+"date": "2026-05-02",
+"player": "Rasmus Ristolainen",
+"line": 1.5
+},
+{
+"date": "2026-05-02",
+"player": "Trevor Zegras",
+"line": 1.5
+},
+{
+"date": "2026-05-02",
+"player": "Vladimir Tarasenko",
+"line": 1.5
+},
+{
+"date": "2026-05-03",
+"player": "Chris Kreider",
+"line": 1.5
+},
+{
+"date": "2026-05-03",
+"player": "Christian Dvorak",
+"line": 1.5
+},
+{
+"date": "2026-05-03",
+"player": "Ivan Barbashev",
+"line": 1.5
+},
+{
+"date": "2026-05-03",
+"player": "Jordan Staal",
+"line": 1.5
+},
+{
+"date": "2026-05-03",
+"player": "K'Andre Miller",
+"line": 1.5
+},
+{
+"date": "2026-05-03",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-05-03",
+"player": "Mikael Granlund",
+"line": 1.5
+},
+{
+"date": "2026-05-03",
+"player": "Noah Hanifin",
+"line": 1.5
+},
+{
+"date": "2026-05-03",
+"player": "Rasmus Ristolainen",
+"line": 1.5
+},
+{
+"date": "2026-05-03",
+"player": "Trevor Zegras",
+"line": 1.5
+},
+{
+"date": "2026-05-03",
+"player": "Vladimir Tarasenko",
+"line": 1.5
+},
+{
+"date": "2026-05-04",
+"player": "Alex Tuch",
+"line": 2.5
+},
+{
+"date": "2026-05-04",
+"player": "Bowen Byram",
+"line": 1.5
+},
+{
+"date": "2026-05-04",
+"player": "Chris Kreider",
+"line": 1.5
+},
+{
+"date": "2026-05-04",
+"player": "Devon Toews",
+"line": 1.5
+},
+{
+"date": "2026-05-04",
+"player": "Ivan Barbashev",
+"line": 1.5
+},
+{
+"date": "2026-05-04",
+"player": "Josh Norris",
+"line": 1.5
+},
+{
+"date": "2026-05-04",
+"player": "Juraj Slafkovsk\u00fd",
+"line": 2.5
+},
+{
+"date": "2026-05-04",
+"player": "Lane Hutson",
+"line": 1.5
+},
+{
+"date": "2026-05-04",
+"player": "Mikael Granlund",
+"line": 1.5
+},
+{
+"date": "2026-05-04",
+"player": "Noah Hanifin",
+"line": 1.5
+},
+{
+"date": "2026-05-04",
+"player": "Tage Thompson",
+"line": 3.5
+},
+{
+"date": "2026-05-04",
+"player": "Vladimir Tarasenko",
+"line": 1.5
+},
+{
+"date": "2026-05-05",
+"player": "Andrei Svechnikov",
+"line": 2.5
+},
+{
+"date": "2026-05-05",
+"player": "Bowen Byram",
+"line": 1.5
+},
+{
+"date": "2026-05-05",
+"player": "Chris Kreider",
+"line": 1.5
+},
+{
+"date": "2026-05-05",
+"player": "Christian Dvorak",
+"line": 1.5
+},
+{
+"date": "2026-05-05",
+"player": "Devon Toews",
+"line": 1.5
+},
+{
+"date": "2026-05-05",
+"player": "Ivan Barbashev",
+"line": 1.5
+},
+{
+"date": "2026-05-05",
+"player": "Jacob Trouba",
+"line": 1.5
+},
+{
+"date": "2026-05-05",
+"player": "Josh Norris",
+"line": 1.5
+},
+{
+"date": "2026-05-05",
+"player": "Juraj Slafkovsk\u00fd",
+"line": 2.5
+},
+{
+"date": "2026-05-05",
+"player": "Lane Hutson",
+"line": 1.5
+},
+{
+"date": "2026-05-05",
+"player": "Nikolaj Ehlers",
+"line": 2.5
+},
+{
+"date": "2026-05-05",
+"player": "Rasmus Ristolainen",
+"line": 1.5
+},
+{
+"date": "2026-05-05",
+"player": "Sean Couturier",
+"line": 1.5
+},
+{
+"date": "2026-05-05",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-05-05",
+"player": "Sebastian Aho",
+"line": 2.5
+},
+{
+"date": "2026-05-05",
+"player": "Shayne Gostisbehere",
+"line": 1.5
+},
+{
+"date": "2026-05-05",
+"player": "Troy Terry",
+"line": 2.5
+},
+{
+"date": "2026-05-05",
+"player": "Vladimir Tarasenko",
+"line": 1.5
+},
+{
+"date": "2026-05-06",
+"player": "Andrei Svechnikov",
+"line": 2.5
+},
+{
+"date": "2026-05-06",
+"player": "Chris Kreider",
+"line": 1.5
+},
+{
+"date": "2026-05-06",
+"player": "Christian Dvorak",
+"line": 1.5
+},
+{
+"date": "2026-05-06",
+"player": "Cutter Gauthier",
+"line": 3.5
+},
+{
+"date": "2026-05-06",
+"player": "Jacob Trouba",
+"line": 1.5
+},
+{
+"date": "2026-05-06",
+"player": "Kirill Kaprizov",
+"line": 3.5
+},
+{
+"date": "2026-05-06",
+"player": "Mason McTavish",
+"line": 1.5
+},
+{
+"date": "2026-05-06",
+"player": "Matvei Michkov",
+"line": 1.5
+},
+{
+"date": "2026-05-06",
+"player": "Noah Hanifin",
+"line": 1.5
+},
+{
+"date": "2026-05-06",
+"player": "Rasmus Ristolainen",
+"line": 1.5
+},
+{
+"date": "2026-05-06",
+"player": "Ross Colton",
+"line": 1.5
+},
+{
+"date": "2026-05-06",
+"player": "Ryan Hartman",
+"line": 2.5
+},
+{
+"date": "2026-05-06",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-05-06",
+"player": "Shayne Gostisbehere",
+"line": 1.5
+},
+{
+"date": "2026-05-07",
+"player": "Andrei Svechnikov",
+"line": 2.5
+},
+{
+"date": "2026-05-07",
+"player": "Bowen Byram",
+"line": 1.5
+},
+{
+"date": "2026-05-07",
+"player": "Brent Burns",
+"line": 1.5
+},
+{
+"date": "2026-05-07",
+"player": "Chris Kreider",
+"line": 1.5
+},
+{
+"date": "2026-05-07",
+"player": "Christian Dvorak",
+"line": 1.5
+},
+{
+"date": "2026-05-07",
+"player": "Jacob Trouba",
+"line": 1.5
+},
+{
+"date": "2026-05-07",
+"player": "Lane Hutson",
+"line": 1.5
+},
+{
+"date": "2026-05-07",
+"player": "Matvei Michkov",
+"line": 1.5
+},
+{
+"date": "2026-05-07",
+"player": "Rasmus Ristolainen",
+"line": 1.5
+},
+{
+"date": "2026-05-07",
+"player": "Ryan Hartman",
+"line": 2.5
+},
+{
+"date": "2026-05-07",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-05-07",
+"player": "Shayne Gostisbehere",
+"line": 1.5
+},
+{
+"date": "2026-05-07",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-05-07",
+"player": "Troy Terry",
+"line": 2.5
+},
+{
+"date": "2026-05-07",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-07",
+"player": "Zach Benson",
+"line": 1.5
+},
+{
+"date": "2026-05-08",
+"player": "Brent Burns",
+"line": 1.5
+},
+{
+"date": "2026-05-08",
+"player": "Brett Howden",
+"line": 1.5
+},
+{
+"date": "2026-05-08",
+"player": "Chris Kreider",
+"line": 1.5
+},
+{
+"date": "2026-05-08",
+"player": "Cutter Gauthier",
+"line": 3.5
+},
+{
+"date": "2026-05-08",
+"player": "Jacob Trouba",
+"line": 1.5
+},
+{
+"date": "2026-05-08",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-05-08",
+"player": "Matvei Michkov",
+"line": 1.5
+},
+{
+"date": "2026-05-08",
+"player": "Ryan Hartman",
+"line": 2.5
+},
+{
+"date": "2026-05-08",
+"player": "Sean Couturier",
+"line": 1.5
+},
+{
+"date": "2026-05-08",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-05-08",
+"player": "Seth Jarvis",
+"line": 2.5
+},
+{
+"date": "2026-05-08",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-05-08",
+"player": "Trevor Zegras",
+"line": 1.5
+},
+{
+"date": "2026-05-08",
+"player": "Troy Terry",
+"line": 2.5
+},
+{
+"date": "2026-05-08",
+"player": "Tyson Foerster",
+"line": 1.5
+},
+{
+"date": "2026-05-08",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-09",
+"player": "Brent Burns",
+"line": 1.5
+},
+{
+"date": "2026-05-09",
+"player": "Chris Kreider",
+"line": 1.5
+},
+{
+"date": "2026-05-09",
+"player": "Cutter Gauthier",
+"line": 3.5
+},
+{
+"date": "2026-05-09",
+"player": "Jacob Trouba",
+"line": 1.5
+},
+{
+"date": "2026-05-09",
+"player": "Juraj Slafkovsk\u00fd",
+"line": 2.5
+},
+{
+"date": "2026-05-09",
+"player": "Matt Boldy",
+"line": 3.5
+},
+{
+"date": "2026-05-09",
+"player": "Rasmus Dahlin",
+"line": 2.5
+},
+{
+"date": "2026-05-09",
+"player": "Troy Terry",
+"line": 2.5
+},
+{
+"date": "2026-05-09",
+"player": "Zach Benson",
+"line": 1.5
+},
+{
+"date": "2026-05-10",
+"player": "Brent Burns",
+"line": 1.5
+},
+{
+"date": "2026-05-10",
+"player": "Chris Kreider",
+"line": 1.5
+},
+{
+"date": "2026-05-10",
+"player": "Cutter Gauthier",
+"line": 3.5
+},
+{
+"date": "2026-05-10",
+"player": "Mason McTavish",
+"line": 1.5
+},
+{
+"date": "2026-05-10",
+"player": "Troy Terry",
+"line": 2.5
+},
+{
+"date": "2026-05-12",
+"player": "Gabriel Landeskog",
+"line": 2.5
+},
+{
+"date": "2026-05-12",
+"player": "Ivan Barbashev",
+"line": 1.5
+},
+{
+"date": "2026-05-12",
+"player": "Jackson LaCombe",
+"line": 1.5
+},
+{
+"date": "2026-05-12",
+"player": "Jacob Trouba",
+"line": 1.5
+},
+{
+"date": "2026-05-12",
+"player": "Josh Manson",
+"line": 1.5
+},
+{
+"date": "2026-05-12",
+"player": "Matt Boldy",
+"line": 3.5
+},
+{
+"date": "2026-05-12",
+"player": "Nazem Kadri",
+"line": 2.5
+},
+{
+"date": "2026-05-12",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-05-12",
+"player": "Ryan Hartman",
+"line": 2.5
+},
+{
+"date": "2026-05-13",
+"player": "Alex Tuch",
+"line": 2.5
+},
+{
+"date": "2026-05-13",
+"player": "Bowen Byram",
+"line": 1.5
+},
+{
+"date": "2026-05-13",
+"player": "Jackson LaCombe",
+"line": 1.5
+},
+{
+"date": "2026-05-13",
+"player": "Jason Zucker",
+"line": 1.5
+},
+{
+"date": "2026-05-13",
+"player": "Josh Manson",
+"line": 1.5
+},
+{
+"date": "2026-05-13",
+"player": "Juraj Slafkovsk\u00fd",
+"line": 2.5
+},
+{
+"date": "2026-05-13",
+"player": "Lane Hutson",
+"line": 1.5
+},
+{
+"date": "2026-05-13",
+"player": "Mason McTavish",
+"line": 1.5
+},
+{
+"date": "2026-05-13",
+"player": "Matt Boldy",
+"line": 3.5
+},
+{
+"date": "2026-05-13",
+"player": "Noah Hanifin",
+"line": 1.5
+},
+{
+"date": "2026-05-13",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-05-13",
+"player": "Vladimir Tarasenko",
+"line": 1.5
+},
+{
+"date": "2026-05-13",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-14",
+"player": "Jackson LaCombe",
+"line": 1.5
+},
+{
+"date": "2026-05-14",
+"player": "Mason McTavish",
+"line": 1.5
+},
+{
+"date": "2026-05-14",
+"player": "Noah Hanifin",
+"line": 1.5
+},
+{
+"date": "2026-05-15",
+"player": "Alex Tuch",
+"line": 2.5
+},
+{
+"date": "2026-05-15",
+"player": "Bowen Byram",
+"line": 1.5
+},
+{
+"date": "2026-05-15",
+"player": "Cale Makar",
+"line": 2.5
+},
+{
+"date": "2026-05-15",
+"player": "Cole Caufield",
+"line": 3.0
+},
+{
+"date": "2026-05-15",
+"player": "Gabriel Landeskog",
+"line": 2.5
+},
+{
+"date": "2026-05-15",
+"player": "Jason Zucker",
+"line": 1.5
+},
+{
+"date": "2026-05-15",
+"player": "Josh Doan",
+"line": 2.0
+},
+{
+"date": "2026-05-15",
+"player": "Juraj Slafkovsk\u00fd",
+"line": 2.5
+},
+{
+"date": "2026-05-15",
+"player": "Lane Hutson",
+"line": 1.5
+},
+{
+"date": "2026-05-15",
+"player": "Nazem Kadri",
+"line": 2.5
+},
+{
+"date": "2026-05-15",
+"player": "Nick Suzuki",
+"line": 2.5
+},
+{
+"date": "2026-05-15",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-05-15",
+"player": "Rasmus Andersson",
+"line": 1.5
+},
+{
+"date": "2026-05-15",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-05-15",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-16",
+"player": "Alex Tuch",
+"line": 2.5
+},
+{
+"date": "2026-05-16",
+"player": "Bowen Byram",
+"line": 1.5
+},
+{
+"date": "2026-05-16",
+"player": "Cale Makar",
+"line": 2.5
+},
+{
+"date": "2026-05-16",
+"player": "Cole Caufield",
+"line": 3.0
+},
+{
+"date": "2026-05-16",
+"player": "Gabriel Landeskog",
+"line": 2.5
+},
+{
+"date": "2026-05-16",
+"player": "Jason Zucker",
+"line": 1.5
+},
+{
+"date": "2026-05-16",
+"player": "Josh Doan",
+"line": 2.0
+},
+{
+"date": "2026-05-16",
+"player": "Josh Norris",
+"line": 1.5
+},
+{
+"date": "2026-05-16",
+"player": "Juraj Slafkovsk\u00fd",
+"line": 2.5
+},
+{
+"date": "2026-05-16",
+"player": "Lane Hutson",
+"line": 1.5
+},
+{
+"date": "2026-05-16",
+"player": "Nazem Kadri",
+"line": 2.5
+},
+{
+"date": "2026-05-16",
+"player": "Nick Suzuki",
+"line": 2.5
+},
+{
+"date": "2026-05-16",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-05-16",
+"player": "Rasmus Andersson",
+"line": 1.5
+},
+{
+"date": "2026-05-16",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-05-16",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-17",
+"player": "Alex Tuch",
+"line": 2.5
+},
+{
+"date": "2026-05-17",
+"player": "Cale Makar",
+"line": 2.5
+},
+{
+"date": "2026-05-17",
+"player": "Gabriel Landeskog",
+"line": 2.5
+},
+{
+"date": "2026-05-17",
+"player": "Jack Quinn",
+"line": 2.5
+},
+{
+"date": "2026-05-17",
+"player": "Juraj Slafkovsk\u00fd",
+"line": 2.5
+},
+{
+"date": "2026-05-17",
+"player": "Lane Hutson",
+"line": 1.5
+},
+{
+"date": "2026-05-17",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-05-17",
+"player": "Rasmus Andersson",
+"line": 1.5
+},
+{
+"date": "2026-05-17",
+"player": "Tage Thompson",
+"line": 3.5
+},
+{
+"date": "2026-05-17",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-05-17",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-18",
+"player": "Cale Makar",
+"line": 2.5
+},
+{
+"date": "2026-05-18",
+"player": "Gabriel Landeskog",
+"line": 2.5
+},
+{
+"date": "2026-05-18",
+"player": "Nazem Kadri",
+"line": 2.5
+},
+{
+"date": "2026-05-18",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-05-18",
+"player": "Rasmus Andersson",
+"line": 1.5
+},
+{
+"date": "2026-05-18",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-05-18",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-19",
+"player": "Andrei Svechnikov",
+"line": 3.0
+},
+{
+"date": "2026-05-19",
+"player": "Cale Makar",
+"line": 2.5
+},
+{
+"date": "2026-05-19",
+"player": "Jaccob Slavin",
+"line": 1.5
+},
+{
+"date": "2026-05-19",
+"player": "Jack Eichel",
+"line": 3.0
+},
+{
+"date": "2026-05-19",
+"player": "Jalen Chatfield",
+"line": 1.5
+},
+{
+"date": "2026-05-19",
+"player": "Jordan Staal",
+"line": 1.5
+},
+{
+"date": "2026-05-19",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-05-19",
+"player": "Mitch Marner",
+"line": 2.0
+},
+{
+"date": "2026-05-19",
+"player": "Nathan MacKinnon",
+"line": 4.0
+},
+{
+"date": "2026-05-19",
+"player": "Nazem Kadri",
+"line": 2.5
+},
+{
+"date": "2026-05-19",
+"player": "Nikolaj Ehlers",
+"line": 2.5
+},
+{
+"date": "2026-05-19",
+"player": "Noah Dobson",
+"line": 1.5
+},
+{
+"date": "2026-05-19",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-05-19",
+"player": "Sebastian Aho",
+"line": 2.5
+},
+{
+"date": "2026-05-19",
+"player": "Seth Jarvis",
+"line": 3.0
+},
+{
+"date": "2026-05-19",
+"player": "Shayne Gostisbehere",
+"line": 2.0
+},
+{
+"date": "2026-05-19",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-05-19",
+"player": "Valeri Nichushkin",
+"line": 1.5
+},
+{
+"date": "2026-05-19",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-20",
+"player": "Andrei Svechnikov",
+"line": 3.0
+},
+{
+"date": "2026-05-20",
+"player": "Jaccob Slavin",
+"line": 1.5
+},
+{
+"date": "2026-05-20",
+"player": "Jack Eichel",
+"line": 3.0
+},
+{
+"date": "2026-05-20",
+"player": "Jalen Chatfield",
+"line": 1.5
+},
+{
+"date": "2026-05-20",
+"player": "Jordan Staal",
+"line": 1.5
+},
+{
+"date": "2026-05-20",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-05-20",
+"player": "Mitch Marner",
+"line": 2.0
+},
+{
+"date": "2026-05-20",
+"player": "Nathan MacKinnon",
+"line": 4.0
+},
+{
+"date": "2026-05-20",
+"player": "Nazem Kadri",
+"line": 2.5
+},
+{
+"date": "2026-05-20",
+"player": "Nikolaj Ehlers",
+"line": 2.5
+},
+{
+"date": "2026-05-20",
+"player": "Noah Dobson",
+"line": 1.5
+},
+{
+"date": "2026-05-20",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-05-20",
+"player": "Ross Colton",
+"line": 1.5
+},
+{
+"date": "2026-05-20",
+"player": "Sebastian Aho",
+"line": 2.5
+},
+{
+"date": "2026-05-20",
+"player": "Seth Jarvis",
+"line": 3.0
+},
+{
+"date": "2026-05-20",
+"player": "Shayne Gostisbehere",
+"line": 2.0
+},
+{
+"date": "2026-05-20",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-05-20",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-21",
+"player": "Andrei Svechnikov",
+"line": 3.0
+},
+{
+"date": "2026-05-21",
+"player": "Brent Burns",
+"line": 2.0
+},
+{
+"date": "2026-05-21",
+"player": "Devon Toews",
+"line": 1.5
+},
+{
+"date": "2026-05-21",
+"player": "Gabriel Landeskog",
+"line": 2.5
+},
+{
+"date": "2026-05-21",
+"player": "Jaccob Slavin",
+"line": 1.5
+},
+{
+"date": "2026-05-21",
+"player": "Jack Eichel",
+"line": 3.0
+},
+{
+"date": "2026-05-21",
+"player": "Jalen Chatfield",
+"line": 1.5
+},
+{
+"date": "2026-05-21",
+"player": "Jordan Staal",
+"line": 1.5
+},
+{
+"date": "2026-05-21",
+"player": "Nathan MacKinnon",
+"line": 4.0
+},
+{
+"date": "2026-05-21",
+"player": "Nazem Kadri",
+"line": 2.5
+},
+{
+"date": "2026-05-21",
+"player": "Nikolaj Ehlers",
+"line": 2.5
+},
+{
+"date": "2026-05-21",
+"player": "Noah Dobson",
+"line": 1.5
+},
+{
+"date": "2026-05-21",
+"player": "Ross Colton",
+"line": 1.5
+},
+{
+"date": "2026-05-21",
+"player": "Sam Malinski",
+"line": 2.0
+},
+{
+"date": "2026-05-21",
+"player": "Sebastian Aho",
+"line": 2.5
+},
+{
+"date": "2026-05-21",
+"player": "Seth Jarvis",
+"line": 3.0
+},
+{
+"date": "2026-05-21",
+"player": "Shayne Gostisbehere",
+"line": 2.0
+},
+{
+"date": "2026-05-21",
+"player": "Shea Theodore",
+"line": 2.0
+},
+{
+"date": "2026-05-21",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-05-21",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-22",
+"player": "Alex Newhook",
+"line": 1.5
+},
+{
+"date": "2026-05-22",
+"player": "Brent Burns",
+"line": 2.0
+},
+{
+"date": "2026-05-22",
+"player": "Brock Nelson",
+"line": 2.0
+},
+{
+"date": "2026-05-22",
+"player": "Cole Caufield",
+"line": 2.5
+},
+{
+"date": "2026-05-22",
+"player": "Devon Toews",
+"line": 1.5
+},
+{
+"date": "2026-05-22",
+"player": "Gabriel Landeskog",
+"line": 2.5
+},
+{
+"date": "2026-05-22",
+"player": "Jaccob Slavin",
+"line": 1.5
+},
+{
+"date": "2026-05-22",
+"player": "Jack Eichel",
+"line": 3.0
+},
+{
+"date": "2026-05-22",
+"player": "Jalen Chatfield",
+"line": 1.5
+},
+{
+"date": "2026-05-22",
+"player": "Jordan Staal",
+"line": 1.5
+},
+{
+"date": "2026-05-22",
+"player": "Josh Manson",
+"line": 1.5
+},
+{
+"date": "2026-05-22",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-05-22",
+"player": "Nathan MacKinnon",
+"line": 4.0
+},
+{
+"date": "2026-05-22",
+"player": "Nazem Kadri",
+"line": 2.5
+},
+{
+"date": "2026-05-22",
+"player": "Nikolaj Ehlers",
+"line": 2.5
+},
+{
+"date": "2026-05-22",
+"player": "Noah Dobson",
+"line": 1.5
+},
+{
+"date": "2026-05-22",
+"player": "Rasmus Andersson",
+"line": 1.5
+},
+{
+"date": "2026-05-22",
+"player": "Ross Colton",
+"line": 1.5
+},
+{
+"date": "2026-05-22",
+"player": "Sam Malinski",
+"line": 2.0
+},
+{
+"date": "2026-05-22",
+"player": "Sebastian Aho",
+"line": 2.5
+},
+{
+"date": "2026-05-22",
+"player": "Shea Theodore",
+"line": 2.0
+},
+{
+"date": "2026-05-22",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-05-22",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-23",
+"player": "Artturi Lehkonen",
+"line": 1.5
+},
+{
+"date": "2026-05-23",
+"player": "Brock Nelson",
+"line": 2.0
+},
+{
+"date": "2026-05-23",
+"player": "Jack Eichel",
+"line": 3.0
+},
+{
+"date": "2026-05-23",
+"player": "Martin Necas",
+"line": 2.5
+},
+{
+"date": "2026-05-23",
+"player": "Nathan MacKinnon",
+"line": 3.5
+},
+{
+"date": "2026-05-23",
+"player": "Nazem Kadri",
+"line": 2.5
+},
+{
+"date": "2026-05-23",
+"player": "Valeri Nichushkin",
+"line": 1.5
+},
+{
+"date": "2026-05-23",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-24",
+"player": "Alex Newhook",
+"line": 1.5
+},
+{
+"date": "2026-05-24",
+"player": "Brock Nelson",
+"line": 2.0
+},
+{
+"date": "2026-05-24",
+"player": "Cole Caufield",
+"line": 2.5
+},
+{
+"date": "2026-05-24",
+"player": "Jack Eichel",
+"line": 3.0
+},
+{
+"date": "2026-05-24",
+"player": "Jordan Staal",
+"line": 1.5
+},
+{
+"date": "2026-05-24",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-05-24",
+"player": "Martin Necas",
+"line": 2.5
+},
+{
+"date": "2026-05-24",
+"player": "Nazem Kadri",
+"line": 2.5
+},
+{
+"date": "2026-05-24",
+"player": "Noah Dobson",
+"line": 1.5
+},
+{
+"date": "2026-05-24",
+"player": "Rasmus Andersson",
+"line": 1.5
+},
+{
+"date": "2026-05-24",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-25",
+"player": "Alex Newhook",
+"line": 1.5
+},
+{
+"date": "2026-05-25",
+"player": "Artturi Lehkonen",
+"line": 1.5
+},
+{
+"date": "2026-05-25",
+"player": "Brent Burns",
+"line": 1.5
+},
+{
+"date": "2026-05-25",
+"player": "Cole Caufield",
+"line": 2.5
+},
+{
+"date": "2026-05-25",
+"player": "Gabriel Landeskog",
+"line": 2.5
+},
+{
+"date": "2026-05-25",
+"player": "Jordan Staal",
+"line": 1.5
+},
+{
+"date": "2026-05-25",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-05-25",
+"player": "Martin Necas",
+"line": 2.5
+},
+{
+"date": "2026-05-25",
+"player": "Nathan MacKinnon",
+"line": 3.5
+},
+{
+"date": "2026-05-25",
+"player": "Nazem Kadri",
+"line": 2.5
+},
+{
+"date": "2026-05-25",
+"player": "Nikolaj Ehlers",
+"line": 2.5
+},
+{
+"date": "2026-05-25",
+"player": "Rasmus Andersson",
+"line": 1.5
+},
+{
+"date": "2026-05-25",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-05-25",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-26",
+"player": "Alex Newhook",
+"line": 1.5
+},
+{
+"date": "2026-05-26",
+"player": "Artturi Lehkonen",
+"line": 1.5
+},
+{
+"date": "2026-05-26",
+"player": "Brent Burns",
+"line": 1.5
+},
+{
+"date": "2026-05-26",
+"player": "Cole Caufield",
+"line": 2.5
+},
+{
+"date": "2026-05-26",
+"player": "Gabriel Landeskog",
+"line": 2.5
+},
+{
+"date": "2026-05-26",
+"player": "Jordan Staal",
+"line": 1.5
+},
+{
+"date": "2026-05-26",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-05-26",
+"player": "Martin Necas",
+"line": 2.5
+},
+{
+"date": "2026-05-26",
+"player": "Nathan MacKinnon",
+"line": 3.5
+},
+{
+"date": "2026-05-26",
+"player": "Nazem Kadri",
+"line": 2.5
+},
+{
+"date": "2026-05-26",
+"player": "Nikolaj Ehlers",
+"line": 2.5
+},
+{
+"date": "2026-05-26",
+"player": "Rasmus Andersson",
+"line": 1.5
+},
+{
+"date": "2026-05-26",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-05-26",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-05-27",
+"player": "Alex Newhook",
+"line": 1.5
+},
+{
+"date": "2026-05-27",
+"player": "Cole Caufield",
+"line": 2.5
+},
+{
+"date": "2026-05-27",
+"player": "Ivan Demidov",
+"line": 1.5
+},
+{
+"date": "2026-05-27",
+"player": "Nick Suzuki",
+"line": 2.0
+},
+{
+"date": "2026-05-27",
+"player": "Seth Jarvis",
+"line": 3.0
+},
+{
+"date": "2026-05-27",
+"player": "Taylor Hall",
+"line": 2.0
+},
+{
+"date": "2026-05-28",
+"player": "Andrei Svechnikov",
+"line": 3.0
+},
+{
+"date": "2026-05-28",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-05-28",
+"player": "Nick Suzuki",
+"line": 2.0
+},
+{
+"date": "2026-05-28",
+"player": "Nikolaj Ehlers",
+"line": 2.5
+},
+{
+"date": "2026-05-28",
+"player": "Sebastian Aho",
+"line": 2.5
+},
+{
+"date": "2026-05-29",
+"player": "Andrei Svechnikov",
+"line": 3.0
+},
+{
+"date": "2026-05-29",
+"player": "Ivan Demidov",
+"line": 1.5
+},
+{
+"date": "2026-05-29",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-05-29",
+"player": "Nick Suzuki",
+"line": 2.0
+},
+{
+"date": "2026-05-29",
+"player": "Nikolaj Ehlers",
+"line": 2.5
+},
+{
+"date": "2026-05-29",
+"player": "Sebastian Aho",
+"line": 2.5
+},
+{
+"date": "2026-05-31",
+"player": "Jack Eichel",
+"line": 2.5
+},
+{
+"date": "2026-05-31",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-05-31",
+"player": "Mark Stone",
+"line": 1.5
+},
+{
+"date": "2026-05-31",
+"player": "Mitch Marner",
+"line": 2.0
+},
+{
+"date": "2026-05-31",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-05-31",
+"player": "Taylor Hall",
+"line": 2.0
+},
+{
+"date": "2026-05-31",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-06-01",
+"player": "Jack Eichel",
+"line": 2.5
+},
+{
+"date": "2026-06-01",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-06-01",
+"player": "Mark Stone",
+"line": 1.5
+},
+{
+"date": "2026-06-01",
+"player": "Mitch Marner",
+"line": 2.0
+},
+{
+"date": "2026-06-01",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-06-01",
+"player": "Taylor Hall",
+"line": 2.0
+},
+{
+"date": "2026-06-01",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-06-03",
+"player": "Jack Eichel",
+"line": 2.5
+},
+{
+"date": "2026-06-03",
+"player": "Jackson Blake",
+"line": 2.0
+},
+{
+"date": "2026-06-03",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-06-03",
+"player": "Mark Stone",
+"line": 1.5
+},
+{
+"date": "2026-06-03",
+"player": "Mitch Marner",
+"line": 2.0
+},
+{
+"date": "2026-06-03",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-06-03",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-06-03",
+"player": "Shea Theodore",
+"line": 1.5
+},
+{
+"date": "2026-06-03",
+"player": "Taylor Hall",
+"line": 2.0
+},
+{
+"date": "2026-06-03",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-06-03",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-06-04",
+"player": "Jack Eichel",
+"line": 2.5
+},
+{
+"date": "2026-06-04",
+"player": "Jackson Blake",
+"line": 2.0
+},
+{
+"date": "2026-06-04",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-06-04",
+"player": "Mark Stone",
+"line": 1.5
+},
+{
+"date": "2026-06-04",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-06-04",
+"player": "Shea Theodore",
+"line": 1.5
+},
+{
+"date": "2026-06-04",
+"player": "Taylor Hall",
+"line": 2.0
+},
+{
+"date": "2026-06-04",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-06-04",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-06-05",
+"player": "Andrei Svechnikov",
+"line": 2.5
+},
+{
+"date": "2026-06-05",
+"player": "Brett Howden",
+"line": 1.5
+},
+{
+"date": "2026-06-05",
+"player": "Ivan Barbashev",
+"line": 1.5
+},
+{
+"date": "2026-06-05",
+"player": "Jack Eichel",
+"line": 2.5
+},
+{
+"date": "2026-06-05",
+"player": "Jackson Blake",
+"line": 2.0
+},
+{
+"date": "2026-06-05",
+"player": "Logan Stankoven",
+"line": 2.0
+},
+{
+"date": "2026-06-05",
+"player": "Mitch Marner",
+"line": 2.0
+},
+{
+"date": "2026-06-05",
+"player": "Nikolaj Ehlers",
+"line": 2.0
+},
+{
+"date": "2026-06-05",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-06-05",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-06-05",
+"player": "Sebastian Aho",
+"line": 2.0
+},
+{
+"date": "2026-06-05",
+"player": "Seth Jarvis",
+"line": 2.5
+},
+{
+"date": "2026-06-05",
+"player": "Shea Theodore",
+"line": 1.5
+},
+{
+"date": "2026-06-05",
+"player": "Taylor Hall",
+"line": 2.0
+},
+{
+"date": "2026-06-05",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-06-05",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-06-06",
+"player": "Andrei Svechnikov",
+"line": 2.5
+},
+{
+"date": "2026-06-06",
+"player": "Brett Howden",
+"line": 1.5
+},
+{
+"date": "2026-06-06",
+"player": "Ivan Barbashev",
+"line": 1.5
+},
+{
+"date": "2026-06-06",
+"player": "Jack Eichel",
+"line": 2.5
+},
+{
+"date": "2026-06-06",
+"player": "Jackson Blake",
+"line": 2.0
+},
+{
+"date": "2026-06-06",
+"player": "Nikolaj Ehlers",
+"line": 2.0
+},
+{
+"date": "2026-06-06",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-06-06",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-06-06",
+"player": "Sebastian Aho",
+"line": 2.0
+},
+{
+"date": "2026-06-06",
+"player": "Seth Jarvis",
+"line": 2.5
+},
+{
+"date": "2026-06-06",
+"player": "Shayne Gostisbehere",
+"line": 1.5
+},
+{
+"date": "2026-06-06",
+"player": "Shea Theodore",
+"line": 1.5
+},
+{
+"date": "2026-06-06",
+"player": "Taylor Hall",
+"line": 2.0
+},
+{
+"date": "2026-06-07",
+"player": "Andrei Svechnikov",
+"line": 2.5
+},
+{
+"date": "2026-06-07",
+"player": "Brett Howden",
+"line": 1.5
+},
+{
+"date": "2026-06-07",
+"player": "Jack Eichel",
+"line": 2.5
+},
+{
+"date": "2026-06-07",
+"player": "Jackson Blake",
+"line": 2.0
+},
+{
+"date": "2026-06-07",
+"player": "Jordan Martinook",
+"line": 1.5
+},
+{
+"date": "2026-06-07",
+"player": "Mark Stone",
+"line": 2.0
+},
+{
+"date": "2026-06-07",
+"player": "Mitch Marner",
+"line": 2.0
+},
+{
+"date": "2026-06-07",
+"player": "Nikolaj Ehlers",
+"line": 2.5
+},
+{
+"date": "2026-06-07",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-06-07",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-06-07",
+"player": "Sebastian Aho",
+"line": 2.0
+},
+{
+"date": "2026-06-07",
+"player": "Seth Jarvis",
+"line": 2.5
+},
+{
+"date": "2026-06-07",
+"player": "Shayne Gostisbehere",
+"line": 1.5
+},
+{
+"date": "2026-06-07",
+"player": "Shea Theodore",
+"line": 1.5
+},
+{
+"date": "2026-06-07",
+"player": "Taylor Hall",
+"line": 2.0
+},
+{
+"date": "2026-06-07",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-06-08",
+"player": "Andrei Svechnikov",
+"line": 2.5
+},
+{
+"date": "2026-06-08",
+"player": "Brett Howden",
+"line": 1.5
+},
+{
+"date": "2026-06-08",
+"player": "Jack Eichel",
+"line": 2.5
+},
+{
+"date": "2026-06-08",
+"player": "Jackson Blake",
+"line": 2.0
+},
+{
+"date": "2026-06-08",
+"player": "Jordan Martinook",
+"line": 1.5
+},
+{
+"date": "2026-06-08",
+"player": "Mark Stone",
+"line": 2.0
+},
+{
+"date": "2026-06-08",
+"player": "Mitch Marner",
+"line": 2.0
+},
+{
+"date": "2026-06-08",
+"player": "Nikolaj Ehlers",
+"line": 2.5
+},
+{
+"date": "2026-06-08",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-06-08",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-06-08",
+"player": "Sebastian Aho",
+"line": 2.0
+},
+{
+"date": "2026-06-08",
+"player": "Seth Jarvis",
+"line": 2.5
+},
+{
+"date": "2026-06-08",
+"player": "Shayne Gostisbehere",
+"line": 1.5
+},
+{
+"date": "2026-06-08",
+"player": "Shea Theodore",
+"line": 1.5
+},
+{
+"date": "2026-06-08",
+"player": "Taylor Hall",
+"line": 2.0
+},
+{
+"date": "2026-06-08",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-06-08",
+"player": "William Karlsson",
+"line": 1.5
+},
+{
+"date": "2026-06-09",
+"player": "Andrei Svechnikov",
+"line": 2.5
+},
+{
+"date": "2026-06-09",
+"player": "Brett Howden",
+"line": 1.5
+},
+{
+"date": "2026-06-09",
+"player": "Jack Eichel",
+"line": 2.5
+},
+{
+"date": "2026-06-09",
+"player": "Jackson Blake",
+"line": 2.0
+},
+{
+"date": "2026-06-09",
+"player": "Jordan Martinook",
+"line": 1.5
+},
+{
+"date": "2026-06-09",
+"player": "Jordan Staal",
+"line": 1.5
+},
+{
+"date": "2026-06-09",
+"player": "Mark Stone",
+"line": 2.0
+},
+{
+"date": "2026-06-09",
+"player": "Mitch Marner",
+"line": 2.0
+},
+{
+"date": "2026-06-09",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-06-09",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-06-09",
+"player": "Sebastian Aho",
+"line": 2.0
+},
+{
+"date": "2026-06-09",
+"player": "Seth Jarvis",
+"line": 2.5
+},
+{
+"date": "2026-06-09",
+"player": "Shayne Gostisbehere",
+"line": 1.5
+},
+{
+"date": "2026-06-09",
+"player": "Shea Theodore",
+"line": 1.5
+},
+{
+"date": "2026-06-09",
+"player": "Taylor Hall",
+"line": 2.0
+},
+{
+"date": "2026-06-09",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-06-10",
+"player": "Andrei Svechnikov",
+"line": 2.5
+},
+{
+"date": "2026-06-10",
+"player": "Brett Howden",
+"line": 1.5
+},
+{
+"date": "2026-06-10",
+"player": "Jack Eichel",
+"line": 2.5
+},
+{
+"date": "2026-06-10",
+"player": "Jackson Blake",
+"line": 2.0
+},
+{
+"date": "2026-06-10",
+"player": "Jordan Martinook",
+"line": 1.5
+},
+{
+"date": "2026-06-10",
+"player": "Jordan Staal",
+"line": 2.0
+},
+{
+"date": "2026-06-10",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-06-10",
+"player": "Mark Stone",
+"line": 2.0
+},
+{
+"date": "2026-06-10",
+"player": "Mitch Marner",
+"line": 2.0
+},
+{
+"date": "2026-06-10",
+"player": "Nikolaj Ehlers",
+"line": 2.5
+},
+{
+"date": "2026-06-10",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-06-10",
+"player": "Seth Jarvis",
+"line": 2.5
+},
+{
+"date": "2026-06-10",
+"player": "Shayne Gostisbehere",
+"line": 1.5
+},
+{
+"date": "2026-06-10",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-06-11",
+"player": "Andrei Svechnikov",
+"line": 2.5
+},
+{
+"date": "2026-06-11",
+"player": "Jackson Blake",
+"line": 2.0
+},
+{
+"date": "2026-06-11",
+"player": "Jordan Martinook",
+"line": 1.5
+},
+{
+"date": "2026-06-11",
+"player": "Jordan Staal",
+"line": 2.0
+},
+{
+"date": "2026-06-11",
+"player": "Logan Stankoven",
+"line": 2.5
+},
+{
+"date": "2026-06-11",
+"player": "Mark Stone",
+"line": 2.0
+},
+{
+"date": "2026-06-11",
+"player": "Mitch Marner",
+"line": 2.0
+},
+{
+"date": "2026-06-11",
+"player": "Nikolaj Ehlers",
+"line": 2.5
+},
+{
+"date": "2026-06-11",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-06-11",
+"player": "Seth Jarvis",
+"line": 2.5
+},
+{
+"date": "2026-06-11",
+"player": "Shayne Gostisbehere",
+"line": 1.5
+},
+{
+"date": "2026-06-11",
+"player": "Shea Theodore",
+"line": 1.5
+},
+{
+"date": "2026-06-11",
+"player": "Tomas Hertl",
+"line": 1.5
+},
+{
+"date": "2026-06-12",
+"player": "Jack Eichel",
+"line": 2.5
+},
+{
+"date": "2026-06-12",
+"player": "Jackson Blake",
+"line": 2.0
+},
+{
+"date": "2026-06-12",
+"player": "Jordan Staal",
+"line": 2.0
+},
+{
+"date": "2026-06-12",
+"player": "Mark Stone",
+"line": 2.0
+},
+{
+"date": "2026-06-12",
+"player": "Mitch Marner",
+"line": 2.0
+},
+{
+"date": "2026-06-12",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-06-12",
+"player": "Rasmus Andersson",
+"line": 1.5
+},
+{
+"date": "2026-06-12",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-06-12",
+"player": "Sebastian Aho",
+"line": 2.0
+},
+{
+"date": "2026-06-12",
+"player": "Seth Jarvis",
+"line": 2.5
+},
+{
+"date": "2026-06-12",
+"player": "Shea Theodore",
+"line": 1.5
+},
+{
+"date": "2026-06-13",
+"player": "Jack Eichel",
+"line": 2.5
+},
+{
+"date": "2026-06-13",
+"player": "Jackson Blake",
+"line": 2.0
+},
+{
+"date": "2026-06-13",
+"player": "Jordan Staal",
+"line": 2.0
+},
+{
+"date": "2026-06-13",
+"player": "Mark Stone",
+"line": 2.0
+},
+{
+"date": "2026-06-13",
+"player": "Mitch Marner",
+"line": 2.0
+},
+{
+"date": "2026-06-13",
+"player": "Pavel Dorofeyev",
+"line": 2.5
+},
+{
+"date": "2026-06-13",
+"player": "Rasmus Andersson",
+"line": 1.5
+},
+{
+"date": "2026-06-13",
+"player": "Sean Walker",
+"line": 1.5
+},
+{
+"date": "2026-06-13",
+"player": "Sebastian Aho",
+"line": 2.0
+},
+{
+"date": "2026-06-13",
+"player": "Seth Jarvis",
+"line": 2.5
+},
+{
+"date": "2026-06-13",
+"player": "Shea Theodore",
+"line": 1.5
+}
+]
+}

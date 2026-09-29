@@ -58,6 +58,33 @@ the slate's starter, and the saves line fills the Line column. If PrizePicks has
 posted a team's goalie yet, the starter falls back to the depth chart and is marked
 unconfirmed. You can override the goalie or the line on any row.
 
+## Game winners (`model/winners.py`)
+
+Expected goals per side blend a **shot view** (shots the opponent's goalie faces from the
+saves model x (1 - his shrunk save%), so the starting goalie matters) with a **rate view**
+(team goal and expected-goal rates for and against). Win probability comes from independent
+Poisson goals, with ties split for OT/shootout. The Game Winners tab turns it into fair odds
+and an edge once you enter moneylines (the vig is removed when both sides are entered).
+
+Fit on 2024-25, tested on 2025-26 (1,394 games): **55.3% accuracy** vs 51.9% for always-home,
+log loss 0.683 vs 0.697. Calls at 65%+ confidence hit 71-74%. No historical moneylines are in
+the public data, so this measures probability quality, not ROI.
+
+## SOG props (`model/sog.py`)
+
+`proj = shots/60 x expected TOI x (opponent shots allowed / league)^c x home`, with player
+rates recency-weighted and shrunk to position averages. P(over) comes from a negative binomial
+fitted for over-dispersion; whole-number lines treat X == line as a push.
+
+- Stand-in lines (x.5 nearest a 50/50 over for the last-10 average), 2025-26: 64.6% at P(hit)
+  of 55%+.
+- **Real PrizePicks SOG lines, 2026 playoffs (475 props, `model/data/`): about 51-54%, roughly
+  break-even.** Stand-in backtests badly overstate what real lines allow. That warning applies
+  to the saves backtest too.
+
+Lines come from your entry, then DraftKings (`player_shots_on_goal`, same Odds API request as
+saves), then the PrizePicks board pulled live in the browser.
+
 ## Backtest
 
 `python model/backtest.py` fits parameters on **2024-25 only**, then grades **2025-26
@@ -98,7 +125,10 @@ model/data.py            download + shape box scores / play-by-play
 model/engine.py          walk-forward ratings, projection, grading
 model/backtest.py        fit on 2024-25, test on 2025-26
 model/build_site.py      render index.html from template.html
-model/odds.py            starting goalies + DraftKings saves lines (The Odds API)
+model/odds.py            starting goalies + DraftKings saves/SOG lines (The Odds API)
+model/winners.py         game-winner model + backtest
+model/sog.py             skater SOG model + backtest (stand-in and real PrizePicks lines)
+model/data/              real PrizePicks SOG lines, 2026 playoffs
 model/prizepicks.py      starting goalies + saves lines from the PrizePicks board
 model/template.html      dashboard template
 model/output/            params.json, backtest.json, backtest_games.csv

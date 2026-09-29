@@ -70,6 +70,11 @@ class State:
         self.sv_dec = 0.5 ** (1.0 / p.sv_half_life)
         self.off = defaultdict(Decayed)    # team -> SOG for
         self.dfn = defaultdict(Decayed)    # team -> SOG against
+        self.gf = defaultdict(Decayed)     # team -> goals for (game-winner model)
+        self.ga = defaultdict(Decayed)     # team -> goals against
+        self.xgf = defaultdict(Decayed)    # team -> expected goals for (play-by-play)
+        self.xga = defaultdict(Decayed)
+        self.lg_goals = Decayed()
         self.lg = Decayed()                # league SOG per team-game
         self.lg_share = Decayed()
         self.g_sv = defaultdict(Decayed)   # goalie -> saves / shots
@@ -82,6 +87,7 @@ class State:
         # seed league average so the very first games have a sane prior
         self.lg.add(30.0 * 50, 1.0, 50.0)
         self.lg_share.add(0.975 * 50, 1.0, 50.0)
+        self.lg_goals.add(3.0 * 50, 1.0, 50.0)
 
     # --- rates -------------------------------------------------------
     def league(self):
@@ -130,7 +136,7 @@ class State:
     def new_season(self, season):
         if self.season is not None and season != self.season:
             c = self.p.carry
-            for tbl in (self.off, self.dfn):
+            for tbl in (self.off, self.dfn, self.gf, self.ga, self.xgf, self.xga):
                 for v in tbl.values():
                     v.scale(c)
             # goalies keep more of their history than teams do (rosters change more)
@@ -138,9 +144,23 @@ class State:
                 v.scale(min(1.0, c + 0.35))
         self.season = season
 
-    def update_team(self, team, sog_for, sog_against, date):
+    def goal_rate(self, table, team):
+        lg = self.lg_goals.s / self.lg_goals.w
+        d = table.get(team)
+        k = self.p.k_team
+        return lg if d is None else (d.s + k * lg) / (d.w + k)
+
+    def update_team(self, team, sog_for, sog_against, date, goals_for=None, goals_against=None,
+                    xg_for=None, xg_against=None):
         self.off[team].add(sog_for, self.dec)
         self.dfn[team].add(sog_against, self.dec)
+        if goals_for is not None:
+            self.gf[team].add(goals_for, self.dec)
+            self.ga[team].add(goals_against, self.dec)
+            self.lg_goals.add(goals_for, 0.999)
+        if xg_for is not None and xg_for == xg_for:  # skip NaN
+            self.xgf[team].add(xg_for, self.dec)
+            self.xga[team].add(xg_against, self.dec)
         self.lg.add(sog_for, 0.999)
         self.last_played[team] = date
 
@@ -186,10 +206,15 @@ def run(tg: pd.DataFrame, starts: pd.DataFrame, p: Params, record_from_season=No
                     "l10": float(np.mean(hist)) if hist and len(hist) >= 5 else np.nan,
                     "saves": int(s.saves), "shots": int(s.shots_against), "toi": float(s.toi_min),
                     "actual_team_sa": int(r.opp_shots_on_goal),
+                    "gf_rate": st.goal_rate(st.gf, r.team_abbrev), "ga_rate": st.goal_rate(st.ga, r.team_abbrev),
+                    "lg_goals": st.lg_goals.s / st.lg_goals.w,
+                    "xgf_rate": st.goal_rate(st.xgf, r.team_abbrev), "xga_rate": st.goal_rate(st.xga, r.team_abbrev),
+                    "goals_for": int(r.goals), "goals_against": int(r.opp_goals),
                 })
         # 2) update with this date's results
         for r in day.itertuples(index=False):
-            st.update_team(r.team_abbrev, r.shots_on_goal, r.opp_shots_on_goal, date)
+            st.update_team(r.team_abbrev, r.shots_on_goal, r.opp_shots_on_goal, date,
+                           r.goals, r.opp_goals, getattr(r, "xgf", None), getattr(r, "opp_xgf", None))
             key = (r.game_id, r.team_abbrev)
             if key in starts.index:
                 s = starts.loc[key]
