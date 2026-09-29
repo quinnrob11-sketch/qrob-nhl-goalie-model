@@ -19,6 +19,7 @@ import pandas as pd
 
 import data
 import engine
+import odds
 import prizepicks
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -219,6 +220,7 @@ def main():
                                   "sv": engine.LEAGUE_SV, "share": lg_share, "l10": None,
                                   "last10": [], "new": True}
                 goalies.append(by_id[r["id"]])
+    dk = odds.fetch(goalies)
     pp = prizepicks.fetch(goalies)
     # Goalies on the board we have no NHL history for get the same treatment.
     for r in pp:
@@ -245,6 +247,9 @@ def main():
         "goalies": goalies,
         "pp": pp,
         "pp_error": prizepicks.last_error,
+        "dk": dk,
+        "dk_error": odds.last_error,
+        "odds_remaining": odds.remaining,
         "depth": depth_charts(st_df[st_df.season == display_season], rosters,
                               preseason=bool(latest < cur),
                               prev=st_df[st_df.season == display_season - 1]),
@@ -261,7 +266,8 @@ def main():
     with open(os.path.join(ROOT, "index.html"), "w", encoding="utf-8") as f:
         f.write(html)
     print(f"Wrote index.html ({len(html) / 1024:.0f} KB) | data through {payload['data_through']} "
-          f"| slate games: {len(payload['slate'])} | PrizePicks goalies: {len(pp)}")
+          f"| slate games: {len(payload['slate'])} | DraftKings goalies: {len(dk)} "
+          f"| PrizePicks goalies: {len(pp)}")
 
 
 if __name__ == "__main__":

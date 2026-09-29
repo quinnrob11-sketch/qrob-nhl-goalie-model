@@ -33,7 +33,18 @@ season, which is how the model handles opening night of 2026-27.
 - **Confirm the starter** before locking. Each projection is for the goalie shown.
 - Overtime inflates raw saves. In tight, high-event games, lean OVER on close calls.
 
-### Starters and lines from PrizePicks
+### Starters and lines
+
+Books only post a saves prop for the goalie they expect to start, so each build uses
+posted lines as the starter feed. Priority per team: your own pick on the page, then a
+**DraftKings** saves line (`model/odds.py`, via The Odds API; needs the `ODDS_API_KEY`
+Actions secret), then a **PrizePicks** saves prop, then the roster default. The roster
+default is the goalie on the team's current NHL roster (`api-web.nhle.com`) ranked by
+recent starts, or by last season's starts before a team has played. It's marked
+unconfirmed. The DraftKings pull costs one API request per game starting in the next 18
+hours.
+
+#### PrizePicks
 
 Each build pulls the PrizePicks NHL board (`model/prizepicks.py`). PrizePicks only
 posts a **Goalie Saves** prop for the goalie it expects to start, so that goalie becomes
@@ -70,7 +81,8 @@ Or just open `index.html` directly. Everything is inlined.
   rebuilt daily from the NHL API. Cached in `model/cache/` (gitignored).
 - Upcoming schedule: `api-web.nhle.com/v1/schedule`, fetched at build time. If it's
   unreachable, the slate is empty and the matchup builder still works.
-- Starters and saves lines: the PrizePicks projections board (`api.prizepicks.com`).
+- Starters and saves lines: DraftKings via The Odds API (`ODDS_API_KEY` secret), the PrizePicks
+  board (`api.prizepicks.com`, currently returns 403 to GitHub Actions), and current NHL rosters.
 
 ## Files
 
@@ -80,6 +92,7 @@ model/data.py            download + shape box scores / play-by-play
 model/engine.py          walk-forward ratings, projection, grading
 model/backtest.py        fit on 2024-25, test on 2025-26
 model/build_site.py      render index.html from template.html
+model/odds.py            starting goalies + DraftKings saves lines (The Odds API)
 model/prizepicks.py      starting goalies + saves lines from the PrizePicks board
 model/template.html      dashboard template
 model/output/            params.json, backtest.json, backtest_games.csv
