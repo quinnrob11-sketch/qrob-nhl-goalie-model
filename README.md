@@ -46,6 +46,12 @@ hours.
 
 #### PrizePicks
 
+The page also tries the PrizePicks board **live from your own browser** each time it opens
+(and on "↻ Refresh PrizePicks"), because the build server gets a 403. If PrizePicks
+refuses cross-site requests, the slate keeps the build's data and the note says so.
+
+
+
 Each build pulls the PrizePicks NHL board (`model/prizepicks.py`). PrizePicks only
 posts a **Goalie Saves** prop for the goalie it expects to start, so that goalie becomes
 the slate's starter, and the saves line fills the Line column. If PrizePicks hasn't
