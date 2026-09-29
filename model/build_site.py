@@ -136,23 +136,31 @@ def fetch_rosters(teams):
     return out
 
 
-def depth_charts(starts: pd.DataFrame, rosters: dict, n=12):
+def depth_charts(starts: pd.DataFrame, rosters: dict, n=12, preseason=False, prev=None):
     """Default starter order per team.
 
     With a current roster: only that team's rostered goalies, ranked by starts in
     the team's last n games (in-season form) and then by total starts this season
-    for any team (so an offseason signing who was a #1 elsewhere ranks right).
+    for any team. Preseason, last spring's team usage says little once rosters
+    have turned over, so goalies are ranked by last season's total starts alone
+    (an offseason signing who was a #1 elsewhere ranks first). `prev` (last
+    season's starts) breaks ties early in a season, before a team has played.
     Without one: the team's goalies by starts in its last n games.
     """
     s = starts.sort_values("game_date")
     season_starts = s.player_id.value_counts()
+    prev_starts = prev.player_id.value_counts() if prev is not None else pd.Series(dtype=int)
     recent = {team: x.tail(n).player_id.value_counts() for team, x in s.groupby("team_abbrev")}
     charts = {}
     for team in set(recent) | set(rosters):
         if team in rosters:
             ids = [g["id"] for g in rosters[team]]
             rc = recent.get(team, pd.Series(dtype=int))
-            ids.sort(key=lambda i: (-int(rc.get(i, 0)), -int(season_starts.get(i, 0)), i))
+            if preseason:
+                ids.sort(key=lambda i: (-int(season_starts.get(i, 0)), -int(rc.get(i, 0)), i))
+            else:
+                ids.sort(key=lambda i: (-int(rc.get(i, 0)), -int(season_starts.get(i, 0)),
+                                        -int(prev_starts.get(i, 0)), i))
             charts[team] = ids
         else:
             # no roster for this team: drop goalies now rostered somewhere else
@@ -237,7 +245,9 @@ def main():
         "goalies": goalies,
         "pp": pp,
         "pp_error": prizepicks.last_error,
-        "depth": depth_charts(st_df[st_df.season == display_season], rosters),
+        "depth": depth_charts(st_df[st_df.season == display_season], rosters,
+                              preseason=bool(latest < cur),
+                              prev=st_df[st_df.season == display_season - 1]),
         "rosters_ok": len(rosters),
         "last_played": {k: str(v) for k, v in state.last_played.items()},
         "slate": slate,
