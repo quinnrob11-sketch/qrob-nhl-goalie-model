@@ -12,12 +12,14 @@ import datetime as dt
 import json
 import os
 import urllib.request
+import zlib
 
 import numpy as np
 import pandas as pd
 
 import data
 import engine
+import prizepicks
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -154,6 +156,20 @@ def main():
     bt = pd.read_csv(os.path.join(OUT, "backtest_games.csv"))
     bt = bt[(bt.season == 2026) & (bt.edge.abs() >= 1.0)]
 
+    goalies = goalie_table(st_df, state, display_season)
+    pp = prizepicks.fetch(goalies)
+    # Goalies on the board we have no NHL history for (call-ups, new signings)
+    # get a league-average profile so they still project.
+    lg_share = round(state.lg_share.s / state.lg_share.w, 4)
+    for r in pp:
+        if r["goalie_id"] is None:
+            gid = -zlib.crc32(r["name"].encode())
+            if not any(g["id"] == gid for g in goalies):
+                goalies.append({"id": gid, "name": r["name"], "team": r["team"], "gp": 0,
+                                "sv": engine.LEAGUE_SV, "share": lg_share, "l10": None,
+                                "last10": [], "new": True})
+            r["goalie_id"] = gid
+
     recent = df[pd.to_datetime(df.date) >= pd.Timestamp(today) - pd.Timedelta(days=45)]
     payload = {
         "built": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
@@ -163,10 +179,11 @@ def main():
         "data_through": str(tg.game_date.max()),
         "params": p.to_dict(),
         "league": round(state.league(), 3),
-        "lg_share": round(state.lg_share.s / state.lg_share.w, 4),
+        "lg_share": lg_share,
         "sd": report["sd"],
         "teams": team_table(tg, state, display_season),
-        "goalies": goalie_table(st_df, state, display_season),
+        "goalies": goalies,
+        "pp": pp,
         "depth": depth_charts(st_df[st_df.season == display_season]),
         "last_played": {k: str(v) for k, v in state.last_played.items()},
         "slate": fetch_slate(today),
@@ -180,7 +197,7 @@ def main():
     with open(os.path.join(ROOT, "index.html"), "w", encoding="utf-8") as f:
         f.write(html)
     print(f"Wrote index.html ({len(html) / 1024:.0f} KB) | data through {payload['data_through']} "
-          f"| slate games: {len(payload['slate'])}")
+          f"| slate games: {len(payload['slate'])} | PrizePicks goalies: {len(pp)}")
 
 
 if __name__ == "__main__":

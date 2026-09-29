@@ -2,10 +2,14 @@ name: Rebuild goalie model
 
 on:
   schedule:
-    # 15:00 UTC = 11am ET (after fastRhockey's overnight refresh);
-    # 21:30 UTC = 5:30pm ET (picks up the evening slate / late goalie news)
+    # 11am ET (after fastRhockey's overnight refresh), then 2pm, 4pm, 6pm and
+    # 7pm ET so starters / saves lines are picked up as PrizePicks posts them.
+    # (UTC times; during standard time these land an hour earlier in ET.)
     - cron: '0 15 * * *'
-    - cron: '30 21 * * *'
+    - cron: '0 18 * * *'
+    - cron: '0 20 * * *'
+    - cron: '0 22 * * *'
+    - cron: '0 23 * * *'
   workflow_dispatch:
 
 permissions:
