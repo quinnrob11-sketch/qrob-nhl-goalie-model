@@ -100,10 +100,16 @@ def match(pp_rows: list[dict], goalies: list[dict]) -> list[dict]:
     return pp_rows
 
 
+last_error: str | None = None
+
+
 def fetch(goalies: list[dict]) -> list[dict]:
+    global last_error
+    last_error = None
     try:
         rows = parse(fetch_raw())
     except Exception as e:
+        last_error = str(e)
         print(f"  [prizepicks] board unavailable: {e}")
         return []
     rows = match(rows, goalies)
