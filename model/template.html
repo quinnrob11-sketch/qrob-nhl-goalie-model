@@ -100,7 +100,8 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   <div id="preNote"></div>
   <div class="card">
     <h2>Slate</h2>
-    <p class="sub" id="ppNote" style="margin:-4px 0 10px"></p>
+    <p class="sub" id="ppNote" style="margin:-4px 0 6px"></p>
+    <p style="margin:0 0 10px"><button class="ghost" id="ppRefresh">↻ Refresh PrizePicks</button></p>
     <div class="row" style="margin-bottom:10px">
       <label>Min edge (saves)<input type="number" id="minEdge" value="1.5" step="0.5" min="0"></label>
       <label>Side<select id="sideF"><option value="">Both</option><option>OVER</option><option>UNDER</option></select></label>
@@ -250,10 +251,61 @@ const LINES = store.get("gm_lines", {});
 const STARTER = store.get("gm_starter", {});
 // PrizePicks board: a posted "Goalie Saves" line = the goalie PP expects to start
 const PP = {};
-for (const r of (D.pp || [])){
-  let date = r.date;
-  if (!date){ const g = D.slate.find(x => x.home === r.team || x.away === r.team); date = g && g.date; }
-  if (date && r.team) PP[date + "|" + r.team] = r;
+function buildPP(){
+  for (const k of Object.keys(PP)) delete PP[k];
+  for (const r of (D.pp || [])){
+    let date = r.date;
+    if (!date){ const g = D.slate.find(x => x.home === r.team || x.away === r.team); date = g && g.date; }
+    if (date && r.team) PP[date + "|" + r.team] = r;
+  }
+}
+buildPP();
+
+// Live PrizePicks pull from the viewer's own browser (the build server gets a 403).
+// Mirrors model/prizepicks.py. If PrizePicks refuses cross-site requests, the
+// page keeps whatever the build had.
+const PP_TEAM_FIX = {LA:"LAK", NJ:"NJD", SJ:"SJS", TB:"TBL", MON:"MTL", WAS:"WSH", CLB:"CBJ", NAS:"NSH", UTAH:"UTA", VEG:"VGK", CAL:"CGY"};
+const nameKey = s => { const p = fold(s).replace(/[.']/g, "").trim().split(/\s+/); return p.length < 2 ? p.join(" ") : p[0][0] + " " + p.slice(1).join(" "); };
+const etDate = iso => new Intl.DateTimeFormat("en-CA", {timeZone: "America/New_York"}).format(new Date(iso));
+let ppLive = {state: "idle"};
+function parsePP(js){
+  const players = {};
+  for (const inc of js.included || []) if (inc.type === "new_player" || inc.type === "player") players[inc.id] = inc.attributes || {};
+  const byKey = {};
+  for (const g of D.goalies) (byKey[nameKey(g.name)] ||= []).push(g);
+  const rows = [];
+  for (const p of js.data || []){
+    const a = p.attributes || {};
+    if (a.stat_type !== "Goalie Saves" || (a.odds_type || "standard").toLowerCase() !== "standard" || a.is_promo || a.flash_sale_line_score != null || a.line_score == null) continue;
+    const rel = p.relationships || {}, ref = ((rel.new_player || rel.player || {}).data) || {};
+    const pl = players[ref.id] || {}, name = pl.name || pl.display_name;
+    if (!name) continue;
+    let team = String(pl.team || pl.team_abbreviation || "").toUpperCase(); team = PP_TEAM_FIX[team] || team;
+    let cands = byKey[nameKey(name)] || [];
+    if (cands.length > 1) cands = cands.filter(g => g.team === team).concat(cands).slice(0, 1);
+    let g = cands[0];
+    if (!g){ // no NHL history: league-average profile so it still projects
+      g = {id: -(rows.length + 1) * 7919 - 1, name, team, gp: 0, sv: .900, share: D.lg_share, last10: [], new: true};
+      D.goalies.push(g); G[g.id] = g;
+    }
+    rows.push({name, team: team || g.team, line: +a.line_score, date: a.start_time ? etDate(a.start_time) : null,
+               url: `https://app.prizepicks.com/projections/${p.id}`, goalie_id: g.id});
+  }
+  return rows;
+}
+async function pullPrizePicksLive(){
+  ppLive = {state: "loading"}; renderSlate();
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 10000);
+  try {
+    const r = await fetch("https://api.prizepicks.com/projections?league_id=8&per_page=1000&single_stat=true", {signal: ctl.signal});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const rows = parsePP(await r.json());
+    D.pp = rows; buildPP();
+    ppLive = {state: "ok", n: rows.length, at: new Date().toLocaleTimeString([], {hour: "numeric", minute: "2-digit"})};
+  } catch (e){
+    ppLive = {state: "fail", err: e.name === "AbortError" ? "timed out" : (e.message === "Failed to fetch" || e.name === "TypeError") ? "blocked by PrizePicks for other websites" : e.message};
+  } finally { clearTimeout(timer); }
+  renderSlate(); renderSlip();
 }
 // DraftKings (via The Odds API): same idea, a posted saves line = expected starter
 const DK = {};
@@ -296,7 +348,11 @@ function renderSlate(){
   const nPP = (D.pp || []).length, nDK = (D.dk || []).length;
   const dkMsg = nDK ? `DraftKings: saves lines for ${nDK} goalie${nDK===1?"":"s"}${D.odds_remaining ? ` (${D.odds_remaining} API requests left)` : ""}.`
     : D.dk_error ? `DraftKings: unavailable (${D.dk_error}).` : `DraftKings: no saves lines posted yet for games in the next 18 hours.`;
-  const ppMsg = nPP ? `PrizePicks: ${nPP} goalie saves prop${nPP===1?"":"s"}.` : D.pp_error ? `PrizePicks: unavailable (${D.pp_error}).` : `PrizePicks: no goalie saves props posted yet.`;
+  const ppMsg = ppLive.state === "loading" ? "PrizePicks: loading live board…"
+    : ppLive.state === "ok" ? `PrizePicks: ${ppLive.n} goalie saves prop${ppLive.n===1?"":"s"} (live, ${ppLive.at}).`
+    : nPP ? `PrizePicks: ${nPP} goalie saves prop${nPP===1?"":"s"}${ppLive.state === "fail" ? ` (from build; live pull ${ppLive.err})` : ""}.`
+    : ppLive.state === "fail" ? `PrizePicks: live pull ${ppLive.err}.`
+    : D.pp_error ? `PrizePicks: unavailable (${D.pp_error}).` : `PrizePicks: no goalie saves props posted yet.`;
   $("#ppNote").textContent = `As of ${D.built}. ${dkMsg} ${ppMsg} Starter order: a DraftKings line, then a PrizePicks prop, then the roster default (unconfirmed). A posted line isn't an official confirmation, so check warmups on close calls. Change the goalie or line on any row to override.`;
   const dates = [...new Set(D.slate.map(g => g.date))];
   const dSel = $("#dateF");
@@ -534,7 +590,9 @@ function renderLogic(){
 }
 
 $("#q").addEventListener("input", () => { renderSlate(); renderGoalies(); renderTeams(); if (window.drawBtGames) window.drawBtGames(); });
+$("#ppRefresh").onclick = pullPrizePicksLive;
 renderSlate(); initBuilder(); renderBacktest(); renderTracker(); renderSlip(); initGoalies(); renderTeams(); renderLogic();
+if (D.slate.length) pullPrizePicksLive();
 </script>
 </body>
 </html>
