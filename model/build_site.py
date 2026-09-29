@@ -25,6 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 OUT = os.path.join(HERE, "output")
 SCHEDULE_API = "https://api-web.nhle.com/v1/schedule/{d}"
+ROSTER_API = "https://api-web.nhle.com/v1/roster/{team}/current"
 
 
 def season_end_year(today: dt.date) -> int:
@@ -112,14 +113,51 @@ def goalie_table(starts: pd.DataFrame, st: engine.State, season: int):
     return res
 
 
-def depth_charts(starts: pd.DataFrame, n=12):
-    """Each team's goalies ordered by starts in the team's last n games."""
+def fetch_rosters(teams):
+    """Current goalies on each NHL roster: {team: [{"id", "name"}]}. Best-effort per team."""
+    out = {}
+    for team in sorted(teams):
+        try:
+            req = urllib.request.Request(ROSTER_API.format(team=team),
+                                         headers={"User-Agent": "qrob-goalie-model"})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                js = json.load(r)
+        except Exception as e:
+            print(f"  [roster] {team} unavailable: {e}")
+            continue
+        gs = []
+        for p in js.get("goalies", []):
+            first = (p.get("firstName") or {}).get("default", "")
+            last = (p.get("lastName") or {}).get("default", "")
+            gs.append({"id": int(p["id"]), "name": f"{first[:1]}. {last}".strip(". ")})
+        if gs:
+            out[team] = gs
+    print(f"  [roster] goalies for {len(out)} teams")
+    return out
+
+
+def depth_charts(starts: pd.DataFrame, rosters: dict, n=12):
+    """Default starter order per team.
+
+    With a current roster: only that team's rostered goalies, ranked by starts in
+    the team's last n games (in-season form) and then by total starts this season
+    for any team (so an offseason signing who was a #1 elsewhere ranks right).
+    Without one: the team's goalies by starts in its last n games.
+    """
     s = starts.sort_values("game_date")
+    season_starts = s.player_id.value_counts()
+    recent = {team: x.tail(n).player_id.value_counts() for team, x in s.groupby("team_abbrev")}
     charts = {}
-    for team, x in s.groupby("team_abbrev"):
-        recent = x.tail(n)
-        order = recent.player_id.value_counts()
-        charts[team] = [int(i) for i in order.index]
+    for team in set(recent) | set(rosters):
+        if team in rosters:
+            ids = [g["id"] for g in rosters[team]]
+            rc = recent.get(team, pd.Series(dtype=int))
+            ids.sort(key=lambda i: (-int(rc.get(i, 0)), -int(season_starts.get(i, 0)), i))
+            charts[team] = ids
+        else:
+            # no roster for this team: drop goalies now rostered somewhere else
+            elsewhere = {g["id"] for t, gs in rosters.items() if t != team for g in gs}
+            charts[team] = [int(i) for i in recent[team].index if int(i) not in elsewhere]
     return charts
 
 
@@ -157,10 +195,24 @@ def main():
     bt = bt[(bt.season == 2026) & (bt.edge.abs() >= 1.0)]
 
     goalies = goalie_table(st_df, state, display_season)
-    pp = prizepicks.fetch(goalies)
-    # Goalies on the board we have no NHL history for (call-ups, new signings)
-    # get a league-average profile so they still project.
+    slate = fetch_slate(today)
+    teams = {g[k] for g in slate for k in ("home", "away")} or set(state.off)
+    rosters = fetch_rosters(teams)
     lg_share = round(state.lg_share.s / state.lg_share.w, 4)
+    # Current rosters fix offseason moves; goalies with no NHL starts get a
+    # league-average profile so they still project.
+    by_id = {g["id"]: g for g in goalies}
+    for team, gs in rosters.items():
+        for r in gs:
+            if r["id"] in by_id:
+                by_id[r["id"]]["team"] = team
+            else:
+                by_id[r["id"]] = {"id": r["id"], "name": r["name"], "team": team, "gp": 0,
+                                  "sv": engine.LEAGUE_SV, "share": lg_share, "l10": None,
+                                  "last10": [], "new": True}
+                goalies.append(by_id[r["id"]])
+    pp = prizepicks.fetch(goalies)
+    # Goalies on the board we have no NHL history for get the same treatment.
     for r in pp:
         if r["goalie_id"] is None:
             gid = -zlib.crc32(r["name"].encode())
@@ -185,9 +237,10 @@ def main():
         "goalies": goalies,
         "pp": pp,
         "pp_error": prizepicks.last_error,
-        "depth": depth_charts(st_df[st_df.season == display_season]),
+        "depth": depth_charts(st_df[st_df.season == display_season], rosters),
+        "rosters_ok": len(rosters),
         "last_played": {k: str(v) for k, v in state.last_played.items()},
-        "slate": fetch_slate(today),
+        "slate": slate,
         "results": [{"date": r.date, "goalie_id": int(r.goalie_id), "saves": int(r.saves)}
                     for r in recent.itertuples()],
         "backtest": {k: v for k, v in report.items() if k != "params"},

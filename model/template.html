@@ -243,7 +243,7 @@ document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
   store.set("gm_tab", b.dataset.t);
 });
 { const t = store.get("gm_tab"); const b = t && document.querySelector(`#tabs button[data-t="${t}"]`); if (b) b.click(); }
-if (D.preseason) $("#preNote").innerHTML = `<div class="note"><b>Preseason build.</b> Ratings are ${D.display_season} numbers regressed toward league average, the same way the backtest handles a new season. Starters come from last season's depth charts, so check offseason moves and <b>confirm starters</b> before betting. Numbers sharpen after about 15 games.</div>`;
+if (D.preseason) $("#preNote").innerHTML = `<div class="note"><b>Preseason build.</b> Ratings are ${D.display_season} numbers regressed toward league average, the same way the backtest handles a new season. Until a starter is posted, each team's default is the goalie on its current NHL roster who started most last season, so <b>confirm starters</b> before betting. Numbers sharpen after about 15 games.</div>`;
 
 // ---------- slate ----------
 const LINES = store.get("gm_lines", {});
@@ -262,7 +262,7 @@ function starterFor(team, date){
   return {gid: (D.depth[team] || [])[0], src: "depth"};
 }
 function goalieOptions(team, sel){
-  const ids = [...new Set([...(D.depth[team]||[]), ...D.goalies.filter(g => g.team === team).map(g => g.id)])];
+  const ids = [...new Set([...(D.depth[team]||[]), ...(D.rosters_ok ? [] : D.goalies.filter(g => g.team === team).map(g => g.id))])];
   const rest = D.goalies.filter(g => !ids.includes(g.id)).sort((a,b) => a.name.localeCompare(b.name));
   const opt = g => `<option value="${g.id}" ${g.id===sel?"selected":""}>${g.name}${g.team && g.team!==team ? " ("+g.team+")" : ""}</option>`;
   return ids.map(i => G[i]).filter(Boolean).map(opt).join("") + '<option disabled>──────</option>' + rest.map(opt).join("");
@@ -292,8 +292,8 @@ function renderSlate(){
   $("#ppNote").textContent = nPP
     ? `Starters and lines auto-filled from ${nPP} goalie saves props on the PrizePicks board (as of ${D.built}). PrizePicks posting a goalie isn't an official confirmation, so check warmups on close calls. Change the goalie or line to override.`
     : D.pp_error
-      ? `Couldn't read the PrizePicks board at build time (${D.pp_error}), so starters come from depth charts. Pick the goalie and enter the line on each row.`
-      : `No goalie saves props on the PrizePicks board at build time (${D.built}), so starters come from depth charts. PrizePicks usually posts them the morning of the game.`;
+      ? `Couldn't read the PrizePicks board at build time (${D.pp_error}), so each team shows its default starter (marked unconfirmed). Pick the goalie and enter the line on each row.`
+      : `No goalie saves props on the PrizePicks board at build time (${D.built}), so each team shows its default starter (marked unconfirmed). PrizePicks usually posts them the morning of the game.`;
   const dates = [...new Set(D.slate.map(g => g.date))];
   const dSel = $("#dateF");
   if (!dSel.options.length){ dSel.innerHTML = `<option value="">All</option>` + dates.map(d => `<option>${d}</option>`).join(""); }
@@ -316,7 +316,7 @@ function renderSlate(){
     const ph = hasE ? (side === "OVER" ? pOver(r.proj, r.line) : 1 - pOver(r.proj, r.line)) : null;
     html += `<tr class="${cls}"><td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp}<div class="muted" style="font-size:11px">${r.g.date}${r.b2b?" · B2B":""}${r.g.type==="P"?" · Playoffs":""}</div></td>
       <td class="l"><select data-st="${r.g.date}|${r.team}">${goalieOptions(r.team, r.gid)}</select>
-        <div style="font-size:11px">${r.src==="pp"?'<span class="good">✓ on PrizePicks board</span>':r.src==="manual"?'<span class="muted">set by you</span>':'<span class="muted">depth chart · unconfirmed</span>'}${(G[r.gid]||{}).new?' <span class="muted">· no NHL history</span>':""}</div></td>
+        <div style="font-size:11px">${r.src==="pp"?'<span class="good">✓ on PrizePicks board</span>':r.src==="manual"?'<span class="muted">set by you</span>':(D.rosters_ok?'<span class="muted">roster #1 · unconfirmed</span>':'<span class="muted">depth chart · unconfirmed</span>')}${(G[r.gid]||{}).new?' <span class="muted">· no NHL history</span>':""}</div></td>
       <td>${fmt(r.sa)}</td><td>${fmt(r.sv,3)}</td><td><b>${fmt(r.proj)}</b></td>
       <td><input type="number" step="0.5" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line">
         ${r.lineSrc==="pp"?`<div style="font-size:11px"><a href="${r.pp.url}" target="_blank" rel="noopener" class="muted">PrizePicks</a></div>`:""}</td>
