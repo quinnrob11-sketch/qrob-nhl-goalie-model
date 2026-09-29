@@ -98,6 +98,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   <div id="preNote"></div>
   <div class="card">
     <h2>Slate</h2>
+    <p class="sub" id="ppNote" style="margin:-4px 0 10px"></p>
     <div class="row" style="margin-bottom:10px">
       <label>Min edge (saves)<input type="number" id="minEdge" value="1.5" step="0.5" min="0"></label>
       <label>Side<select id="sideF"><option value="">Both</option><option>OVER</option><option>UNDER</option></select></label>
@@ -240,10 +241,18 @@ if (D.preseason) $("#preNote").innerHTML = `<div class="note"><b>Preseason build
 // ---------- slate ----------
 const LINES = store.get("gm_lines", {});
 const STARTER = store.get("gm_starter", {});
+// PrizePicks board: a posted "Goalie Saves" line = the goalie PP expects to start
+const PP = {};
+for (const r of (D.pp || [])){
+  let date = r.date;
+  if (!date){ const g = D.slate.find(x => x.home === r.team || x.away === r.team); date = g && g.date; }
+  if (date && r.team) PP[date + "|" + r.team] = r;
+}
 function starterFor(team, date){
   const k = date + "|" + team;
-  if (STARTER[k]) return +STARTER[k];
-  return (D.depth[team] || [])[0];
+  if (STARTER[k]) return {gid: +STARTER[k], src: "manual"};
+  if (PP[k]) return {gid: PP[k].goalie_id, src: "pp", pp: PP[k]};
+  return {gid: (D.depth[team] || [])[0], src: "depth"};
 }
 function goalieOptions(team, sel){
   const ids = [...new Set([...(D.depth[team]||[]), ...D.goalies.filter(g => g.team === team).map(g => g.id)])];
@@ -256,19 +265,26 @@ function slateRows(){
   for (const g of D.slate){
     for (const side of ["home","away"]){
       const team = g[side], opp = side === "home" ? g.away : g.home;
-      const gid = starterFor(team, g.date);
+      const st = starterFor(team, g.date), gid = st.gid;
       const last = D.last_played[team];
       const b2b = last && (new Date(g.date) - new Date(last)) / 864e5 === 1;
       const pr = project(gid, team, opp, side === "home", b2b, g.type === "P");
       const key = g.date + "|" + gid;
-      const line = LINES[key];
+      const pp = PP[g.date + "|" + team];
+      const ppLine = pp && pp.goalie_id === gid ? pp.line : null;
+      const line = LINES[key] ?? ppLine;
+      const lineSrc = LINES[key] != null ? "manual" : ppLine != null ? "pp" : "";
       const edge = line != null ? pr.proj - line : null;
-      rows.push({g, team, opp, gid, side, b2b, ...pr, key, line, edge});
+      rows.push({g, team, opp, gid, side, b2b, ...pr, key, line, lineSrc, pp, src: st.src, edge});
     }
   }
   return rows;
 }
 function renderSlate(){
+  const nPP = (D.pp || []).length;
+  $("#ppNote").textContent = nPP
+    ? `Starters and lines auto-filled from ${nPP} goalie saves props on the PrizePicks board (as of ${D.built}). PrizePicks posting a goalie isn't an official confirmation, so check warmups on close calls. Change the goalie or line to override.`
+    : `No goalie saves props on the PrizePicks board at build time (${D.built}), so starters come from depth charts. PrizePicks usually posts them the morning of the game.`;
   const dates = [...new Set(D.slate.map(g => g.date))];
   const dSel = $("#dateF");
   if (!dSel.options.length){ dSel.innerHTML = `<option value="">All</option>` + dates.map(d => `<option>${d}</option>`).join(""); }
@@ -287,9 +303,11 @@ function renderSlate(){
     const cls = play ? side.toLowerCase() : hasE ? "dim" : "";
     const ph = hasE ? (side === "OVER" ? pOver(r.proj, r.line) : 1 - pOver(r.proj, r.line)) : null;
     html += `<tr class="${cls}"><td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp}<div class="muted" style="font-size:11px">${r.g.date}${r.b2b?" · B2B":""}${r.g.type==="P"?" · Playoffs":""}</div></td>
-      <td class="l"><select data-st="${r.g.date}|${r.team}">${goalieOptions(r.team, r.gid)}</select></td>
+      <td class="l"><select data-st="${r.g.date}|${r.team}">${goalieOptions(r.team, r.gid)}</select>
+        <div style="font-size:11px">${r.src==="pp"?'<span class="good">✓ on PrizePicks board</span>':r.src==="manual"?'<span class="muted">set by you</span>':'<span class="muted">depth chart · unconfirmed</span>'}${(G[r.gid]||{}).new?' <span class="muted">· no NHL history</span>':""}</div></td>
       <td>${fmt(r.sa)}</td><td>${fmt(r.sv,3)}</td><td><b>${fmt(r.proj)}</b></td>
-      <td><input type="number" step="0.5" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line"></td>
+      <td><input type="number" step="0.5" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line">
+        ${r.lineSrc==="pp"?`<div style="font-size:11px"><a href="${r.pp.url}" target="_blank" rel="noopener" class="muted">PrizePicks</a></div>`:""}</td>
       <td>${hasE ? (r.edge>0?"+":"") + fmt(r.edge) : "–"}</td><td class="l side">${play ? side : (hasE ? "PASS" : "")}</td>
       <td>${ph!=null?pct(ph,0):"–"}</td><td class="l">${t?`<span class="pill ${t}">${t}</span>`:""}</td>
       <td>${play ? `<button class="ghost" data-log="${r.key}">Log</button>` : ""}</td></tr>`;

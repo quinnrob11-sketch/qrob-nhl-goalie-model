@@ -2,7 +2,7 @@
 
 Projects saves for every starting goalie and compares the projection to the book line.
 It ships as a single self-contained `index.html` that Vercel serves (see `vercel.json`),
-rebuilt twice a day by GitHub Actions.
+rebuilt through the day by GitHub Actions.
 
 ## The model
 
@@ -33,6 +33,14 @@ season, which is how the model handles opening night of 2026-27.
 - **Confirm the starter** before locking. Each projection is for the goalie shown.
 - Overtime inflates raw saves. In tight, high-event games, lean OVER on close calls.
 
+### Starters and lines from PrizePicks
+
+Each build pulls the PrizePicks NHL board (`model/prizepicks.py`). PrizePicks only
+posts a **Goalie Saves** prop for the goalie it expects to start, so that goalie becomes
+the slate's starter, and the saves line fills the Line column. If PrizePicks hasn't
+posted a team's goalie yet, the starter falls back to the depth chart and is marked
+unconfirmed. You can override the goalie or the line on any row.
+
 ## Backtest
 
 `python model/backtest.py` fits parameters on **2024-25 only**, then grades **2025-26
@@ -62,6 +70,7 @@ Or just open `index.html` directly. Everything is inlined.
   rebuilt daily from the NHL API. Cached in `model/cache/` (gitignored).
 - Upcoming schedule: `api-web.nhle.com/v1/schedule`, fetched at build time. If it's
   unreachable, the slate is empty and the matchup builder still works.
+- Starters and saves lines: the PrizePicks projections board (`api.prizepicks.com`).
 
 ## Files
 
@@ -71,7 +80,8 @@ model/data.py            download + shape box scores / play-by-play
 model/engine.py          walk-forward ratings, projection, grading
 model/backtest.py        fit on 2024-25, test on 2025-26
 model/build_site.py      render index.html from template.html
+model/prizepicks.py      starting goalies + saves lines from the PrizePicks board
 model/template.html      dashboard template
 model/output/            params.json, backtest.json, backtest_games.csv
-.github/workflows/build.yml   rebuild at 11am and 5:30pm ET
+.github/workflows/build.yml   rebuild 11am, 2pm, 4pm, 6pm, 7pm ET
 ```
