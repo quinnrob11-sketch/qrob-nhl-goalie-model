@@ -1,0 +1,39 @@
+date,market,player,team,opp,book,line,mult,side,model_proj,model_p,tier,actual,result,note
+2026-09-29,saves,J. Markstrom,FLA,CAR,PrizePicks,25.5,1,OVER,26.8,0.57,LOW,15,MISS,CAR 15 shots in a 1-0 OT game; model expected 30.6
+2026-09-29,saves,B. Bussi,CAR,FLA,PrizePicks,22.5,1,UNDER,21.1,0.58,LOW,19,HIT,
+2026-09-29,saves,J. Dobes,MTL,TOR,PrizePicks,24.5,1,UNDER,23.9,0.53,PASS,26,MISS,pass (lean only)
+2026-09-29,saves,S. Bobrovsky,TOR,MTL,PrizePicks,25,1,UNDER,24.7,0.52,PASS,21,HIT,pass (lean only)
+2026-09-29,saves,I. Shesterkin,NYR,BOS,PrizePicks,23.5,1,OVER,24.4,0.55,PASS,20,MISS,pass (lean only)
+2026-09-29,saves,J. Swayman,BOS,NYR,PrizePicks,23.5,1,UNDER,23.0,0.53,PASS,24,MISS,pass (lean only)
+2026-09-29,saves,K. Lankinen,VAN,EDM,PrizePicks,27.5,1,UNDER,26.9,0.53,PASS,32,MISS,pass (lean only)
+2026-09-29,saves,T. Jarry,EDM,VAN,PrizePicks,21,1,OVER,21.4,0.52,PASS,17,MISS,pass (lean only); roster default had Andersen
+2026-09-29,saves,S. Knight,CHI,VGK,PrizePicks,25.5,1,OVER,26.2,0.54,PASS,32,HIT,pass (lean only)
+2026-09-29,saves,C. Hart,VGK,CHI,PrizePicks,20.5,1,OVER,21.0,0.53,PASS,24,HIT,pass (lean only)
+2026-09-30,saves,M. Blackwood,COL,LAK,PrizePicks,25.5,1,UNDER,22.4,0.67,HIGH,27,MISS,LAK 31 shots vs 26.1 expected; roster default had Wedgewood
+2026-09-30,saves,I. Sorokin,NYI,TOR,PrizePicks,24.5,1,UNDER,22.6,0.61,MED,24,HIT,
+2026-09-30,saves,A. Silovs,PIT,PHI,PrizePicks,24.5,1,UNDER,22.6,0.61,MED,19,HIT,
+2026-09-30,saves,A. Stolarz,TOR,NYI,PrizePicks,25.5,1,OVER,27.1,0.59,MED,26,HIT,B2B call correct (Stolarz started)
+2026-09-30,saves,D. Vladar,PHI,PIT,PrizePicks,24.5,1,UNDER,23.0,0.59,LOW,31,MISS,PIT 38 shots in a 7-0 win; model expected 26.5
+2026-09-30,saves,D. Kuemper,LAK,COL,user quote,27.5,1,UNDER,27.4,0.51,PASS,21,HIT,pass; 8 GA blowout
+2026-09-29,sog,M. Rossi,VAN,EDM,Pick6,1.5,1,UNDER,1.44,0.59,,1,HIT,
+2026-09-29,sog,J. Hagens,BOS,NYR,Pick6,1.5,1,UNDER,1.48,0.58,,1,HIT,
+2026-09-29,sog,M. Zibanejad,NYR,BOS,Pick6,2.5,1,UNDER,2.46,0.56,,2,HIT,
+2026-09-29,sog,R. Andersson,VGK,CHI,Pick6,1.5,1,OVER,1.94,0.56,,2,HIT,
+2026-09-29,sog,E. Bouchard,EDM,VAN,Pick6,2.5,1,UNDER,2.5,0.56,,6,MISS,
+2026-09-29,sog,V. Podkolzin,EDM,VAN,Pick6,2.5,,UNDER,1.86,0.71,,7,MISS,conditional: multiplier not visible
+2026-09-29,sog,B. Byram,CHI,VGK,Pick6,1.5,,UNDER,1.39,0.6,,0,HIT,conditional: multiplier not visible
+2026-09-29,sog,J. Tavares,TOR,MTL,Pick6,2.5,,UNDER,2.34,0.59,,4,MISS,conditional: multiplier not visible
+2026-09-30,sog,A. Kempe,LAK,COL,Pick6,2.5,1,UNDER,2.38,0.58,,3,MISS,
+2026-09-30,sog,C. Makar,COL,LAK,Pick6,2.5,1,UNDER,2.46,0.57,,1,HIT,
+2026-09-30,sog,W. Nylander,TOR,NYI,Pick6,2.5,1,UNDER,2.47,0.56,,1,HIT,
+2026-09-30,sog,M. Maccelli,NYI,TOR,Pick6,1.5,1,UNDER,1.51,0.56,,1,HIT,
+2026-09-30,sog,T. Novak,PIT,PHI,Pick6,1.5,1,UNDER,1.58,0.54,,0,HIT,
+2026-09-30,sog,N. MacKinnon,COL,LAK,Pick6,3.5,1.1,UNDER,3.73,0.51,,8,MISS,boosted side
+2026-09-29,winner,CAR,CAR,FLA,,,,CAR,,0.67,65%+,FLA 1-0 OT,MISS,
+2026-09-29,winner,TOR/MTL,TOR,MTL,,,,coin flip,,0.5,,MTL 3-2,,
+2026-09-29,winner,BOS,BOS,NYR,,,,BOS,,0.56,,BOS 3-0,HIT,
+2026-09-29,winner,EDM,EDM,VAN,,,,EDM,,0.69,65%+,VAN 6-5,MISS,
+2026-09-29,winner,VGK,VGK,CHI,,,,VGK,,0.68,65%+,VGK 5-2,HIT,
+2026-09-30,winner,PHI,PHI,PIT,,,,PHI,,0.56,,PIT 7-0,MISS,
+2026-09-30,winner,NYI,NYI,TOR,,,,NYI,,0.52,,TOR 2-1,MISS,
+2026-09-30,winner,COL,COL,LAK,,,,COL,,0.66,65%+,COL 8-4,HIT,

@@ -201,6 +201,8 @@ def depth_charts(starts: pd.DataFrame, rosters: dict, n=12, preseason=False, pre
     recent = {team: x.tail(n).player_id.value_counts() for team, x in s.groupby("team_abbrev")}
     charts = {}
     for team in set(recent) | set(rosters):
+        if team not in rosters and team not in recent:
+            continue
         if team in rosters:
             ids = [g["id"] for g in rosters[team]]
             rc = recent.get(team, pd.Series(dtype=int))
@@ -213,7 +215,11 @@ def depth_charts(starts: pd.DataFrame, rosters: dict, n=12, preseason=False, pre
         else:
             # no roster for this team: drop goalies now rostered somewhere else
             elsewhere = {g["id"] for t, gs in rosters.items() if t != team for g in gs}
-            charts[team] = [int(i) for i in recent[team].index if int(i) not in elsewhere]
+            ids = [int(i) for i in recent[team].index]
+            if prev is not None:  # early season: add last season's goalies for this team
+                pt = prev[prev.team_abbrev == team].player_id.value_counts()
+                ids += [int(i) for i in pt.index if int(i) not in ids]
+            charts[team] = [i for i in ids if i not in elsewhere]
     return charts
 
 
@@ -315,6 +321,9 @@ def main():
                               prev=st_df[st_df.season == display_season - 1]),
         "rosters_ok": len(rosters),
         "last_played": {k: str(v) for k, v in state.last_played.items()},
+        # who started each team's most recent game (for back-to-back defaults)
+        "last_starter": {t: int(x.sort_values("game_date").player_id.iloc[-1])
+                         for t, x in st_df.groupby("team_abbrev")},
         "slate": slate,
         "results": [{"date": r.date, "goalie_id": int(r.goalie_id), "saves": int(r.saves)}
                     for r in recent.itertuples()],
