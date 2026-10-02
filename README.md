@@ -33,6 +33,25 @@ season, which is how the model handles opening night of 2026-27.
 - **Confirm the starter** before locking. Each projection is for the goalie shown.
 - Overtime inflates raw saves. In tight, high-event games, lean OVER on close calls.
 
+### Results tracking (`model/tracker.py`, **Results** tab)
+
+Fully automatic once it's merged:
+
+1. **Before games:** every build freezes the model's calls for games in the next 30 hours into
+   `model/data/calls/<date>.json`: projected starters and saves, every skater's SOG projection, and
+   each game's win probability, plus any DraftKings or PrizePicks line the build saw. A game that has
+   started is never changed.
+2. **After games:** every build (first one 8:30am ET) grades finished games from the box scores:
+   - every real line, appended to `real_line_log.csv` with HIT/MISS;
+   - model accuracy that needs no line: winner picks, starter calls, saves and SOG error;
+   - a reason for each miss: wrong starter, shots against far from expected, goalie pulled, OT,
+     or a big TOI change.
+3. **Pick6 boards:** send the screenshots or a screen recording and they get logged in the CSV.
+   The grader fills in the results the next morning.
+
+A **play** under the current rules is saves at 1.5+ edge, SOG at 55%+, and never a side paying under 1x.
+When a prop is on more than one book it counts once (Pick6 first, then PrizePicks, then DraftKings).
+
 ### Real-line record (`model/data/real_line_log.csv`)
 
 Every call is logged with the actual book line and graded from box scores. This is the

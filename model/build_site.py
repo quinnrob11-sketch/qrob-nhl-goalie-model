@@ -22,6 +22,7 @@ import engine
 import odds
 import prizepicks
 import sog
+import tracker
 import winners
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -330,6 +331,13 @@ def main():
         "backtest": {k: v for k, v in report.items() if k != "params"},
         "bt_games": json.loads(bt.to_json(orient="records")),
     }
+    # grade finished games, then freeze tonight's calls for tomorrow's grading
+    try:
+        payload["tracking"] = tracker.grade([cur], today)
+    except Exception as e:  # never let grading break the dashboard
+        print(f"  [tracker] grading failed: {e}")
+        payload["tracking"] = json.load(open(tracker.OUT)) if os.path.exists(tracker.OUT) else None
+    print(f"  [tracker] snapshot dates: {tracker.snapshot(payload)}")
     tpl = open(os.path.join(HERE, "template.html"), encoding="utf-8").read()
     html = tpl.replace("/*__DATA__*/null", json.dumps(payload, separators=(",", ":"), default=_np))
     with open(os.path.join(ROOT, "index.html"), "w", encoding="utf-8") as f:
