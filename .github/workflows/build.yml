@@ -5,6 +5,8 @@ on:
     # 11am ET (after fastRhockey's overnight refresh), then 2pm, 4pm, 6pm and
     # 7pm ET so starters / saves lines are picked up as PrizePicks posts them.
     # (UTC times; during standard time these land an hour earlier in ET.)
+    # 8:30am ET: grade last night's games as soon as the box scores land.
+    - cron: '30 12 * * *'
     - cron: '0 15 * * *'
     - cron: '0 18 * * *'
     - cron: '0 20 * * *'
@@ -37,7 +39,7 @@ jobs:
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add index.html
+          git add index.html model/data/calls model/data/real_line_log.csv model/output/tracking.json
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
           git commit -m "auto: rebuild $(date -u +'%Y-%m-%d %H:%M UTC')"
           for i in 1 2 3; do git push && exit 0; git pull --rebase origin "${GITHUB_REF_NAME}"; sleep $((i*3)); done

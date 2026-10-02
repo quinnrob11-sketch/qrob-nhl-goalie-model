@@ -33,6 +33,44 @@ season, which is how the model handles opening night of 2026-27.
 - **Confirm the starter** before locking. Each projection is for the goalie shown.
 - Overtime inflates raw saves. In tight, high-event games, lean OVER on close calls.
 
+### Results tracking (`model/tracker.py`, **Results** tab)
+
+Fully automatic once it's merged:
+
+1. **Before games:** every build freezes the model's calls for games in the next 30 hours into
+   `model/data/calls/<date>.json`: projected starters and saves, every skater's SOG projection, and
+   each game's win probability, plus any DraftKings or PrizePicks line the build saw. A game that has
+   started is never changed.
+2. **After games:** every build (first one 8:30am ET) grades finished games from the box scores:
+   - every real line, appended to `real_line_log.csv` with HIT/MISS;
+   - model accuracy that needs no line: winner picks, starter calls, saves and SOG error;
+   - a reason for each miss: wrong starter, shots against far from expected, goalie pulled, OT,
+     or a big TOI change.
+3. **Pick6 boards:** send the screenshots or a screen recording and they get logged in the CSV.
+   The grader fills in the results the next morning.
+
+A **play** under the current rules is saves at 1.5+ edge, SOG at 55%+, and never a side paying under 1x.
+When a prop is on more than one book it counts once (Pick6 first, then PrizePicks, then DraftKings).
+
+### Real-line record (`model/data/real_line_log.csv`)
+
+Every call is logged with the actual book line and graded from box scores. This is the
+number the 65% target is judged on, not the stand-in backtests. Through 9/30:
+
+| Market | Record | Note |
+|---|---|---|
+| Saves plays (edge 1.0+) | 4-3 | MED 3-0, LOW 1-2, HIGH 0-1 |
+| Saves leans under 1.0 (PASS) | 4-5 | about a coin flip, which is why they're passes |
+| SOG, Pick6 top-5 at 1x+ | 8-2 | boosted side (MacKinnon 1.1x) missed |
+| Game winners, 65%+ calls | 2-2 | backtest says 71-74% long run |
+
+Two days is far too small to retune on. The misses came from game-script outliers (CAR held
+to 15 shots in a 1-0 OT game, PIT 38 shots in a 7-0 win), not a broken model: average error
+over these 16 starts was 4.2 saves, better than the model's usual 5.3.
+
+**Current rules:** play saves only at 1.5+ (MED/HIGH); don't pair two LESS legs from the same
+game; skip Pick6's boosted sides; on a back-to-back, assume the backup starts until confirmed.
+
 ### Starters and lines
 
 Books only post a saves prop for the goalie they expect to start, so each build uses
@@ -41,7 +79,8 @@ posted lines as the starter feed. Priority per team: your own pick on the page, 
 Actions secret), then a **PrizePicks** saves prop, then the roster default. The roster
 default is the goalie on the team's current NHL roster (`api-web.nhle.com`) ranked by
 recent starts, or by last season's starts before a team has played. It's marked
-unconfirmed. The DraftKings pull costs one API request per game starting in the next 18
+unconfirmed. On a back-to-back, the default switches to the goalie who didn't start the night
+before. The DraftKings pull costs one API request per game starting in the next 18
 hours.
 
 #### PrizePicks
