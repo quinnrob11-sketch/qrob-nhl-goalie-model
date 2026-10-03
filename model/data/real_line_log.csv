@@ -136,7 +136,7 @@ date,market,player,team,opp,book,line,mult,side,model_proj,model_p,tier,actual,r
 2026-10-01,sog,V. Nichushkin,CBJ,BUF,Pick6,1.5,0.8,OVER,1.96,0.56,LOW,0,MISS,
 2026-10-01,sog,J. Hughes,NJD,PHI,Pick6,3.5,1,UNDER,3.44,0.56,LOW,5,MISS,TOI 25.8 vs 20.8 expected; went to OT
 2026-10-01,sog,M. Ekholm,EDM,VAN,Pick6,1.5,1.1,UNDER,1.52,0.56,LOW,0,HIT,
-2026-10-01,sog,G. Forsling,FLA,SJS,Pick6,1.5,0.8,UNDER,1.52,0.56,LOW,,,
+2026-10-01,sog,G. Forsling,FLA,SJS,Pick6,1.5,0.8,UNDER,1.52,0.56,LOW,,VOID,did not play / start
 2026-10-01,sog,S. Bennett,FLA,SJS,Pick6,2.5,0.9,UNDER,2.48,0.56,LOW,1,HIT,
 2026-10-01,sog,J. Miller,NYR,TBL,Pick6,1.5,0.8,OVER,1.94,0.56,LOW,1,MISS,
 2026-10-01,sog,M. Wood,NSH,MIN,Pick6,1.5,1,UNDER,1.53,0.56,LOW,0,HIT,
