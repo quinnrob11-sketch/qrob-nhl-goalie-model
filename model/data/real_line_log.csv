@@ -1013,3 +1013,62 @@ date,market,player,team,opp,book,line,mult,side,model_proj,model_p,tier,actual,r
 2026-10-06,winner,STL,STL,CHI,model,,,STL,,0.54,,STL 2-4 CHI,MISS,
 2026-10-06,winner,VGK,VGK,SEA,model,,,VGK,,0.55,,VGK 6-2 SEA,HIT,
 2026-10-06,winner,LAK,LAK,FLA,model,,,LAK,,0.56,,FLA 2-1 LAK,MISS,
+2026-10-07,saves,A. Silovs,PIT,WSH,DraftKings,25.5,1,UNDER,23.1,0.63,MED,22,HIT,auto
+2026-10-07,saves,L. Thompson,WSH,PIT,DraftKings,24.5,1,OVER,25.5,0.56,LOW,27,HIT,auto
+2026-10-07,saves,M. Blackwood,COL,WPG,DraftKings,23.5,1,UNDER,23.4,0.51,PASS,16,HIT,auto
+2026-10-07,saves,S. Skinner,WPG,COL,DraftKings,28.5,1,UNDER,27.1,0.58,LOW,32,MISS,auto
+2026-10-07,saves,D. Levi,EDM,ANA,DraftKings,23.5,1,OVER,24.4,0.55,PASS,29,HIT,auto
+2026-10-07,saves,L. Dostal,ANA,EDM,DraftKings,25.5,1,UNDER,24.7,0.54,PASS,12,HIT,auto
+2026-10-07,sog,R. Rakell,PIT,WSH,DraftKings,2.5,1,UNDER,2.46,0.56,LOW,3,MISS,auto
+2026-10-07,sog,S. Crosby,PIT,WSH,DraftKings,2.5,1,UNDER,2.45,0.57,LOW,2,HIT,auto
+2026-10-07,sog,B. Rust,PIT,WSH,DraftKings,1.5,1,OVER,2.39,0.66,HIGH,3,HIT,auto
+2026-10-07,sog,E. Malkin,PIT,WSH,DraftKings,1.5,1,OVER,2.26,0.63,HIGH,1,MISS,auto
+2026-10-07,sog,E. Karlsson,PIT,WSH,DraftKings,2.5,1,UNDER,2.06,0.66,HIGH,4,MISS,auto
+2026-10-07,sog,B. Kindel,PIT,WSH,DraftKings,1.5,1,OVER,1.93,0.55,LOW,2,HIT,auto
+2026-10-07,sog,T. Novak,PIT,WSH,DraftKings,1.5,1,UNDER,1.66,0.52,PASS,3,MISS,auto
+2026-10-07,sog,K. Letang,PIT,WSH,DraftKings,1.5,1,UNDER,1.6,0.54,PASS,3,MISS,auto; TOI 17.3 vs 21.3 expected
+2026-10-07,sog,A. Tuch,WSH,PIT,DraftKings,2.5,1,UNDER,2.51,0.55,LOW,6,MISS,auto
+2026-10-07,sog,A. Ovechkin,WSH,PIT,DraftKings,2.5,1,UNDER,2.49,0.56,LOW,2,HIT,auto
+2026-10-07,sog,J. Chychrun,WSH,PIT,DraftKings,2.5,1,UNDER,2.31,0.6,MED,1,HIT,auto
+2026-10-07,sog,J. Kyrou,WSH,PIT,DraftKings,2.5,1,UNDER,2.09,0.66,HIGH,1,HIT,auto
+2026-10-07,sog,R. Leonard,WSH,PIT,DraftKings,1.5,1,OVER,2.01,0.58,LOW,2,HIT,auto
+2026-10-07,sog,B. Jenner,WSH,PIT,DraftKings,1.5,1,OVER,1.98,0.57,LOW,2,HIT,auto
+2026-10-07,sog,T. Wilson,WSH,PIT,DraftKings,1.5,1,OVER,1.93,0.56,LOW,2,HIT,auto
+2026-10-07,sog,A. Protas,WSH,PIT,DraftKings,1.5,1,OVER,1.88,0.54,PASS,1,MISS,auto
+2026-10-07,sog,A. Beauvillier,WSH,PIT,DraftKings,1.5,1,OVER,1.84,0.53,PASS,1,MISS,auto; TOI 10.8 vs 15.3 expected
+2026-10-07,sog,D. Strome,WSH,PIT,DraftKings,1.5,1,UNDER,1.7,0.51,PASS,1,HIT,auto
+2026-10-07,sog,P. Dubois,WSH,PIT,DraftKings,1.5,1,UNDER,1.52,0.56,LOW,3,MISS,auto
+2026-10-07,sog,C. Hutson,WSH,PIT,DraftKings,1.5,1,UNDER,1.49,0.57,LOW,3,MISS,auto
+2026-10-07,sog,J. Sourdif,WSH,PIT,DraftKings,1.5,1,UNDER,1.39,0.6,MED,0,HIT,auto
+2026-10-07,sog,I. Protas,WSH,PIT,DraftKings,1.5,1,UNDER,1.24,0.65,HIGH,1,HIT,auto
+2026-10-07,sog,N. MacKinnon,COL,WPG,DraftKings,3.5,1,UNDER,3.76,0.5,PASS,1,HIT,auto
+2026-10-07,sog,M. Necas,COL,WPG,DraftKings,2.5,1,UNDER,2.62,0.53,PASS,3,MISS,auto
+2026-10-07,sog,N. Kadri,COL,WPG,DraftKings,2.5,1,UNDER,2.5,0.56,LOW,4,MISS,auto
+2026-10-07,sog,C. Makar,COL,WPG,DraftKings,2.5,1,UNDER,2.31,0.6,MED,4,MISS,auto
+2026-10-07,sog,G. Landeskog,COL,WPG,DraftKings,1.5,1,OVER,2.14,0.61,MED,3,HIT,auto
+2026-10-07,sog,B. Nelson,COL,WPG,DraftKings,1.5,1,OVER,2.04,0.58,MED,0,MISS,auto
+2026-10-07,sog,A. Lehkonen,COL,WPG,DraftKings,1.5,1,OVER,1.99,0.57,LOW,0,MISS,auto
+2026-10-07,sog,S. Malinski,COL,WPG,DraftKings,1.5,1,OVER,1.83,0.53,PASS,1,MISS,auto
+2026-10-07,sog,T. Hughes,COL,WPG,DraftKings,1.5,1,OVER,1.83,0.53,PASS,1,MISS,auto; TOI 11.9 vs 16.3 expected
+2026-10-07,sog,B. Burns,COL,WPG,DraftKings,1.5,1,UNDER,1.69,0.51,PASS,2,MISS,auto
+2026-10-07,sog,D. Toews,COL,WPG,DraftKings,1.5,1,UNDER,1.46,0.58,LOW,2,MISS,auto
+2026-10-07,sog,K. Connor,WPG,COL,DraftKings,3.5,1,UNDER,3.44,0.56,LOW,4,MISS,auto
+2026-10-07,sog,C. Perfetti,WPG,COL,DraftKings,2.5,1,UNDER,2.16,0.64,HIGH,2,HIT,auto
+2026-10-07,sog,M. Scheifele,WPG,COL,DraftKings,1.5,1,OVER,2.05,0.59,MED,1,MISS,auto
+2026-10-07,sog,J. Morrissey,WPG,COL,DraftKings,1.5,1,OVER,2.04,0.58,MED,1,MISS,auto; TOI 9.5 vs 23.9 expected
+2026-10-07,sog,G. Vilardi,WPG,COL,DraftKings,1.5,1,OVER,1.76,0.51,PASS,2,HIT,auto
+2026-10-07,sog,C. McDavid,EDM,ANA,DraftKings,3.5,1,UNDER,3.19,0.61,MED,1,HIT,auto
+2026-10-07,sog,L. Draisaitl,EDM,ANA,DraftKings,3.5,1,UNDER,2.86,0.68,HIGH,2,HIT,auto
+2026-10-07,sog,E. Bouchard,EDM,ANA,DraftKings,2.5,1,UNDER,2.52,0.55,LOW,4,MISS,auto
+2026-10-07,sog,V. Podkolzin,EDM,ANA,DraftKings,2.5,1,UNDER,2.08,0.66,HIGH,3,MISS,auto
+2026-10-07,sog,K. Kapanen,EDM,ANA,DraftKings,1.5,1,UNDER,1.71,0.5,PASS,3,MISS,auto
+2026-10-07,sog,C. Gauthier,ANA,EDM,DraftKings,3.5,1,UNDER,3.17,0.62,MED,7,MISS,auto; TOI 24.2 vs 17.0 expected
+2026-10-07,sog,L. Carlsson,ANA,EDM,DraftKings,2.5,1,UNDER,2.42,0.58,LOW,0,HIT,auto
+2026-10-07,sog,B. Sennecke,ANA,EDM,DraftKings,2.5,1,UNDER,2.33,0.59,MED,7,MISS,auto; TOI 25.0 vs 17.7 expected
+2026-10-07,sog,M. Granlund,ANA,EDM,DraftKings,1.5,1,OVER,1.85,0.53,PASS,2,HIT,auto
+2026-10-07,sog,A. Killorn,ANA,EDM,DraftKings,1.5,1,OVER,1.78,0.52,PASS,2,HIT,auto
+2026-10-07,sog,J. LaCombe,ANA,EDM,DraftKings,1.5,1,OVER,1.73,0.5,PASS,0,MISS,auto
+2026-10-07,sog,P. Mintyukov,ANA,EDM,DraftKings,1.5,1,UNDER,1.13,0.69,HIGH,2,MISS,auto
+2026-10-07,winner,WSH,WSH,PIT,model,,,WSH,,0.5,,PIT 3-5 WSH,HIT,
+2026-10-07,winner,COL,COL,WPG,model,,,COL,,0.57,,COL 2-3 WPG,MISS,
+2026-10-07,winner,ANA,ANA,EDM,model,,,ANA,,0.5,,EDM 5-2 ANA,MISS,
