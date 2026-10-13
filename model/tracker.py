@@ -330,7 +330,7 @@ def _tier(r):
     return r.get("tier") or ""
 
 
-BOOK_PREF = {"Pick6": 0, "PrizePicks": 1, "user quote": 2, "DraftKings": 3}
+BOOK_PREF = {"Pick6": 0, "Players": 1, "PrizePicks": 1, "user quote": 2, "DraftKings": 3}
 
 
 def summarize(log, model_rows):

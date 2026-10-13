@@ -50,7 +50,7 @@ Fully automatic once it's merged:
    The grader fills in the results the next morning.
 
 A **play** under the current rules is saves at 1.5+ edge, SOG at 55%+, and never a side paying under 1x.
-When a prop is on more than one book it counts once (Pick6 first, then PrizePicks, then DraftKings).
+When a prop is on more than one book it counts once (Pick6 first, then Players and PrizePicks, then DraftKings).
 
 ### Real-line record (`model/data/real_line_log.csv`)
 
