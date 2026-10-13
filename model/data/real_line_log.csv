@@ -1618,3 +1618,43 @@ date,market,player,team,opp,book,line,mult,side,model_proj,model_p,tier,actual,r
 2026-10-11,winner,WSH,WSH,SEA,model,,,WSH,,0.61,,SEA 5-3 WSH,MISS,
 2026-10-11,winner,NYR,NYR,VAN,model,,,NYR,,0.69,65%+,VAN 2-6 NYR,HIT,
 2026-10-11,winner,CAR,CAR,PHI,model,,,CAR,,0.66,65%+,CAR 4-1 PHI,HIT,
+2026-10-12,saves,L. Ullmark,OTT,NJD,DraftKings,25.5,1,OVER,25.9,0.52,PASS,29,HIT,auto
+2026-10-12,saves,N. Daws,NJD,OTT,DraftKings,22.5,1,OVER,22.7,0.51,PASS,16,MISS,auto; NJD faced 20 shots vs 27 expected
+2026-10-12,saves,C. Hart,VGK,MIN,DraftKings,23.5,1,OVER,24.0,0.53,PASS,24,HIT,auto
+2026-10-12,saves,J. Wallstedt,MIN,VGK,DraftKings,26.5,1,UNDER,26.5,0.5,PASS,21,HIT,auto
+2026-10-12,sog,D. Cozens,OTT,NJD,DraftKings,2.5,1,UNDER,2.32,0.6,MED,1,HIT,auto
+2026-10-12,sog,T. Stützle,OTT,NJD,DraftKings,1.5,1,OVER,2.22,0.63,HIGH,1,MISS,auto
+2026-10-12,sog,T. Chabot,OTT,NJD,DraftKings,2.5,1,UNDER,2.04,0.67,HIGH,2,HIT,auto
+2026-10-12,sog,D. Batherson,OTT,NJD,DraftKings,1.5,1,OVER,2.03,0.58,MED,2,HIT,auto
+2026-10-12,sog,S. Pinto,OTT,NJD,DraftKings,1.5,1,OVER,1.96,0.56,LOW,1,MISS,auto
+2026-10-12,sog,R. Greig,OTT,NJD,DraftKings,1.5,1,UNDER,1.66,0.52,PASS,1,HIT,auto
+2026-10-12,sog,F. Zetterlund,OTT,NJD,DraftKings,1.5,1,UNDER,1.43,0.59,MED,4,MISS,auto
+2026-10-12,sog,J. Spence,OTT,NJD,DraftKings,1.5,1,UNDER,1.43,0.59,MED,0,HIT,auto
+2026-10-12,sog,W. Foegele,OTT,NJD,DraftKings,1.5,1,UNDER,1.23,0.66,HIGH,1,HIT,auto
+2026-10-12,sog,J. Hughes,NJD,OTT,DraftKings,3.5,1,UNDER,3.35,0.58,MED,2,HIT,auto
+2026-10-12,sog,T. Meier,NJD,OTT,DraftKings,2.5,1,OVER,3.32,0.61,MED,1,MISS,auto
+2026-10-12,sog,D. Hamilton,NJD,OTT,DraftKings,1.5,1,OVER,2.39,0.66,HIGH,3,HIT,auto
+2026-10-12,sog,N. Hischier,NJD,OTT,DraftKings,2.5,1,UNDER,2.34,0.59,MED,1,HIT,auto
+2026-10-12,sog,J. Bratt,NJD,OTT,DraftKings,1.5,1,OVER,2.27,0.64,HIGH,2,HIT,auto
+2026-10-12,sog,L. Evangelista,NJD,OTT,DraftKings,2.5,1,UNDER,2.21,0.62,HIGH,0,HIT,auto
+2026-10-12,sog,L. Hughes,NJD,OTT,DraftKings,1.5,1,OVER,2.12,0.6,MED,4,HIT,auto
+2026-10-12,sog,A. Gritsyuk,NJD,OTT,DraftKings,1.5,1,OVER,1.97,0.57,LOW,2,HIT,auto
+2026-10-12,sog,E. Rodrigues,NJD,OTT,DraftKings,1.5,1,OVER,1.86,0.54,PASS,4,HIT,auto
+2026-10-12,sog,A. Mantha,NJD,OTT,DraftKings,1.5,1,UNDER,1.63,0.53,PASS,1,HIT,auto
+2026-10-12,sog,J. Eichel,VGK,MIN,DraftKings,2.5,1,OVER,2.93,0.54,PASS,2,MISS,auto
+2026-10-12,sog,M. Marner,VGK,MIN,DraftKings,2.5,1,UNDER,2.41,0.58,LOW,2,HIT,auto
+2026-10-12,sog,T. Hertl,VGK,MIN,DraftKings,1.5,1,OVER,2.18,0.62,MED,0,MISS,auto
+2026-10-12,sog,M. Stone,VGK,MIN,DraftKings,1.5,1,OVER,2.17,0.61,MED,2,HIT,auto
+2026-10-12,sog,T. Connelly,VGK,MIN,DraftKings,2.5,1,UNDER,1.96,0.69,HIGH,0,HIT,auto
+2026-10-12,sog,S. Theodore,VGK,MIN,DraftKings,1.5,1,OVER,1.92,0.55,LOW,1,MISS,auto
+2026-10-12,sog,W. Karlsson,VGK,MIN,DraftKings,1.5,1,OVER,1.88,0.54,PASS,3,HIT,auto
+2026-10-12,sog,I. Barbashev,VGK,MIN,DraftKings,1.5,1,UNDER,1.64,0.53,PASS,1,HIT,auto
+2026-10-12,sog,M. Boldy,MIN,VGK,DraftKings,3.5,1,UNDER,3.37,0.58,LOW,3,HIT,auto
+2026-10-12,sog,K. Kaprizov,MIN,VGK,DraftKings,3.5,1,UNDER,2.84,0.68,HIGH,4,MISS,auto
+2026-10-12,sog,J. Eriksson Ek,MIN,VGK,DraftKings,2.5,1,UNDER,2.64,0.52,PASS,3,MISS,auto
+2026-10-12,sog,Q. Hughes,MIN,VGK,DraftKings,2.5,1,UNDER,2.4,0.58,MED,2,HIT,auto
+2026-10-12,sog,B. Coleman,MIN,VGK,DraftKings,1.5,1,OVER,2.23,0.63,HIGH,1,MISS,auto
+2026-10-12,sog,R. Hartman,MIN,VGK,DraftKings,1.5,1,OVER,1.88,0.54,PASS,2,HIT,auto
+2026-10-12,winner,BUF,BUF,FLA,model,,,BUF,,0.59,,FLA 3-5 BUF,HIT,
+2026-10-12,winner,NJD,NJD,OTT,model,,,NJD,,0.54,,OTT 4-1 NJD,MISS,
+2026-10-12,winner,VGK,VGK,MIN,model,,,VGK,,0.53,,VGK 2-4 MIN,MISS,
