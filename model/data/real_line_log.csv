@@ -2017,3 +2017,23 @@ date,market,player,team,opp,book,line,mult,side,model_proj,model_p,tier,actual,r
 2026-10-14,sog,B. Burns,COL,DAL,DraftKings,1.5,1,UNDER,1.64,0.53,PASS,1,HIT,auto
 2026-10-14,winner,WSH,WSH,MTL,model,,,WSH,,0.56,,MTL 4-5 WSH,HIT,
 2026-10-14,winner,COL,COL,DAL,model,,,COL,,0.64,,DAL 3-2 COL OT/SO,MISS,
+2026-10-15,saves,D. Garand,NYR,NJD,DraftKings,28.5,1,UNDER,26.8,0.6,MED,9,HIT,auto
+2026-10-15,saves,N. Daws,NJD,NYR,DraftKings,21.5,1,UNDER,20.2,0.57,LOW,18,HIT,auto
+2026-10-15,sog,P. Dorofeyev,NYR,NJD,DraftKings,2.5,1,UNDER,2.49,0.56,LOW,5,MISS,auto
+2026-10-15,sog,M. Zibanejad,NYR,NJD,DraftKings,2.5,1,UNDER,2.25,0.61,MED,0,HIT,auto
+2026-10-15,sog,A. Lafrenière,NYR,NJD,DraftKings,1.5,1,OVER,2.02,0.58,LOW,1,MISS,auto
+2026-10-15,sog,W. Cuylle,NYR,NJD,DraftKings,1.5,1,OVER,1.95,0.56,LOW,0,MISS,auto
+2026-10-15,sog,J. Miller,NYR,NJD,DraftKings,1.5,1,OVER,1.74,0.5,PASS,0,MISS,auto
+2026-10-15,sog,E. Tolvanen,NYR,NJD,DraftKings,1.5,1,UNDER,1.54,0.56,LOW,0,HIT,auto
+2026-10-15,sog,A. Fox,NYR,NJD,DraftKings,1.5,1,UNDER,1.26,0.64,HIGH,4,MISS,auto
+2026-10-15,sog,J. Hughes,NJD,NYR,DraftKings,3.5,1,UNDER,3.51,0.55,PASS,3,HIT,auto
+2026-10-15,sog,T. Meier,NJD,NYR,DraftKings,2.5,1,OVER,3.15,0.58,MED,2,MISS,auto
+2026-10-15,sog,D. Hamilton,NJD,NYR,DraftKings,2.5,1,UNDER,2.52,0.55,LOW,1,HIT,auto
+2026-10-15,sog,N. Hischier,NJD,NYR,DraftKings,2.5,1,UNDER,2.3,0.6,MED,1,HIT,auto
+2026-10-15,sog,J. Bratt,NJD,NYR,DraftKings,2.5,1,UNDER,2.27,0.61,MED,0,HIT,auto
+2026-10-15,sog,L. Hughes,NJD,NYR,DraftKings,2.5,1,UNDER,2.17,0.64,HIGH,5,MISS,auto
+2026-10-15,sog,E. Rodrigues,NJD,NYR,DraftKings,1.5,1,OVER,2.01,0.57,LOW,2,HIT,auto
+2026-10-15,sog,A. Gritsyuk,NJD,NYR,DraftKings,1.5,1,OVER,2.01,0.57,LOW,2,HIT,auto
+2026-10-15,sog,D. Mercer,NJD,NYR,DraftKings,1.5,1,OVER,1.89,0.55,PASS,3,HIT,auto
+2026-10-15,sog,A. Mantha,NJD,NYR,DraftKings,1.5,1,UNDER,1.57,0.55,PASS,1,HIT,auto
+2026-10-15,winner,NJD,NJD,NYR,model,,,NJD,,0.59,,NYR 1-7 NJD,HIT,
