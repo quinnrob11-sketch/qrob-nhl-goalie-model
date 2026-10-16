@@ -3,10 +3,13 @@ on:
   push:
     branches: [claude/nhl-goalie-model-update-zba2yo]
     paths: [.github/workflows/tmp-fetch-box.yml]
+permissions:
+  contents: write
 jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
       - name: Fetch box scores for 2026-10-15
         run: |
           python3 - <<'PY'
@@ -17,10 +20,11 @@ jobs:
           out = []
           for g in games:
               out.append(get(f"https://api-web.nhle.com/v1/gamecenter/{g['id']}/boxscore"))
-          json.dump(out, open("box.json", "w"))
+          json.dump(out, open("box_2026-10-15.json", "w"))
           print(len(out), "games")
           PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: box
-          path: box.json
+      - name: Commit
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add box_2026-10-15.json && git commit -m "tmp: Oct 15 box scores" && git push
