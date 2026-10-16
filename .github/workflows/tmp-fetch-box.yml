@@ -1,0 +1,26 @@
+name: tmp fetch NHL box scores
+on:
+  push:
+    branches: [claude/nhl-goalie-model-update-zba2yo]
+    paths: [.github/workflows/tmp-fetch-box.yml]
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch box scores for 2026-10-15
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request
+          get = lambda u: json.load(urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "qrob"}), timeout=30))
+          day = "2026-10-15"
+          games = [g for g in get(f"https://api-web.nhle.com/v1/score/{day}")["games"]]
+          out = []
+          for g in games:
+              out.append(get(f"https://api-web.nhle.com/v1/gamecenter/{g['id']}/boxscore"))
+          json.dump(out, open("box.json", "w"))
+          print(len(out), "games")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: box
+          path: box.json
