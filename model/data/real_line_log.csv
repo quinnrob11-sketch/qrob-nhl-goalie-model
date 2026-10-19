@@ -2518,3 +2518,44 @@ date,market,player,team,opp,book,line,mult,side,model_proj,model_p,tier,actual,r
 2026-10-17,winner,LAK,LAK,BOS,model,,,LAK,,0.56,,BOS 4-1 LAK,MISS,
 2026-10-17,winner,UTA,UTA,EDM,model,,,UTA,,0.59,,EDM 6-2 UTA,MISS,
 2026-10-17,winner,VGK,VGK,PIT,model,,,VGK,,0.66,65%+,PIT 2-6 VGK,HIT,
+2026-10-18,saves,J. Wallstedt,MIN,CBJ,DraftKings,23.5,1,OVER,25.0,0.59,LOW,13,MISS,auto; MIN faced 14 shots vs 28 expected
+2026-10-18,saves,B. Bussi,CAR,CGY,DraftKings,21.5,1,OVER,22.2,0.54,PASS,31,HIT,auto
+2026-10-18,saves,D. Cooley,CGY,CAR,DraftKings,27.5,1,UNDER,27.5,0.5,PASS,34,MISS,auto
+2026-10-18,sog,Z. Werenski,CBJ,MIN,DraftKings,2.5,1,OVER,2.9,0.53,PASS,3,HIT,auto
+2026-10-18,sog,A. Fantilli,CBJ,MIN,DraftKings,2.5,1,UNDER,2.56,0.54,PASS,2,HIT,auto
+2026-10-18,sog,K. Johnson,CBJ,MIN,DraftKings,1.5,1,OVER,1.87,0.54,PASS,2,HIT,auto
+2026-10-18,sog,V. Nichushkin,CBJ,MIN,DraftKings,1.5,1,OVER,1.83,0.53,PASS,1,MISS,auto
+2026-10-18,sog,C. Coyle,CBJ,MIN,DraftKings,1.5,1,OVER,1.83,0.53,PASS,2,HIT,auto
+2026-10-18,sog,M. Knies,CBJ,MIN,DraftKings,1.5,1,OVER,1.75,0.51,PASS,0,MISS,auto
+2026-10-18,sog,S. Monahan,CBJ,MIN,DraftKings,1.5,1,UNDER,1.68,0.51,PASS,0,HIT,auto
+2026-10-18,sog,C. Garland,CBJ,MIN,DraftKings,1.5,1,UNDER,1.45,0.58,MED,1,HIT,auto
+2026-10-18,sog,M. Boldy,MIN,CBJ,DraftKings,3.5,1,UNDER,3.56,0.54,PASS,6,MISS,auto
+2026-10-18,sog,K. Kaprizov,MIN,CBJ,DraftKings,3.5,1,UNDER,3.06,0.64,HIGH,5,MISS,auto
+2026-10-18,sog,J. Eriksson Ek,MIN,CBJ,DraftKings,2.5,1,OVER,2.79,0.51,PASS,2,MISS,auto
+2026-10-18,sog,Q. Hughes,MIN,CBJ,DraftKings,2.5,1,UNDER,2.44,0.57,LOW,3,MISS,auto
+2026-10-18,sog,B. Coleman,MIN,CBJ,DraftKings,1.5,1,OVER,2.25,0.63,HIGH,2,HIT,auto
+2026-10-18,sog,R. Hartman,MIN,CBJ,DraftKings,1.5,1,OVER,1.81,0.52,PASS,2,HIT,auto
+2026-10-18,sog,B. Brink,MIN,CBJ,DraftKings,1.5,1,UNDER,1.45,0.59,MED,0,HIT,auto
+2026-10-18,sog,M. Shabanov,MIN,CBJ,DraftKings,1.5,1,UNDER,1.39,0.6,MED,0,HIT,auto
+2026-10-18,sog,D. Yurov,MIN,CBJ,DraftKings,1.5,1,UNDER,1.28,0.64,HIGH,4,MISS,auto
+2026-10-18,sog,A. Svechnikov,CAR,CGY,DraftKings,2.5,1,UNDER,2.7,0.51,PASS,1,HIT,auto
+2026-10-18,sog,S. Aho,CAR,CGY,DraftKings,2.5,1,UNDER,2.54,0.55,PASS,3,MISS,auto
+2026-10-18,sog,L. Stankoven,CAR,CGY,DraftKings,2.5,1,UNDER,2.42,0.57,LOW,3,MISS,auto
+2026-10-18,sog,J. Blake,CAR,CGY,DraftKings,2.5,1,UNDER,2.4,0.58,MED,2,HIT,auto
+2026-10-18,sog,N. Ehlers,CAR,CGY,DraftKings,2.5,1,UNDER,2.2,0.63,HIGH,3,MISS,auto
+2026-10-18,sog,S. Gostisbehere,CAR,CGY,DraftKings,1.5,1,OVER,1.79,0.52,PASS,3,HIT,auto
+2026-10-18,sog,S. Walker,CAR,CGY,DraftKings,1.5,1,OVER,1.75,0.51,PASS,2,HIT,auto
+2026-10-18,sog,J. Slavin,CAR,CGY,DraftKings,1.5,1,UNDER,1.56,0.55,PASS,3,MISS,auto
+2026-10-18,sog,K. Miller,CAR,CGY,DraftKings,1.5,1,UNDER,1.54,0.56,LOW,2,MISS,auto
+2026-10-18,sog,B. Nadeau,CAR,CGY,DraftKings,1.5,1,UNDER,1.43,0.59,MED,1,HIT,auto
+2026-10-18,sog,M. Backlund,CGY,CAR,DraftKings,2.5,1,UNDER,2.17,0.64,HIGH,2,HIT,auto
+2026-10-18,sog,M. Coronato,CGY,CAR,DraftKings,2.5,1,UNDER,2.07,0.66,HIGH,3,MISS,auto
+2026-10-18,sog,J. Farabee,CGY,CAR,DraftKings,1.5,1,OVER,1.82,0.53,PASS,2,HIT,auto
+2026-10-18,sog,M. Frost,CGY,CAR,DraftKings,1.5,1,UNDER,1.62,0.53,PASS,3,MISS,auto
+2026-10-18,sog,M. Gridin,CGY,CAR,DraftKings,1.5,1,UNDER,1.6,0.54,PASS,2,MISS,auto
+2026-10-18,sog,Y. Sharangovich,CGY,CAR,DraftKings,1.5,1,UNDER,1.55,0.55,LOW,6,MISS,auto
+2026-10-18,sog,A. Suniev,CGY,CAR,DraftKings,1.5,1,UNDER,1.44,0.59,MED,0,HIT,auto
+2026-10-18,sog,S. Nemec,CGY,CAR,DraftKings,1.5,1,UNDER,1.41,0.6,MED,1,HIT,auto
+2026-10-18,sog,Z. Parekh,CGY,CAR,DraftKings,1.5,1,UNDER,1.37,0.61,MED,1,HIT,auto
+2026-10-18,winner,MIN,MIN,CBJ,model,,,MIN,,0.6,,CBJ 1-2 MIN,HIT,
+2026-10-18,winner,CAR,CAR,CGY,model,,,CAR,,0.65,65%+,CAR 2-3 CGY,MISS,
