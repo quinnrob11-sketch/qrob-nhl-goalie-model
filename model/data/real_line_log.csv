@@ -1685,6 +1685,32 @@ date,market,player,team,opp,book,line,mult,side,model_proj,model_p,tier,actual,r
 2026-10-13,saves,D. Kuemper,LAK,EDM,DraftKings,24.5,1,UNDER,24.2,0.52,PASS,4,HIT,auto
 2026-10-13,saves,J. Swayman,BOS,SJS,DraftKings,24.5,1,UNDER,23.4,0.56,LOW,35,MISS,auto; BOS faced 38 shots vs 27 expected
 2026-10-13,saves,Y. Askarov,SJS,BOS,DraftKings,24.5,1,UNDER,21.8,0.65,HIGH,20,HIT,auto
+2026-10-13,saves,J. Allen,NJD,DET,Players,27.5,1,UNDER,25.5,0.62,MED,,,
+2026-10-13,saves,J. Gibson,DET,NJD,Players,24.5,1,OVER,24.5,0.5,PASS,,,
+2026-10-13,saves,A. Schmid,FLA,CBJ,Players,23.5,1,OVER,24.3,0.55,PASS,,,
+2026-10-13,saves,C. Talbot,CBJ,FLA,Players,24.5,1,UNDER,22.8,0.6,MED,,,
+2026-10-13,saves,J. Fowler,MTL,BUF,Players,22.5,1,OVER,25.2,0.65,HIGH,,,
+2026-10-13,saves,L. Thompson,WSH,CAR,Players,26.5,1,OVER,28.0,0.59,MED,,,
+2026-10-13,saves,P. Kochetkov,CAR,WSH,Players,22.5,1,UNDER,20.3,0.63,MED,,,
+2026-10-13,saves,D. Vladar,PHI,SEA,Players,23.5,1,OVER,24.0,0.53,PASS,,,
+2026-10-13,saves,A. Vasilevskiy,TBL,NYR,Players,22.5,1,UNDER,21.0,0.59,MED,,,
+2026-10-13,saves,D. Garand,NYR,TBL,Players,24.5,1,UNDER,23.8,0.54,PASS,,,
+2026-10-13,saves,J. Hofer,STL,OTT,Players,25.5,1,UNDER,23.7,0.61,MED,,,
+2026-10-13,saves,S. Ersson,OTT,STL,Players,21.5,1,OVER,21.1,0.48,PASS,,,only More offered
+2026-10-13,saves,L. Meriläinen,VAN,NYI,Players,27.5,1,UNDER,24.9,0.65,HIGH,,,
+2026-10-13,saves,I. Sorokin,NYI,VAN,Players,20.5,1,OVER,20.9,0.52,PASS,,,
+2026-10-13,saves,S. Murashov,PIT,CHI,Players,22.5,1,UNDER,21.9,0.54,PASS,,,
+2026-10-13,saves,S. Knight,CHI,PIT,Players,25.5,1,OVER,25.7,0.51,PASS,,,
+2026-10-13,saves,C. Pickard,MIN,WPG,Players,26.5,1,UNDER,24.7,0.6,MED,,,
+2026-10-13,saves,S. Skinner,WPG,MIN,Players,25.5,1,UNDER,24.5,0.56,PASS,,,
+2026-10-13,saves,M. Blackwood,COL,DAL,Players,21.5,1,OVER,21.8,0.51,PASS,,,
+2026-10-13,saves,J. Oettinger,DAL,COL,Players,24.5,1,OVER,24.7,0.51,PASS,,,
+2026-10-13,saves,A. Hill,VGK,NSH,Players,24.5,1,UNDER,21.8,0.65,HIGH,,,
+2026-10-13,saves,J. Saros,NSH,VGK,Players,27,1,UNDER,25.9,0.57,LOW,,,
+2026-10-13,saves,A. Stolarz,TOR,UTA,Players,28.5,1,UNDER,27.9,0.53,PASS,,,
+2026-10-13,saves,K. Vejmelka,UTA,TOR,Players,24.5,1,UNDER,21.5,0.67,HIGH,,,
+2026-10-13,saves,D. Wolf,CGY,ANA,Players,27.5,1,UNDER,26.4,0.57,LOW,,,
+2026-10-13,saves,L. Dostal,ANA,CGY,Players,21.5,1,OVER,22.4,0.55,PASS,,,
 2026-10-13,sog,J. Hughes,NJD,DET,DraftKings,3.5,1,UNDER,3.23,0.6,MED,8,MISS,auto; went to OT
 2026-10-13,sog,T. Meier,NJD,DET,DraftKings,2.5,1,OVER,3.15,0.58,MED,2,MISS,auto; went to OT
 2026-10-13,sog,D. Hamilton,NJD,DET,DraftKings,2.5,1,UNDER,2.38,0.59,MED,5,MISS,auto; went to OT

@@ -54,7 +54,7 @@ def starter(payload, team, date):
     return (dep[0] if dep else None), "depth", None
 
 
-def project_saves(payload, gid, team, opp, home, b2b, playoff):
+def project_saves(payload, gid, team, opp, home, b2b, playoff, opp_b2b=False):
     P, lg = payload["params"], payload["league"]
     t, o = payload["teams"].get(team, {}), payload["teams"].get(opp, {})
     sa = lg * (t.get("rate_def", lg) / lg) ** P["a"] * (o.get("rate_off", lg) / lg) ** P["b"]
@@ -63,6 +63,8 @@ def project_saves(payload, gid, team, opp, home, b2b, playoff):
         sa *= P["playoff"]
     if b2b:
         sa *= P["b2b"]
+    if opp_b2b:
+        sa *= P.get("opp_b2b", 1.0)
     g = next((x for x in payload["goalies"] if x["id"] == gid), None) or {"sv": .9, "share": payload["lg_share"]}
     return sa, g["sv"], sa * g["share"] * g["sv"]
 
@@ -105,7 +107,7 @@ def calls_for_game(payload, g):
     for team, opp, home in ((g["away"], g["home"], False), (g["home"], g["away"], True)):
         gid, src, line = starter(payload, team, date)
         b2b = _b2b(payload, team, date)
-        sa, sv, proj = project_saves(payload, gid, team, opp, home, b2b, playoff)
+        sa, sv, proj = project_saves(payload, gid, team, opp, home, b2b, playoff, _b2b(payload, opp, date))
         side[team] = (sa, sv)
         gname = next((x["name"] for x in payload["goalies"] if x["id"] == gid), str(gid))
         out["saves"].append({"team": team, "opp": opp, "goalie_id": gid, "goalie": gname, "src": src,
@@ -330,7 +332,7 @@ def _tier(r):
     return r.get("tier") or ""
 
 
-BOOK_PREF = {"Pick6": 0, "PrizePicks": 1, "user quote": 2, "DraftKings": 3}
+BOOK_PREF = {"Pick6": 0, "Players": 1, "PrizePicks": 1, "user quote": 2, "DraftKings": 3}
 
 
 def summarize(log, model_rows):

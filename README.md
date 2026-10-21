@@ -7,7 +7,7 @@ rebuilt through the day by GitHub Actions.
 ## The model
 
 ```
-exp_SA          = LG × (TeamSA / LG)^a × (OppSF / LG)^b × home × playoff × b2b
+exp_SA          = LG × (TeamSA / LG)^a × (OppSF / LG)^b × home × playoff × b2b × opp_b2b
 Projected saves = exp_SA × time-in-net share × save%
 Edge            = Projected saves − Line
 ```
@@ -21,6 +21,7 @@ Edge            = Projected saves − Line
 | time-in-net share | Pull and injury risk. Replaces the flat ~12% empty-net haircut |
 | save% | Goalie SV% shrunk toward .900 |
 | home / playoff / b2b | Multipliers measured from 2024-25 shot volume |
+| opp_b2b | The opponent played last night: tired teams generate about 3% fewer shots (0.968, fit on 2024-25; holds in every season since) |
 
 Every projection uses only games played **before** that date (walk-forward), so the
 backtest has no lookahead. Team rates carry part of last season's weight into a new
@@ -50,7 +51,7 @@ Fully automatic once it's merged:
    The grader fills in the results the next morning.
 
 A **play** under the current rules is saves at 1.5+ edge, SOG at 55%+, and never a side paying under 1x.
-When a prop is on more than one book it counts once (Pick6 first, then PrizePicks, then DraftKings).
+When a prop is on more than one book it counts once (Pick6 first, then Players and PrizePicks, then DraftKings).
 
 ### Real-line record (`model/data/real_line_log.csv`)
 
@@ -70,6 +71,23 @@ over these 16 starts was 4.2 saves, better than the model's usual 5.3.
 
 **Current rules:** play saves only at 1.5+ (MED/HIGH); don't pair two LESS legs from the same
 game; skip Pick6's boosted sides; on a back-to-back, assume the backup starts until confirmed.
+
+### October review (real lines, 9/29–10/20)
+
+- **Shot projections are as accurate as they were on opening week:** about 5.0 saves average miss
+  this season, compared with 5.3 historically. The slide in hit rate came from the betting side, not
+  from team data the model is missing.
+- **Books shade saves lines high.** Goalies finish about 0.9 saves under the line, so blind unders
+  hit 56%. Model unders hit 57–60%; saves overs at 1.5+ are 6-6 and 7-12 lifetime. Treat saves
+  overs with caution.
+- **Overtime hurts unders.** Plays in games that reached OT went 6-8; regulation games went 33-23.
+- **Opponent back-to-backs were missing.** Tired opponents shoot about 3% less in every season
+  checked (2023-24 through now). This is now in the model, and on this season's real lines it moves
+  saves plays from 39-31 to 43-31.
+- **Checked and not changed** (no consistent gain out of sample): shot attempts (Corsi), arena
+  scorer bias, faster league averaging, team-rate recency and carry-over, and a retuned SOG model.
+  The SOG retune fixed the under-projection of star shooters but did not win more real lines.
+- **SOG 3.5 lines are 49% (n=129), the worst line size;** 1.5 and 2.5 lines are about 57%.
 
 ### Starters and lines
 

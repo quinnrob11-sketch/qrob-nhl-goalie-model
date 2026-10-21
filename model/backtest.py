@@ -47,7 +47,8 @@ def fit_multipliers(df: pd.DataFrame, p: engine.Params) -> engine.Params:
     home = float(np.sqrt(r[df.is_home].mean() / r[~df.is_home].mean())) * p.home
     po = float(r[df.game_type == "P"].mean() / r[df.game_type == "R"].mean()) * p.playoff
     b2b = float(r[df.b2b].mean() / r[~df.b2b].mean()) * p.b2b
-    return replace(p, home=round(home, 4), playoff=round(po, 4), b2b=round(b2b, 4))
+    opp_b2b = float(r[df.opp_b2b].mean() / r[~df.opp_b2b].mean()) * p.opp_b2b
+    return replace(p, home=round(home, 4), playoff=round(po, 4), b2b=round(b2b, 4), opp_b2b=round(opp_b2b, 4))
 
 
 def fit(tg, st) -> engine.Params:
