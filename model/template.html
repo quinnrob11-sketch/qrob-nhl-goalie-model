@@ -121,6 +121,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
       <label>Opponent<select id="mbO"></select></label>
       <label>Venue<select id="mbH"><option value="1">Home</option><option value="0">Away</option></select></label>
       <label>Back-to-back<select id="mbB"><option value="0">No</option><option value="1">Yes</option></select></label>
+      <label>Opponent back-to-back<select id="mbOB"><option value="0">No</option><option value="1">Yes</option></select></label>
       <label>Playoffs<select id="mbP"><option value="0">No</option><option value="1">Yes</option></select></label>
       <label>Line<input type="number" id="mbL" step="0.5" value="24.5"></label>
     </div>
@@ -227,7 +228,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 
 <section id="logic">
   <div class="card"><h2>Formula</h2>
-    <p><code>exp_SA = LG × (TeamSA/LG)<sup>a</sup> × (OppSF/LG)<sup>b</sup> × home × playoff × b2b</code></p>
+    <p><code>exp_SA = LG × (TeamSA/LG)<sup>a</sup> × (OppSF/LG)<sup>b</sup> × home × playoff × b2b × opponent b2b</code></p>
     <p><code>Projected saves = exp_SA × time-in-net share × save%</code> &nbsp; <code>Edge = Projected − Line</code></p>
     <div class="tbl"><table id="parT"></table></div>
     <h3>What each piece does</h3>
@@ -277,13 +278,14 @@ function erfc(x){ // Numerical Recipes erfc approximation
   return x >= 0 ? r : 2 - r;
 }
 const pOver = (proj, line) => 0.5*erfc((line - proj)/D.sd/Math.SQRT2);
-function project(gid, team, opp, isHome, b2b, playoff){
+function project(gid, team, opp, isHome, b2b, playoff, oppB2b){
   const lg = D.league, t = D.teams[team] || {}, o = D.teams[opp] || {};
   const d = t.rate_def ?? lg, off = o.rate_off ?? lg;
   let sa = lg * Math.pow(d/lg, P.a) * Math.pow(off/lg, P.b);
   sa *= isHome ? P.home : 1/P.home;
   if (playoff) sa *= P.playoff;
   if (b2b) sa *= P.b2b;
+  if (oppB2b) sa *= (P.opp_b2b ?? 1);   // a tired opponent generates fewer shots
   const g = G[gid] || {sv: .900, share: D.lg_share};
   return {sa, sv: g.sv, share: g.share, proj: sa * g.share * g.sv};
 }
@@ -392,7 +394,9 @@ function slateRows(){
       const st = starterFor(team, g.date), gid = st.gid;
       const last = D.last_played[team];
       const b2b = last && (new Date(g.date) - new Date(last)) / 864e5 === 1;
-      const pr = project(gid, team, opp, side === "home", b2b, g.type === "P");
+      const olast = D.last_played[opp];
+      const oppB2b = olast && (new Date(g.date) - new Date(olast)) / 864e5 === 1;
+      const pr = project(gid, team, opp, side === "home", b2b, g.type === "P", oppB2b);
       const key = g.date + "|" + gid;
       const pp = PP[g.date + "|" + team], dk = DK[g.date + "|" + team];
       const ppLine = pp && pp.goalie_id === gid ? pp.line : null;
@@ -400,7 +404,7 @@ function slateRows(){
       const line = LINES[key] ?? dkLine ?? ppLine;
       const lineSrc = LINES[key] != null ? "manual" : dkLine != null ? "dk" : ppLine != null ? "pp" : "";
       const edge = line != null ? pr.proj - line : null;
-      rows.push({g, team, opp, gid, side, b2b, ...pr, key, line, lineSrc, pp, dk, src: st.src, edge});
+      rows.push({g, team, opp, gid, side, b2b, oppB2b, ...pr, key, line, lineSrc, pp, dk, src: st.src, edge});
     }
   }
   return rows;
@@ -435,7 +439,7 @@ function renderSlate(){
     const play = hasE && t !== "PASS" && Math.abs(r.edge) >= minE;
     const cls = play ? side.toLowerCase() : hasE ? "dim" : "";
     const ph = hasE ? (side === "OVER" ? pOver(r.proj, r.line) : 1 - pOver(r.proj, r.line)) : null;
-    html += `<tr class="${cls}"><td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp}<div class="muted" style="font-size:11px">${r.g.date}${r.b2b?" · B2B":""}${r.g.type==="P"?" · Playoffs":""}</div></td>
+    html += `<tr class="${cls}"><td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp}<div class="muted" style="font-size:11px">${r.g.date}${r.b2b?" · B2B":""}${r.oppB2b?" · opp B2B":""}${r.g.type==="P"?" · Playoffs":""}</div></td>
       <td class="l"><select data-st="${r.g.date}|${r.team}">${goalieOptions(r.team, r.gid)}</select>
         <div style="font-size:11px">${r.src==="dk"?'<span class="good">✓ DraftKings line posted</span>':r.src==="pp"?'<span class="good">✓ on PrizePicks board</span>':r.src==="manual"?'<span class="muted">set by you</span>':(r.src==="b2b"?'<span class="muted">back-to-back backup · unconfirmed</span>':D.rosters_ok?'<span class="muted">roster #1 · unconfirmed</span>':'<span class="muted">depth chart · unconfirmed</span>')}${(G[r.gid]||{}).new?' <span class="muted">· no NHL history</span>':""}</div></td>
       <td>${fmt(r.sa)}</td><td>${fmt(r.sv,3)}</td><td><b>${fmt(r.proj)}</b></td>
@@ -468,12 +472,12 @@ function initBuilder(){
   const tOpts = TEAMS.map(t => `<option>${t}</option>`).join("");
   $("#mbT").innerHTML = tOpts; $("#mbO").innerHTML = tOpts;
   $("#mbG").onchange = () => { $("#mbT").value = G[$("#mbG").value].team; renderBuilder(); };
-  ["#mbT","#mbO","#mbH","#mbB","#mbP","#mbL"].forEach(s => $(s).oninput = renderBuilder);
+  ["#mbT","#mbO","#mbH","#mbB","#mbOB","#mbP","#mbL"].forEach(s => $(s).oninput = renderBuilder);
   $("#mbG").onchange(); $("#mbO").value = TEAMS.find(t => t !== $("#mbT").value);
   renderBuilder();
 }
 function renderBuilder(){
-  const gid = +$("#mbG").value, r = project(gid, $("#mbT").value, $("#mbO").value, $("#mbH").value==="1", $("#mbB").value==="1", $("#mbP").value==="1");
+  const gid = +$("#mbG").value, r = project(gid, $("#mbT").value, $("#mbO").value, $("#mbH").value==="1", $("#mbB").value==="1", $("#mbP").value==="1", $("#mbOB").value==="1");
   const line = +$("#mbL").value, e = r.proj - line, side = e > 0 ? "OVER" : "UNDER", t = tier(e);
   const ph = side === "OVER" ? pOver(r.proj, line) : 1 - pOver(r.proj, line);
   $("#mbOut").innerHTML = `
@@ -644,7 +648,7 @@ function renderLogic(){
   const rows = [["League SOG per team-game (LG)", fmt(D.league,2)], ["a: weight on own team's shots against", P.a], ["b: weight on opponent's shots for", P.b],
     ["Team rate half-life (games)", P.half_life], ["Team prior strength (games)", P.k_team], ["Carry-over between seasons", P.carry],
     ["Save% prior (shots)", P.k_sv], ["Save% half-life (starts)", P.sv_half_life], ["Home multiplier", P.home], ["Playoff multiplier", P.playoff],
-    ["Back-to-back multiplier", P.b2b], ["League time-in-net share", pct(D.lg_share)], ["Residual sd (saves)", fmt(D.sd,2)]];
+    ["Back-to-back multiplier", P.b2b], ["Opponent back-to-back multiplier", P.opp_b2b ?? 1], ["League time-in-net share", pct(D.lg_share)], ["Residual sd (saves)", fmt(D.sd,2)]];
   $("#parT").innerHTML = `<tbody>${rows.map(r => `<tr><td class="l">${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</tbody>`;
   document.querySelectorAll(".k_sv").forEach(e => e.textContent = P.k_sv);
   document.querySelectorAll(".carry").forEach(e => e.textContent = Math.round(P.carry*100) + "%");
@@ -701,8 +705,8 @@ function gameLambdas(g){
   const sh = starterFor(g.home, g.date).gid, sa = starterFor(g.away, g.date).gid;
   const la_ = D.last_played;
   const b2b = t => la_[t] && (new Date(g.date) - new Date(la_[t])) / 864e5 === 1;
-  const pAwayG = project(sa, g.away, g.home, false, b2b(g.away), g.type === "P");   // shots on the away goalie
-  const pHomeG = project(sh, g.home, g.away, true, b2b(g.home), g.type === "P");
+  const pAwayG = project(sa, g.away, g.home, false, b2b(g.away), g.type === "P", b2b(g.home));   // shots on the away goalie
+  const pHomeG = project(sh, g.home, g.away, true, b2b(g.home), g.type === "P", b2b(g.away));
   const shot_h = pAwayG.sa * (1 - pAwayG.sv), shot_a = pHomeG.sa * (1 - pHomeG.sv);
   const r = (f, a) => lg * ((f ?? lg) / lg) * ((a ?? lg) / lg);
   const rate_h = (1 - W.x) * r(th.gf, ta.ga) + W.x * r(th.xgf, ta.xga);

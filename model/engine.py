@@ -2,7 +2,7 @@
 
 Projection for a starting goalie G on team T facing opponent O:
 
-    exp_SA   = LG * (T_def / LG)^a * (O_off / LG)^b * home * playoff * b2b
+    exp_SA   = LG * (T_def / LG)^a * (O_off / LG)^b * home * playoff * b2b * opp_b2b
     proj_sv  = exp_SA * share(G) * sv%(G)
 
     LG     league shots-on-goal per team-game (recency weighted)
@@ -41,6 +41,7 @@ class Params:
     home: float = 1.0           # multiplier on exp_SA when the goalie is home (fitted)
     playoff: float = 1.0        # multiplier in playoffs (fitted)
     b2b: float = 1.0            # multiplier when goalie's team played yesterday (fitted)
+    opp_b2b: float = 1.0        # multiplier when the OPPONENT played yesterday (tired teams shoot less)
 
     def to_dict(self):
         return asdict(self)
@@ -117,7 +118,7 @@ class State:
         return (d.s + k * base) / (d.w + k)
 
     # --- projection --------------------------------------------------
-    def project(self, team, opp, gid, is_home, playoff, b2b):
+    def project(self, team, opp, gid, is_home, playoff, b2b, opp_b2b=False):
         p = self.p
         lg = self.league()
         d = self.team_rate(self.dfn, team)
@@ -128,6 +129,8 @@ class State:
             exp_sa *= p.playoff
         if b2b:
             exp_sa *= p.b2b
+        if opp_b2b:
+            exp_sa *= p.opp_b2b
         sv = self.goalie_sv(gid)
         share = self.goalie_share(gid)
         return exp_sa, sv, share, exp_sa * share * sv, d, o
@@ -193,14 +196,16 @@ def run(tg: pd.DataFrame, starts: pd.DataFrame, p: Params, record_from_season=No
             gid = int(s.player_id)
             last = st.last_played.get(r.team_abbrev)
             b2b = last is not None and (dt - pd.Timestamp(last)).days == 1
+            olast = st.last_played.get(r.opp_team_abbrev)
+            opp_b2b = olast is not None and (dt - pd.Timestamp(olast)).days == 1
             exp_sa, sv, share, proj, d, o = st.project(
-                r.team_abbrev, r.opp_team_abbrev, gid, r.is_home, r.game_type == "P", b2b)
+                r.team_abbrev, r.opp_team_abbrev, gid, r.is_home, r.game_type == "P", b2b, opp_b2b)
             hist = st.g_hist.get(gid)
             if record_from_season is None or season >= record_from_season:
                 rows.append({
                     "game_id": r.game_id, "date": date, "season": season, "game_type": r.game_type,
                     "team": r.team_abbrev, "opp": r.opp_team_abbrev, "is_home": bool(r.is_home),
-                    "b2b": bool(b2b), "goalie_id": gid, "goalie": s.player_name,
+                    "b2b": bool(b2b), "opp_b2b": bool(opp_b2b), "goalie_id": gid, "goalie": s.player_name,
                     "exp_sa": exp_sa, "sv": sv, "share": share, "proj": proj,
                     "team_def": d, "opp_off": o, "league": st.league(),
                     "l10": float(np.mean(hist)) if hist and len(hist) >= 5 else np.nan,
