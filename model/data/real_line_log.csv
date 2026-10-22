@@ -2856,3 +2856,36 @@ date,market,player,team,opp,book,line,mult,side,model_proj,model_p,tier,actual,r
 2026-10-20,winner,SEA,SEA,DET,model,,,SEA,,0.51,,DET 3-4 SEA OT/SO,HIT,
 2026-10-20,winner,CAR,CAR,VAN,model,,,CAR,,0.71,65%+,CAR 6-3 VAN,HIT,
 2026-10-20,winner,VGK,VGK,TBL,model,,,VGK,,0.58,,TBL 6-2 VGK,MISS,
+2026-10-21,saves,D. Vladar,PHI,BUF,DraftKings,24.5,1,OVER,25.9,0.58,LOW,27,HIT,auto
+2026-10-21,saves,U. Luukkonen,BUF,PHI,DraftKings,21.5,1,UNDER,20.0,0.58,LOW,23,MISS,auto
+2026-10-21,saves,A. Schmid,FLA,OTT,DraftKings,23.5,1,UNDER,21.9,0.59,MED,25,MISS,auto
+2026-10-21,saves,L. Ullmark,OTT,FLA,DraftKings,23.5,1,UNDER,23.0,0.53,PASS,17,HIT,auto
+2026-10-21,sog,T. Zegras,PHI,BUF,DraftKings,2.5,1,UNDER,1.8,0.73,HIGH,4,MISS,auto
+2026-10-21,sog,M. Michkov,PHI,BUF,DraftKings,2.5,1,UNDER,1.64,0.77,HIGH,2,HIT,auto
+2026-10-21,sog,P. Martone,PHI,BUF,DraftKings,1.5,1,UNDER,1.54,0.56,LOW,1,HIT,auto
+2026-10-21,sog,S. Couturier,PHI,BUF,DraftKings,1.5,1,UNDER,1.49,0.57,LOW,1,HIT,auto
+2026-10-21,sog,C. Dvorak,PHI,BUF,DraftKings,1.5,1,UNDER,1.46,0.58,MED,2,MISS,auto
+2026-10-21,sog,T. Thompson,BUF,PHI,DraftKings,3.5,1,UNDER,3.73,0.51,PASS,3,HIT,auto
+2026-10-21,sog,R. Dahlin,BUF,PHI,DraftKings,2.5,1,UNDER,2.73,0.51,PASS,4,MISS,auto
+2026-10-21,sog,J. Quinn,BUF,PHI,DraftKings,2.5,1,UNDER,2.61,0.53,PASS,4,MISS,auto
+2026-10-21,sog,Z. Benson,BUF,PHI,DraftKings,1.5,1,OVER,2.17,0.61,MED,1,MISS,auto
+2026-10-21,sog,J. Doan,BUF,PHI,DraftKings,1.5,1,OVER,1.97,0.57,LOW,2,HIT,auto
+2026-10-21,sog,J. Zucker,BUF,PHI,DraftKings,1.5,1,OVER,1.93,0.55,LOW,3,HIT,auto
+2026-10-21,sog,J. Norris,BUF,PHI,DraftKings,1.5,1,UNDER,1.61,0.53,PASS,0,HIT,auto
+2026-10-21,sog,B. Tkachuk,FLA,OTT,DraftKings,3.5,1,UNDER,3.04,0.64,HIGH,3,HIT,auto
+2026-10-21,sog,S. Reinhart,FLA,OTT,DraftKings,2.5,1,UNDER,2.54,0.55,PASS,0,HIT,auto
+2026-10-21,sog,S. Bennett,FLA,OTT,DraftKings,2.5,1,UNDER,2.33,0.6,MED,2,HIT,auto
+2026-10-21,sog,M. Tkachuk,FLA,OTT,DraftKings,2.5,1,UNDER,2.23,0.62,MED,2,HIT,auto
+2026-10-21,sog,A. Lundell,FLA,OTT,DraftKings,1.5,1,OVER,2.12,0.6,MED,1,MISS,auto
+2026-10-21,sog,C. Verhaeghe,FLA,OTT,DraftKings,2.5,1,UNDER,2.08,0.66,HIGH,1,HIT,auto
+2026-10-21,sog,S. Jones,FLA,OTT,DraftKings,1.5,1,OVER,1.92,0.55,LOW,3,HIT,auto
+2026-10-21,sog,D. Cozens,OTT,FLA,DraftKings,2.5,1,UNDER,2.2,0.63,HIGH,4,MISS,auto
+2026-10-21,sog,T. Stützle,OTT,FLA,DraftKings,2.5,1,UNDER,2.12,0.65,HIGH,1,HIT,auto
+2026-10-21,sog,D. Batherson,OTT,FLA,DraftKings,2.5,1,UNDER,2.09,0.65,HIGH,1,HIT,auto
+2026-10-21,sog,S. Pinto,OTT,FLA,DraftKings,1.5,1,OVER,1.87,0.54,PASS,2,HIT,auto
+2026-10-21,sog,J. Sanderson,OTT,FLA,DraftKings,2.5,1,UNDER,1.78,0.73,HIGH,4,MISS,auto
+2026-10-21,sog,C. Giroux,OTT,FLA,DraftKings,1.5,1,UNDER,1.65,0.52,PASS,2,MISS,auto
+2026-10-21,sog,R. Greig,OTT,FLA,DraftKings,1.5,1,UNDER,1.59,0.54,PASS,1,HIT,auto
+2026-10-21,sog,F. Zetterlund,OTT,FLA,DraftKings,1.5,1,UNDER,1.54,0.56,LOW,1,HIT,auto
+2026-10-21,winner,BUF,BUF,PHI,model,,,BUF,,0.67,65%+,PHI 3-1 BUF,MISS,
+2026-10-21,winner,OTT,OTT,FLA,model,,,OTT,,0.55,,FLA 1-5 OTT,HIT,
