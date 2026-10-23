@@ -39,7 +39,7 @@ jobs:
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add index.html model/data/calls model/data/real_line_log.csv model/output/tracking.json
+          git add index.html model/data/calls model/data/real_line_log.csv model/data/dk_prices.csv model/output/tracking.json model/output/calibration.json
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
           git commit -m "auto: rebuild $(date -u +'%Y-%m-%d %H:%M UTC')"
           for i in 1 2 3; do git push && exit 0; git pull --rebase origin "${GITHUB_REF_NAME}"; sleep $((i*3)); done

@@ -7,8 +7,12 @@ posted line doubles as a starter signal. Needs ODDS_API_KEY in the environment
 Also pulls DraftKings player shots-on-goal lines in the same request (module
 variable `sog_rows`) for the SOG props tab.
 
+Also pulls DraftKings moneylines for every game in one request (module variable
+`ml_rows`) for game-winner pricing and the saves model's game script.
+
 Quota: listing events is free on The Odds API; each game costs one credit per
 market (2: saves + shots), and only games starting in the next 18 hours are pulled.
+The moneyline request costs 1 credit for the whole slate.
 """
 from __future__ import annotations
 
@@ -45,6 +49,7 @@ TEAM_ABBR = {
 last_error: str | None = None
 remaining: str | None = None
 sog_rows: list[dict] = []
+ml_rows: list[dict] = []
 
 
 def _get(url, params):
@@ -98,10 +103,34 @@ def match(rows: list[dict], goalies: list[dict]) -> list[dict]:
     return out
 
 
+def fetch_moneylines(key: str) -> list[dict]:
+    """DraftKings moneylines for every listed game (one request, 1 credit)."""
+    rows = []
+    try:
+        js = _get(f"{BASE}/odds", {"apiKey": key, "regions": "us", "markets": "h2h", "bookmakers": BOOK,
+                                   "oddsFormat": "american"})
+    except Exception as e:
+        print(f"  [odds] moneylines unavailable: {e}")
+        return rows
+    for ev in js:
+        home, away = TEAM_ABBR.get(ev["home_team"]), TEAM_ABBR.get(ev["away_team"])
+        date = dt.datetime.fromisoformat(ev["commence_time"].replace("Z", "+00:00")).astimezone(ET).date().isoformat()
+        for bm in ev.get("bookmakers", []):
+            for m in bm.get("markets", []):
+                if bm.get("key") != BOOK or m.get("key") != "h2h":
+                    continue
+                prices = {TEAM_ABBR.get(o.get("name")): o.get("price") for o in m.get("outcomes", [])}
+                if home in prices and away in prices:
+                    rows.append({"date": date, "home": home, "away": away,
+                                 "home_ml": prices[home], "away_ml": prices[away]})
+    return rows
+
+
 def fetch(goalies: list[dict], now: dt.datetime | None = None) -> list[dict]:
-    global last_error, sog_rows
+    global last_error, sog_rows, ml_rows
     last_error = None
     sog_rows = []
+    ml_rows = []
     key = os.environ.get("ODDS_API_KEY")
     if not key:
         last_error = "ODDS_API_KEY not set"
@@ -114,6 +143,7 @@ def fetch(goalies: list[dict], now: dt.datetime | None = None) -> list[dict]:
         last_error = str(e)
         print(f"  [odds] events unavailable: {e}")
         return []
+    ml_rows = fetch_moneylines(key)
     rows = []
     for ev in events:
         start = dt.datetime.fromisoformat(ev["commence_time"].replace("Z", "+00:00"))
@@ -130,6 +160,6 @@ def fetch(goalies: list[dict], now: dt.datetime | None = None) -> list[dict]:
         rows += parse_event(ev, js)
         sog_rows += parse_event(ev, js, SOG_MARKET)
     rows = match(rows, goalies)
-    print(f"  [odds] {len(rows)} DraftKings saves lines, {len(sog_rows)} SOG lines "
+    print(f"  [odds] {len(rows)} DraftKings saves lines, {len(sog_rows)} SOG lines, {len(ml_rows)} moneylines "
           f"(requests remaining: {remaining})")
     return rows

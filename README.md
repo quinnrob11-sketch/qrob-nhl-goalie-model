@@ -8,8 +8,11 @@ rebuilt through the day by GitHub Actions.
 
 ```
 exp_SA          = LG × (TeamSA / LG)^a × (OppSF / LG)^b × home × playoff × b2b × opp_b2b
+                  × exp(−gs × logit(win prob))                      game script
 Projected saves = exp_SA × time-in-net share × save%
-Edge            = Projected saves − Line
+Spread (sd)     = sqrt(sv²(μ + μ²/K) + μ·sv(1−sv)),  μ = exp_SA × share,  floor 6.0
+P(over line)    = Normal(projected saves, spread), then calibrated on graded real lines
+Play            = calibrated P(side) > break-even of the price + 2%
 ```
 
 | Piece | What it is |
@@ -22,17 +25,32 @@ Edge            = Projected saves − Line
 | save% | Goalie SV% shrunk toward .900 |
 | home / playoff / b2b | Multipliers measured from 2024-25 shot volume |
 | opp_b2b | The opponent played last night: tired teams generate about 3% fewer shots (0.968, fit on 2024-25; holds in every season since) |
+| game script | Win probability from the no-vig DraftKings moneyline (or the game-winner model when none is posted). Heavier underdogs face more shots. `gs` = 0.015, fitted on 2024-25 and 2025-26 (`model/saves_dist.py`, `output/saves_dist.json`) |
+| spread | Shots against vary like a negative binomial (K = 30, max likelihood on 2024-25) and each shot is saved with probability sv. Heavy underdogs get a spread near 8 saves, heavy favourites near 5.6; the old fixed 6.9 was too tight for underdogs and too loose for favourites. Better log-likelihood than the fixed spread on 2025-26 and 2026-27 |
 
 Every projection uses only games played **before** that date (walk-forward), so the
 backtest has no lookahead. Team rates carry part of last season's weight into a new
 season, which is how the model handles opening night of 2026-27.
 
-### Bet rules (the markers)
+### Bet rules (price-aware, from 10/23)
 
-- Edge under **1.0** save: PASS. **1.5+**: standard play. **2.5+**: HIGH confidence.
-- Green = OVER, red = UNDER.
-- **Confirm the starter** before locking. Each projection is for the goalie shown.
-- Overtime inflates raw saves. In tight, high-event games, lean OVER on close calls.
+Saves edge alone did not win on real lines (old HIGH tier: 46% and −15% ROI this season; PASS
+was the best tier), so plays are now decided by price (`model/pricing.py`):
+
+- **Calibrate first.** Each market's raw P(over) is recalibrated on every graded real line
+  (`model/calibrate.py`, refit on every build). The model was overconfident: the fitted slope is
+  about 0.33 for saves and 0.67 for SOG (1.0 would mean no change).
+- **Play only when calibrated P > break-even + 2%.** Sportsbook break-even is the implied
+  probability of that side's price, so a −170 under needs about 63% + 2%. DFS (Pick6 /
+  PrizePicks) break-even is per leg: payout^(−1/legs) ÷ the side's multiplier. The default entry
+  is 2 legs at 3x (57.7% per leg; change it in the page header), and sub-1x sides never qualify
+  unless you allow them.
+- **EV% decides the tier**: LOW 2–5%, MED 5–8%, HIGH 8%+. Tiers are shown only while graded
+  history has HIGH > MED > LOW on both hit % and ROI with 30+ plays each; otherwise every play is
+  capped at LOW. Both markets are capped right now.
+- **Confirmed starters only.** A goalie counts as confirmed when a DraftKings line or PrizePicks
+  prop is posted for him or you pick him on the page. Roster defaults are never plays.
+- Green = OVER, red = UNDER. Rows sort by EV.
 
 ### Results tracking (`model/tracker.py`, **Results** tab)
 
@@ -40,18 +58,23 @@ Fully automatic once it's merged:
 
 1. **Before games:** every build freezes the model's calls for games in the next 30 hours into
    `model/data/calls/<date>.json`: projected starters and saves, every skater's SOG projection, and
-   each game's win probability, plus any DraftKings or PrizePicks line the build saw. A game that has
-   started is never changed.
+   each game's win probability, plus any DraftKings or PrizePicks line the build saw with its price
+   and moneyline, and the price-aware decision (calibrated P, EV, tier). A game that has started is
+   never changed.
 2. **After games:** every build (first one 8:30am ET) grades finished games from the box scores:
-   - every real line, appended to `real_line_log.csv` with HIT/MISS;
+   - every real line, appended to `real_line_log.csv` with HIT/MISS at the pick-time line and price;
+     units and ROI by market, tier, side and book; game-winner picks in units at the DraftKings
+     moneyline; DFS (Pick6 / PrizePicks) lines as a market-basis record against per-leg break-even;
    - model accuracy that needs no line: winner picks, starter calls, saves and SOG error;
    - a reason for each miss: wrong starter, shots against far from expected, goalie pulled, OT,
      or a big TOI change.
 3. **Pick6 boards:** send the screenshots or a screen recording and they get logged in the CSV.
    The grader fills in the results the next morning.
 
-A **play** under the current rules is saves at 1.5+ edge, SOG at 55%+, and never a side paying under 1x.
-When a prop is on more than one book it counts once (Pick6 first, then Players and PrizePicks, then DraftKings).
+A **play** from 10/23 on is price-aware (see Bet rules); earlier rows keep the rule they were
+picked under (saves 1.5+ edge, SOG 55%+, never a side under 1x). Every table uses one de-duplicated
+set of lines, so tiers, sides, books and nights add up to each market's total.
+When a prop is on more than one book it counts once (Pick6 first, then PrizePicks, then DraftKings). The 10/13 board logged as "Players" was the PrizePicks app (its "Players" toggle) and is relabeled PrizePicks.
 
 ### Real-line record (`model/data/real_line_log.csv`)
 
@@ -144,15 +167,32 @@ saves), then the PrizePicks board pulled live in the browser.
 
 ## Backtest
 
-`python model/backtest.py` fits parameters on **2024-25 only**, then grades **2025-26
-out-of-sample**. Results are in `model/output/backtest.json` and `backtest_games.csv`,
-and on the Backtest tab of the dashboard.
+**Real lines (the one that counts).** Every DraftKings saves and SOG line since 10/1 is stored
+with both sides' pre-game prices (`model/data/dk_prices.csv`, recovered from the build history and
+appended on every build). `calibrate.py` replays them week by week, calibrating each week on
+earlier weeks only, and grades the old rule and the new price-aware rule at the real price.
+Through 10/22:
 
-**Caveat:** historical sportsbook saves lines aren't in any public dataset, so each start
-is graded against a **proxy line**: `floor(last-10-start average) + 0.5`. Real DK and
-PrizePicks lines are sharper, so the proxy hit rate is a ceiling. The dashboard's
-**Tracker** tab logs picks at real lines and grades them from box scores. That is the
-number to judge the 65% target on.
+| Market | Old rule | New rule (calibrated P > break-even + 2%) |
+|---|---|---|
+| Saves (257 lines) | 81 plays, 49.4%, −7.1u, ROI −8.8% | 158 plays, 55.7%, +6.2u, ROI +3.9% |
+| SOG (2,506 lines) | 1,649 plays, 57.4%, −58.5u, ROI −3.5% | 445 plays, 54.4%, +20.1u, ROI +4.5% |
+
+These are small samples (a saves ROI of +3.9% on 158 plays is well within noise of zero), and
+both refresh nightly on the Backtest tab with calibration buckets.
+
+**Proxy lines.** `python model/backtest.py` fits on **2024-25 only** and tests **2025-26**
+against `floor(last-10-start average) + 0.5`, because no public dataset has historical saves
+lines. Proxy lines are much softer than real ones, so the dashboard hides proxy tier hit rates
+and shows only projection accuracy (MAE, bias, correlation).
+
+**Tested and not shipped** (no out-of-sample gain): power-play TOI and shot rates from the
+play-by-play in the SOG projection (log-likelihood 1.5358 vs 1.5359 on 2025-26, worse on
+2026-27); a Poisson instead of the negative binomial for SOG (worse in every season:
+1.5385 vs 1.5359 on 2025-26); opponent power-play rate and own penalty minutes for shots against
+(correlation with the shot residual under 0.02); the exact negative-binomial × binomial saves
+distribution (fits worse than the normal form above, because pulls and save% swings fatten the
+tails).
 
 ## Running it
 
@@ -171,8 +211,11 @@ Or just open `index.html` directly. Everything is inlined.
   rebuilt daily from the NHL API. Cached in `model/cache/` (gitignored).
 - Upcoming schedule: `api-web.nhle.com/v1/schedule`, fetched at build time. If it's
   unreachable, the slate is empty and the matchup builder still works.
-- Starters and saves lines: DraftKings via The Odds API (`ODDS_API_KEY` secret), the PrizePicks
-  board (`api.prizepicks.com`, currently returns 403 to GitHub Actions), and current NHL rosters.
+- Starters, lines and prices: DraftKings via The Odds API (`ODDS_API_KEY` secret): saves and SOG
+  props for games in the next 18 hours, plus moneylines for the whole slate (1 credit). The
+  PrizePicks board (`api.prizepicks.com`) refuses requests from cloud servers (HTTP 403), so the
+  build retries transient errors, marks the source unavailable on a 403, and the page pulls the
+  board live from your own browser instead.
 
 ## Files
 
@@ -182,12 +225,16 @@ model/data.py            download + shape box scores / play-by-play
 model/engine.py          walk-forward ratings, projection, grading
 model/backtest.py        fit on 2024-25, test on 2025-26
 model/build_site.py      render index.html from template.html
-model/odds.py            starting goalies + DraftKings saves/SOG lines (The Odds API)
+model/odds.py            starting goalies + DraftKings saves/SOG lines and moneylines (The Odds API)
+model/saves_dist.py      saves distribution: game script, spread, P(over)
+model/pricing.py         break-even, EV, calibration, tiers, DFS legs (mirrored in template.html)
+model/calibrate.py       per-market calibration + real-line backtest, refit every build
+model/tracker.py         freezes each night's calls and grades them at pick-time line and price
 model/winners.py         game-winner model + backtest
 model/sog.py             skater SOG model + backtest (stand-in and real PrizePicks lines)
-model/data/              real PrizePicks SOG lines, 2026 playoffs
+model/data/              real-line log, DraftKings price history, nightly calls, 2026 playoff PP SOG lines
 model/prizepicks.py      starting goalies + saves lines from the PrizePicks board
 model/template.html      dashboard template
-model/output/            params.json, backtest.json, backtest_games.csv
+model/output/            params.json, saves_dist.json, calibration.json, tracking.json, backtests
 .github/workflows/build.yml   rebuild 11am, 2pm, 4pm, 6pm, 7pm ET
 ```

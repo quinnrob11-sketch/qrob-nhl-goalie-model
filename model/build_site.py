@@ -18,9 +18,11 @@ import numpy as np
 import pandas as pd
 
 import data
+import calibrate
 import engine
 import odds
 import prizepicks
+import saves_dist
 import sog
 import tracker
 import winners
@@ -235,6 +237,41 @@ def _np(o):
     raise TypeError(type(o))
 
 
+DIST = json.load(open(os.path.join(OUT, "saves_dist.json"))) if os.path.exists(os.path.join(OUT, "saves_dist.json")) \
+    else dict(saves_dist.DEFAULTS)
+PRICES = os.path.join(HERE, "data", "dk_prices.csv")
+
+
+def save_prices(dk_saves, dk_sog):
+    """Append this build's DraftKings prices (both sides) to the price history used for grading
+    and calibration. Later snapshots of the same line replace earlier ones when read."""
+    snap = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    rows = [{"market": "saves", "date": r["date"], "name": r["name"], "team": r.get("team", ""),
+             "teams": "/".join(r.get("teams", [])), "line": r["line"], "over": r.get("over"),
+             "under": r.get("under"), "snap": snap} for r in dk_saves or []]
+    rows += [{"market": "sog", "date": r["date"], "name": r["name"], "team": "", "teams": "/".join(r.get("teams", [])),
+              "line": r["line"], "over": r.get("over"), "under": r.get("under"), "snap": snap} for r in dk_sog or []]
+    if rows:
+        new = pd.DataFrame(rows)
+        old = pd.read_csv(PRICES) if os.path.exists(PRICES) else new.iloc[0:0]
+        pd.concat([old, new]).drop_duplicates(["market", "date", "name", "line", "over", "under"], keep="first") \
+            .to_csv(PRICES, index=False)
+
+
+def saves_rows(df: pd.DataFrame, season: int) -> pd.DataFrame:
+    """This season's walk-forward starts with the goalie's team win probability (game-winner model)."""
+    x = df[df.season == season]
+    if x.empty:
+        return x
+    W = json.load(open(os.path.join(OUT, "winners_params.json")))
+    g = winners.games(df[df.season == season])
+    ph, _, _ = winners.predict(g, W["w"], W["home"], W["ot_home"], W.get("x", 0))
+    g = g.assign(p_home=ph)[["game_id", "home", "p_home"]]
+    x = x.merge(g, on="game_id", how="left")
+    x["p_win"] = np.where(x.team == x.home, x.p_home, 1 - x.p_home)
+    return x
+
+
 def main():
     today = dt.datetime.now(dt.timezone.utc).date()
     cur = season_end_year(today)
@@ -306,6 +343,7 @@ def main():
         "goalies": goalies,
         "pp": pp,
         "pp_error": prizepicks.last_error,
+        "pp_status": prizepicks.status,
         "sog": {"params": sp.to_dict(), "players": sog_export(teams, sst, sp, skater_df),
                 "opp": {t: round(sst.opp_factor(t), 4) for t in sst.team_sa},
                 "backtest": json.load(open(os.path.join(OUT, "sog_backtest.json")))},
@@ -315,6 +353,8 @@ def main():
         "dk": dk,
         "dk_sog": [{"name": r["name"], "teams": r["teams"], "date": r["date"], "line": r["line"],
                     "over": r.get("over"), "under": r.get("under")} for r in odds.sog_rows],
+        "ml": odds.ml_rows,
+        "dist": DIST,
         "dk_error": odds.last_error,
         "odds_remaining": odds.remaining,
         "depth": depth_charts(st_df[st_df.season == display_season], rosters,
@@ -331,12 +371,22 @@ def main():
         "backtest": {k: v for k, v in report.items() if k != "params"},
         "bt_games": json.loads(bt.to_json(orient="records")),
     }
-    # grade finished games, then freeze tonight's calls for tomorrow's grading
+    save_prices(dk, odds.sog_rows)
+    # grade finished games, refit calibration on everything graded, then freeze tonight's calls
     try:
         payload["tracking"] = tracker.grade([cur], today)
     except Exception as e:  # never let grading break the dashboard
         print(f"  [tracker] grading failed: {e}")
         payload["tracking"] = json.load(open(tracker.OUT)) if os.path.exists(tracker.OUT) else None
+    try:
+        payload["calib"] = calibrate.fit(tracker._read_log(), saves_rows(df, cur), DIST,
+                                         pd.read_csv(PRICES) if os.path.exists(PRICES) else None)
+        with open(os.path.join(OUT, "calibration.json"), "w") as f:
+            json.dump(payload["calib"], f, indent=1, default=_np)
+    except Exception as e:
+        print(f"  [calibrate] failed: {e}")
+        payload["calib"] = json.load(open(os.path.join(OUT, "calibration.json"))) \
+            if os.path.exists(os.path.join(OUT, "calibration.json")) else None
     print(f"  [tracker] snapshot dates: {tracker.snapshot(payload)}")
     tpl = open(os.path.join(HERE, "template.html"), encoding="utf-8").read()
     html = tpl.replace("/*__DATA__*/null", json.dumps(payload, separators=(",", ":"), default=_np))

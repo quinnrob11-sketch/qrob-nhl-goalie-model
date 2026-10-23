@@ -71,7 +71,7 @@ tr.over{background:var(--over-bg)} tr.under{background:var(--under-bg)} tr.dim t
 .legend{display:flex;gap:14px;font-size:12px;color:var(--text-2);margin:6px 0}
 .legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
 #tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.15);display:none;z-index:10}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
 @media (max-width:760px){.grid2{grid-template-columns:1fr}}
 .search{display:block;width:100%;max-width:420px;margin-top:12px;padding:9px 12px;font-size:15px}
 code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.5px}
@@ -86,6 +86,13 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   <h1>QRob Goalie Saves Model</h1>
   <div class="sub" id="meta"></div>
   <input type="search" id="q" class="search" placeholder="Search goalie or team (e.g. Hart, VGK)" aria-label="Search goalie or team" autocomplete="off">
+  <div class="row" style="margin-top:10px;font-size:13px;gap:10px;align-items:center">
+    <span class="muted">DFS pick'em entry:</span>
+    <label style="flex-direction:row;align-items:center;gap:4px"><input type="number" id="dfsLegs" min="2" max="8" step="1" style="width:52px"> legs</label>
+    <label style="flex-direction:row;align-items:center;gap:4px">paying <input type="number" id="dfsPay" min="1" step="0.25" style="width:64px">x</label>
+    <span id="dfsBE" class="muted"></span>
+    <label style="flex-direction:row;align-items:center;gap:4px"><input type="checkbox" id="dfsSub"> allow sub-1x sides</label>
+  </div>
 </header>
 <nav id="tabs">
   <button data-t="proj" class="on">Projections</button>
@@ -106,7 +113,8 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
     <p class="sub" id="ppNote" style="margin:-4px 0 6px"></p>
     <p style="margin:0 0 10px"><button class="ghost" id="ppRefresh">↻ Refresh PrizePicks</button></p>
     <div class="row" style="margin-bottom:10px">
-      <label>Min edge (saves)<input type="number" id="minEdge" value="1.5" step="0.5" min="0"></label>
+      <label>Min EV %<input type="number" id="minEdge" value="2" step="1" min="0"></label>
+      <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="playsOnly"> Plays only</label>
       <label>Side<select id="sideF"><option value="">Both</option><option>OVER</option><option>UNDER</option></select></label>
       <label>Date<select id="dateF"></select></label>
     </div>
@@ -137,6 +145,10 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
     <div class="card"><h2>Saves, real lines</h2><div class="tbl"><table id="resSaves"></table></div></div>
     <div class="card"><h2>SOG, real lines</h2><div class="tbl"><table id="resSog"></table></div></div>
   </div>
+  <div class="grid2">
+    <div class="card"><h2>Game winners, model picks</h2><p class="sub">Units use the DraftKings moneyline captured before puck drop (picks from before moneylines were collected have a record but no units).</p><div class="tbl"><table id="resWin"></table></div></div>
+    <div class="card"><h2>DFS boards: market-basis record</h2><p class="sub">Every Pick6 / PrizePicks line graded at the board's line and multiplier, against the per-leg break-even of your DFS entry setting.</p><div class="tbl"><table id="resDfs"></table></div></div>
+  </div>
   <div class="card"><h2>Model accuracy (every game, no line needed)</h2><div class="tbl"><table id="resModel"></table></div></div>
   <div class="card"><h2>Misses and why</h2><p class="sub">Plays that lost, with what the box score says went wrong.</p><div class="tbl" style="max-height:460px;overflow:auto"><table id="resMiss"></table></div></div>
   <div class="card"><h2>Full log</h2><div class="row" style="margin-bottom:8px"><label>Market<select id="resMk"><option value="">All</option><option>saves</option><option>sog</option><option>winner</option></select></label><label>Date<select id="resDate"><option value="">All</option></select></label></div>
@@ -145,8 +157,8 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 
 <section id="win">
   <div class="card"><h2>Game winners</h2>
-    <p class="sub">Win probability from expected goals for each side, using the same shot model and starting goalies as the Projections tab (change a goalie there and it updates here). Enter each side's moneyline to see the edge vs the book. With both prices entered, the vig is removed.</p>
-    <div class="row" style="margin-bottom:10px"><label>Min edge (%)<input type="number" id="wEdge" value="3" step="0.5" min="0"></label></div>
+    <p class="sub">Win probability from expected goals for each side, using the same shot model and starting goalies as the Projections tab (change a goalie there and it updates here). Moneylines fill in from DraftKings on each build; type your own book's price to override. EV is the expected profit per unit at that price; a side is a pick when its EV clears your minimum. Model picks are graded in units at the DraftKings price on the Results tab.</p>
+    <div class="row" style="margin-bottom:10px"><label>Min EV (%)<input type="number" id="wEdge" value="3" step="0.5" min="0"></label></div>
     <div class="tbl"><table id="winT"></table></div>
     <p class="muted" id="winEmpty" style="display:none">No games in this build's slate yet.</p>
   </div>
@@ -163,7 +175,8 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
     <div class="row" style="margin-bottom:10px">
       <label>Game<select id="sGame"><option value="">All games</option></select></label>
       <label>Position<select id="sPos"><option value="">All</option><option value="F">Forwards</option><option value="D">Defense</option></select></label>
-      <label>Min P(hit)<input type="number" id="sMinP" value="0" step="0.01" min="0" max="0.9"></label>
+      <label>Min EV %<input type="number" id="sMinP" value="2" step="1" min="0"></label>
+      <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="sPlays"> Plays only</label>
       <label>Players per team<select id="sTop"><option>8</option><option>12</option><option value="99">All</option></select></label>
     </div>
     <div class="tbl"><table id="sogT"></table></div>
@@ -183,19 +196,17 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   <div class="note" id="btNote"></div>
   <div class="stats" id="btStats" style="margin-bottom:16px"></div>
   <div class="grid2">
-    <div class="card"><h2>Hit rate by minimum edge, 2025-26</h2>
-      <div class="legend"><span><i style="background:var(--accent)"></i>Hit rate</span><span><i style="background:var(--over)"></i>65% target</span><span><i style="background:var(--muted)"></i>52.4% break-even at -115</span></div>
-      <svg class="chart" id="bucketChart" viewBox="0 0 520 260"></svg></div>
-    <div class="card"><h2>Monthly hit rate, edge ≥ 1.5, 2025-26</h2>
-      <div class="legend"><span><i style="background:var(--accent)"></i>Hit rate</span><span><i style="background:var(--over)"></i>65% target</span></div>
-      <svg class="chart" id="monthChart" viewBox="0 0 520 260"></svg></div>
+    <div class="card"><h2>Real lines: saves (DraftKings, this season)</h2><div class="tbl"><table id="btRealSaves"></table></div></div>
+    <div class="card"><h2>Real lines: SOG (DraftKings, this season)</h2><div class="tbl"><table id="btRealSog"></table></div></div>
   </div>
-  <div class="card"><h2>Edge buckets</h2><div class="row" style="margin-bottom:8px">
-    <label>Season<select id="btSeason"><option value="2026">2025-26 (out-of-sample test)</option><option value="2025">2024-25 (fit season)</option></select></label>
-    <label>Games<select id="btSplit"><option value="buckets">All</option><option value="buckets_regular">Regular season</option><option value="buckets_playoffs">Playoffs</option><option value="buckets_sharp">Stress test: sharper proxy line</option></select></label></div>
-    <div class="tbl"><table id="bucketT"></table></div></div>
-  <div class="card"><h2>Calibration (does a 60% call hit 60%?)</h2><div class="tbl"><table id="calT"></table></div></div>
-  <div class="card"><h2>Graded 2025-26 starts, edge ≥ 1.0</h2>
+  <div class="grid2">
+    <div class="card"><h2>Calibration buckets: saves</h2><p class="sub">Does a 60% call hit 60%? Raw model vs calibrated (walk-forward).</p><div class="tbl"><table id="btCalSaves"></table></div></div>
+    <div class="card"><h2>Calibration buckets: SOG</h2><p class="sub">Does a 60% call hit 60%? Raw model vs calibrated (walk-forward).</p><div class="tbl"><table id="btCalSog"></table></div></div>
+  </div>
+  <div class="card"><h2>Proxy-line backtest: fit on 2024-25, tested on 2025-26</h2>
+    <p class="sub"><b>Proxy lines, not real ones.</b> No public dataset has historical saves lines, so these seasons are graded against floor(last-10 average) + 0.5. Real lines are much sharper, so <b>tier hit rates against the proxy are hidden</b>; only projection accuracy is shown.</p>
+    <div class="stats" id="btProxy"></div></div>
+  <div class="card"><h2>Graded 2025-26 starts (proxy lines)</h2>
     <div class="row" style="margin-bottom:8px"><label>Search goalie<input id="btQ" placeholder="e.g. Hellebuyck"></label></div>
     <div class="tbl" style="max-height:520px;overflow:auto"><table id="btGamesT"></table></div></div>
 </section>
@@ -208,15 +219,18 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
     <div class="tbl"><table id="trT"></table></div></div>
   <div class="card"><h2>Slip builder</h2>
     <div class="row"><label>Legs<input type="number" id="slLegs" value="3" min="2" max="6"></label>
-      <label>Min edge<input type="number" id="slEdge" value="2" step="0.5"></label>
+      <label>Min EV %<input type="number" id="slEdge" value="2" step="1"></label>
       <label>Payout (x)<input type="number" id="slPay" value="5" step="0.25"></label></div>
     <div id="slOut" style="margin-top:12px"></div></div>
 </section>
 
 <section id="goalies">
+  <div class="card"><h2>Tonight's starters</h2>
+    <p class="sub">Every goalie on the slate. <b>Confirmed</b> means a DraftKings line or PrizePicks prop is posted for him, or you picked him on the Projections tab. Unconfirmed starters are never plays.</p>
+    <div class="tbl"><table id="gStart"></table></div></div>
   <div class="card"><div class="row"><label>Team<select id="gTeam"><option value="">All</option></select></label>
     <label>Tier<select id="gTier"><option value="">All</option><option>Elite</option><option>Solid</option><option>Average</option><option>Below</option></select></label>
-    <label>Min GP<input type="number" id="gMin" value="10"></label></div></div>
+    <label>Min GP this season<input type="number" id="gMin" value="0" min="0"></label></div></div>
   <div class="gcards" id="gCards"></div>
 </section>
 
@@ -228,7 +242,8 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 
 <section id="logic">
   <div class="card"><h2>Formula</h2>
-    <p><code>exp_SA = LG × (TeamSA/LG)<sup>a</sup> × (OppSF/LG)<sup>b</sup> × home × playoff × b2b × opponent b2b</code></p>
+    <p><code>exp_SA = LG × (TeamSA/LG)<sup>a</sup> × (OppSF/LG)<sup>b</sup> × home × playoff × b2b × opponent b2b × exp(−gs × logit(win prob))</code></p>
+    <p><code>saves ~ Normal(mean = exp_SA × share × sv, var = sv²(μ + μ²/K) + μ·sv(1−sv)), μ = exp_SA × share</code>: shots against vary like a negative binomial and each shot is saved with probability sv, so heavier workloads (underdogs) get a wider spread. P(hit) is then calibrated on graded real lines, and a play needs calibrated P above the price's break-even + 2%.</p>
     <p><code>Projected saves = exp_SA × time-in-net share × save%</code> &nbsp; <code>Edge = Projected − Line</code></p>
     <div class="tbl"><table id="parT"></table></div>
     <h3>What each piece does</h3>
@@ -277,7 +292,6 @@ function erfc(x){ // Numerical Recipes erfc approximation
   const r = t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));
   return x >= 0 ? r : 2 - r;
 }
-const pOver = (proj, line) => 0.5*erfc((line - proj)/D.sd/Math.SQRT2);
 function project(gid, team, opp, isHome, b2b, playoff, oppB2b){
   const lg = D.league, t = D.teams[team] || {}, o = D.teams[opp] || {};
   const d = t.rate_def ?? lg, off = o.rate_off ?? lg;
@@ -290,6 +304,58 @@ function project(gid, team, opp, isHome, b2b, playoff, oppB2b){
   return {sa, sv: g.sv, share: g.share, proj: sa * g.share * g.sv};
 }
 function tier(e){ e = Math.abs(e); return e >= 2.5 ? "HIGH" : e >= 1.5 ? "MED" : e >= 1.0 ? "LOW" : "PASS"; }
+
+// ---------- pricing (mirrors model/pricing.py) ----------
+// A side is a play only when its CALIBRATED probability beats the price's break-even by 2%.
+// Sportsbook: break-even = implied probability of that side's price. DFS pick'em: per-leg
+// break-even = payout^(-1/legs) / multiplier, and only 1x sides qualify by default.
+const MARGIN = 0.02;
+const DIST = Object.assign({nb_k: 30, gs: 0.01, sd_floor: 6}, D.dist || {});
+const CAL = (D.calib && D.calib.markets) || {};
+const DFS = Object.assign({legs: 2, payout: 3, sub1x: false}, store.get("gm_dfs", {}));
+const hasVal = v => v !== undefined && v !== null && v !== "" && !isNaN(+v);
+const impliedP = o => !hasVal(o) ? null : (+o < 0 ? -o / (-o + 100) : 100 / (+o + 100));
+const profitU = o => +o < 0 ? 100 / -o : +o / 100;
+const dfsBE = (mult = 1) => Math.pow(DFS.payout, -1 / DFS.legs) / (mult || 1);
+const amer = o => !hasVal(o) ? "" : (+o > 0 ? "+" + o : "" + o);
+function platt(p, cal){ if (!cal) return p; p = Math.min(Math.max(p, 1e-4), 1 - 1e-4); return 1 / (1 + Math.exp(-(cal.a + cal.b * Math.log(p / (1 - p))))); }
+function evTier(ev, cap){ const t = ev >= .08 ? "HIGH" : ev >= .05 ? "MED" : ev >= MARGIN ? "LOW" : "PASS"; return cap === "LOW" && (t === "HIGH" || t === "MED") ? "LOW" : t; }
+function decide(market, pOverRaw, o = {}){
+  const c = CAL[market] || {}, po = platt(pOverRaw, c.cal);
+  let best = null;
+  for (const [side, p, price, mult] of [["OVER", po, o.over, o.multOver], ["UNDER", 1 - po, o.under, o.multUnder]]){
+    let be, ev, kind;
+    if (hasVal(price)){ be = impliedP(price); ev = p * profitU(price) - (1 - p); kind = "book"; }
+    else if (hasVal(mult)){ be = dfsBE(+mult); ev = p / be - 1; kind = "dfs"; if (+mult < 1 && !DFS.sub1x) ev = Math.min(ev, MARGIN - 1e-9); }
+    else { be = null; ev = -1; kind = "none"; }
+    if (!best || ev > best.ev) best = {side, p, be, ev, kind, price, mult: hasVal(mult) ? +mult : null};
+  }
+  best.play = best.kind !== "none" && best.p > best.be + MARGIN && best.ev >= MARGIN;
+  best.tier = best.play ? evTier(best.ev, c.tier_cap) : "PASS";
+  return best;
+}
+const evTxt = d => !d || d.kind === "none" ? "–" : (d.ev > 0 ? "+" : "") + (100 * d.ev).toFixed(1) + "%";
+const priceTxt = d => !d ? "" : d.kind === "book" ? amer(d.price) : d.kind === "dfs" ? d.mult + "x" : "";
+// saves as a distribution: shots x save%, spread grows with the workload (model/saves_dist.py)
+function savesDist(sa, share, sv, pWin){
+  let x = sa;
+  if (pWin > 0 && pWin < 1 && DIST.gs) x = sa * Math.exp(-DIST.gs * Math.log(pWin / (1 - pWin)));
+  const mu = x * share, sd = Math.max(Math.sqrt(sv * sv * (mu + mu * mu / DIST.nb_k) + mu * sv * (1 - sv)), DIST.sd_floor);
+  return {saGs: x, mu, proj: mu * sv, sd};
+}
+function pOverSaves(proj, sd, line){
+  const cdf = x => 0.5 * erfc(-(x - proj) / sd / Math.SQRT2);
+  if (line !== Math.floor(line)) return 1 - cdf(line);
+  const over = 1 - cdf(line + 0.5), under = cdf(line - 0.5);
+  return over + under > 0 ? over / (over + under) : 0.5;
+}
+// DraftKings moneylines -> no-vig win probability (game script for saves, pricing for game winners)
+const MLD = {};
+for (const r of (D.ml || [])){
+  const a = impliedP(r.home_ml), b = impliedP(r.away_ml);
+  if (a == null || b == null) continue;
+  MLD[r.date + "|" + r.home] = {p: a / (a + b), ml: r.home_ml}; MLD[r.date + "|" + r.away] = {p: b / (a + b), ml: r.away_ml};
+}
 
 // ---------- header / tabs ----------
 $("#meta").textContent = `${D.season} season · data through ${D.data_through} · built ${D.built}`;
@@ -364,7 +430,7 @@ async function pullPrizePicksLive(){
   } catch (e){
     ppLive = {state: "fail", err: e.name === "AbortError" ? "timed out" : (e.message === "Failed to fetch" || e.name === "TypeError") ? "blocked by PrizePicks for other websites" : e.message};
   } finally { clearTimeout(timer); }
-  renderSlate(); renderSlip(); renderWinners(); renderSOG();
+  renderSlate(); renderSlip(); renderWinners(); renderSOG(); if (typeof renderStarters === "function" && $("#gStart")) renderStarters();
 }
 // DraftKings (via The Odds API): same idea, a posted saves line = expected starter
 const DK = {};
@@ -386,6 +452,12 @@ function goalieOptions(team, sel){
   const opt = g => `<option value="${g.id}" ${g.id===sel?"selected":""}>${g.name}${g.team && g.team!==team ? " ("+g.team+")" : ""}</option>`;
   return ids.map(i => G[i]).filter(Boolean).map(opt).join("") + '<option disabled>──────</option>' + rest.map(opt).join("");
 }
+function winPFor(g, team){
+  const m = MLD[g.date + "|" + team];
+  if (m) return {p: m.p, src: "DK moneyline"};
+  const {lh, la} = gameLambdas(g), ph = winProb(lh, la);
+  return {p: team === g.home ? ph : 1 - ph, src: "model"};
+}
 function slateRows(){
   const rows = [];
   for (const g of D.slate){
@@ -397,14 +469,24 @@ function slateRows(){
       const olast = D.last_played[opp];
       const oppB2b = olast && (new Date(g.date) - new Date(olast)) / 864e5 === 1;
       const pr = project(gid, team, opp, side === "home", b2b, g.type === "P", oppB2b);
+      const wp = winPFor(g, team), dist = savesDist(pr.sa, pr.share, pr.sv, wp.p);
       const key = g.date + "|" + gid;
       const pp = PP[g.date + "|" + team], dk = DK[g.date + "|" + team];
       const ppLine = pp && pp.goalie_id === gid ? pp.line : null;
       const dkLine = dk && dk.goalie_id === gid ? dk.line : null;
       const line = LINES[key] ?? dkLine ?? ppLine;
       const lineSrc = LINES[key] != null ? "manual" : dkLine != null ? "dk" : ppLine != null ? "pp" : "";
-      const edge = line != null ? pr.proj - line : null;
-      rows.push({g, team, opp, gid, side, b2b, oppB2b, ...pr, key, line, lineSrc, pp, dk, src: st.src, edge});
+      const confirmed = ["dk", "pp", "manual"].includes(st.src);
+      let d = null, po = null;
+      if (line != null){
+        po = pOverSaves(dist.proj, dist.sd, line);
+        const opt = lineSrc === "dk" ? {over: dk.over, under: dk.under} : {multOver: 1, multUnder: 1};   // DFS lines are 1x
+        d = decide("saves", po, opt);
+        if (!confirmed){ d.play = false; d.tier = "PASS"; }
+      }
+      const edge = line != null ? dist.proj - line : null;
+      rows.push({g, team, opp, gid, side, b2b, oppB2b, ...pr, sa: dist.saGs, saRaw: pr.sa, proj: dist.proj, sd: dist.sd,
+                 pWin: wp.p, pWinSrc: wp.src, key, line, lineSrc, pp, dk, src: st.src, confirmed, edge, po, d});
     }
   }
   return rows;
@@ -417,53 +499,53 @@ function renderSlate(){
     : ppLive.state === "ok" ? `PrizePicks: ${ppLive.n} goalie saves prop${ppLive.n===1?"":"s"} (live, ${ppLive.at}).`
     : nPP ? `PrizePicks: ${nPP} goalie saves prop${nPP===1?"":"s"}${ppLive.state === "fail" ? ` (from build; live pull ${ppLive.err})` : ""}.`
     : ppLive.state === "fail" ? `PrizePicks: live pull ${ppLive.err}.`
+    : D.pp_status === "unavailable" ? `PrizePicks: blocked for the build server (it refuses requests from cloud IPs); the board is pulled live in your browser instead.`
     : D.pp_error ? `PrizePicks: unavailable (${D.pp_error}).` : `PrizePicks: no goalie saves props posted yet.`;
-  $("#ppNote").textContent = `As of ${D.built}. ${dkMsg} ${ppMsg} Starter order: a DraftKings line, then a PrizePicks prop, then the roster default (unconfirmed). A posted line isn't an official confirmation, so check warmups on close calls. Change the goalie or line on any row to override.`;
+  $("#ppNote").textContent = `As of ${D.built}. ${dkMsg} ${ppMsg} Starter order: a DraftKings line, then a PrizePicks prop, then the roster default (unconfirmed). A posted line isn't an official confirmation, so check warmups on close calls; unconfirmed starters (roster default) are never plays until you pick the goalie. Projected saves = shots against (team defense × opponent offense, home/road, back-to-backs, game script from the win probability) × time in net × save%, with a spread that grows with the workload. A side is a play only when its calibrated probability beats the price's break-even by 2%; rows are sorted by EV.`;
   const dates = [...new Set(D.slate.map(g => g.date))];
   const dSel = $("#dateF");
   if (!dSel.options.length){ dSel.innerHTML = `<option value="">All</option>` + dates.map(d => `<option>${d}</option>`).join(""); }
   $("#slateEmpty").style.display = D.slate.length ? "none" : "block";
   if (!D.slate.length){ $("#slateT").innerHTML = ""; return; }
-  const minE = +$("#minEdge").value, sideF = $("#sideF").value, dateF = dSel.value;
+  const minEV = +$("#minEdge").value / 100, sideF = $("#sideF").value, dateF = dSel.value, onlyPlays = $("#playsOnly").checked;
   let rows = slateRows().filter(r => !dateF || r.g.date === dateF);
-  rows.sort((a,b) => (Math.abs(b.edge ?? -1)) - (Math.abs(a.edge ?? -1)) || b.proj - a.proj);
-  let html = `<thead><tr><th class="l">Game</th><th class="l">Goalie</th><th>Exp SA</th><th>SV%</th><th>Proj</th><th>Line</th><th>Edge</th><th class="l">Pick</th><th>P(hit)</th><th class="l">Tier</th><th></th></tr></thead><tbody>`;
+  rows.sort((a,b) => ((b.d && b.d.play ? b.d.ev : -9) - (a.d && a.d.play ? a.d.ev : -9)) || ((b.d ? b.d.ev : -9) - (a.d ? a.d.ev : -9)) || b.proj - a.proj);
+  let html = `<thead><tr><th class="l">Game</th><th class="l">Goalie</th><th>Exp SA</th><th>SV%</th><th>Proj saves</th><th>Line · price</th><th class="l">Pick</th><th>P (calibrated)</th><th>Break-even</th><th>EV</th><th class="l">Tier</th><th></th></tr></thead><tbody>`;
   let shown = 0;
   for (const r of rows){
     if (!matchQ((G[r.gid]||{}).name, r.team, r.opp)) continue;
+    const d = r.d, play = d && d.play && d.ev >= minEV;
+    if (d && sideF && d.side !== sideF) continue;
+    if (onlyPlays && !play) continue;
     shown++;
-    const hasE = r.edge != null;
-    const side = hasE ? (r.edge > 0 ? "OVER" : "UNDER") : "";
-    const t = hasE ? tier(r.edge) : "";
-    if (hasE && sideF && side !== sideF) continue;
-    const play = hasE && t !== "PASS" && Math.abs(r.edge) >= minE;
-    const cls = play ? side.toLowerCase() : hasE ? "dim" : "";
-    const ph = hasE ? (side === "OVER" ? pOver(r.proj, r.line) : 1 - pOver(r.proj, r.line)) : null;
-    html += `<tr class="${cls}"><td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp}<div class="muted" style="font-size:11px">${r.g.date}${r.b2b?" · B2B":""}${r.oppB2b?" · opp B2B":""}${r.g.type==="P"?" · Playoffs":""}</div></td>
+    const cls = play ? d.side.toLowerCase() : d ? "dim" : "";
+    html += `<tr class="${cls}"><td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp}<div class="muted" style="font-size:11px">${r.g.date}${r.b2b?" · B2B":""}${r.oppB2b?" · opp B2B":""}${r.g.type==="P"?" · Playoffs":""} · win ${pct(r.pWin,0)} (${r.pWinSrc})</div></td>
       <td class="l"><select data-st="${r.g.date}|${r.team}">${goalieOptions(r.team, r.gid)}</select>
-        <div style="font-size:11px">${r.src==="dk"?'<span class="good">✓ DraftKings line posted</span>':r.src==="pp"?'<span class="good">✓ on PrizePicks board</span>':r.src==="manual"?'<span class="muted">set by you</span>':(r.src==="b2b"?'<span class="muted">back-to-back backup · unconfirmed</span>':D.rosters_ok?'<span class="muted">roster #1 · unconfirmed</span>':'<span class="muted">depth chart · unconfirmed</span>')}${(G[r.gid]||{}).new?' <span class="muted">· no NHL history</span>':""}</div></td>
-      <td>${fmt(r.sa)}</td><td>${fmt(r.sv,3)}</td><td><b>${fmt(r.proj)}</b></td>
+        <div style="font-size:11px">${r.src==="dk"?'<span class="good">✓ DraftKings line posted</span>':r.src==="pp"?'<span class="good">✓ on PrizePicks board</span>':r.src==="manual"?'<span class="good">✓ confirmed by you</span>':'<span class="bad">unconfirmed · excluded from plays</span> <span class="muted">('+(r.src==="b2b"?"back-to-back backup":D.rosters_ok?"roster #1":"depth chart")+'; pick the goalie to confirm)</span>'}${(G[r.gid]||{}).new?' <span class="muted">· no NHL history</span>':""}</div></td>
+      <td>${fmt(r.sa)}</td><td>${fmt(r.sv,3)}</td><td><b>${fmt(r.proj)}</b> <span class="muted" style="font-size:11px">±${fmt(r.sd)}</span></td>
       <td><input type="number" step="0.5" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line">
-        ${r.lineSrc==="dk"?`<div style="font-size:11px" class="muted">DK o${r.dk.over ?? "–"} / u${r.dk.under ?? "–"}</div>`:""}
-        ${r.lineSrc==="pp"?`<div style="font-size:11px"><a href="${r.pp.url}" target="_blank" rel="noopener" class="muted">PrizePicks</a></div>`:""}</td>
-      <td>${hasE ? (r.edge>0?"+":"") + fmt(r.edge) : "–"}</td><td class="l side">${play ? side : (hasE ? "PASS" : "")}</td>
-      <td>${ph!=null?pct(ph,0):"–"}</td><td class="l">${t?`<span class="pill ${t}">${t}</span>`:""}</td>
+        ${r.lineSrc==="dk"?`<div style="font-size:11px" class="muted">DK o${amer(r.dk.over)||"–"} / u${amer(r.dk.under)||"–"}</div>`:""}
+        ${r.lineSrc==="pp"?`<div style="font-size:11px"><a href="${r.pp.url}" target="_blank" rel="noopener" class="muted">PrizePicks · 1x</a></div>`:""}
+        ${r.lineSrc==="manual"?`<div style="font-size:11px" class="muted">your line · priced as DFS 1x</div>`:""}</td>
+      <td class="l side">${d ? (play ? d.side : "PASS") : ""}${d ? `<div class="muted" style="font-size:11px">${d.side} ${priceTxt(d)}</div>` : ""}</td>
+      <td>${d?pct(d.p,1):"–"}</td><td>${d&&d.be!=null?pct(d.be,1):"–"}</td><td class="${d&&d.ev>0?"good":d?"bad":""}">${evTxt(d)}</td>
+      <td class="l">${d?`<span class="pill ${d.tier}">${d.tier}</span>`:""}</td>
       <td>${play ? `<button class="ghost" data-log="${r.key}">Log</button>` : ""}</td></tr>`;
   }
-  if (!shown) html += `<tr><td colspan="11" class="l muted">No slate goalies match "${Q().replace(/[<>&]/g,"")}".</td></tr>`;
+  if (!shown) html += `<tr><td colspan="12" class="l muted">No slate goalies match these filters.</td></tr>`;
   $("#slateT").innerHTML = html + "</tbody>";
   $("#slateT").querySelectorAll("input[data-line]").forEach(i => i.onchange = () => {
     if (i.value === "") delete LINES[i.dataset.line]; else LINES[i.dataset.line] = +i.value;
-    store.set("gm_lines", LINES); renderSlate(); renderSlip();
+    store.set("gm_lines", LINES); renderSlate(); renderSlip(); renderGoalies();
   });
   $("#slateT").querySelectorAll("select[data-st]").forEach(s => s.onchange = () => {
-    STARTER[s.dataset.st] = +s.value; store.set("gm_starter", STARTER); renderSlate(); renderSlip(); renderWinners();
+    STARTER[s.dataset.st] = +s.value; store.set("gm_starter", STARTER); renderSlate(); renderSlip(); renderWinners(); renderGoalies();
   });
   $("#slateT").querySelectorAll("button[data-log]").forEach(b => b.onclick = () => {
     const r = slateRows().find(x => x.key === b.dataset.log); logPick(r); b.textContent = "Logged"; b.disabled = true;
   });
 }
-["#minEdge","#sideF","#dateF"].forEach(s => $(s).onchange = renderSlate);
+["#minEdge","#sideF","#dateF","#playsOnly"].forEach(s => $(s).onchange = renderSlate);
 
 // ---------- matchup builder ----------
 function initBuilder(){
@@ -478,40 +560,48 @@ function initBuilder(){
 }
 function renderBuilder(){
   const gid = +$("#mbG").value, r = project(gid, $("#mbT").value, $("#mbO").value, $("#mbH").value==="1", $("#mbB").value==="1", $("#mbP").value==="1", $("#mbOB").value==="1");
-  const line = +$("#mbL").value, e = r.proj - line, side = e > 0 ? "OVER" : "UNDER", t = tier(e);
-  const ph = side === "OVER" ? pOver(r.proj, line) : 1 - pOver(r.proj, line);
+  const dist = savesDist(r.sa, r.share, r.sv, null);
+  const line = +$("#mbL").value, po = pOverSaves(dist.proj, dist.sd, line);
+  const d = decide("saves", po, {over: -110, under: -110});
   $("#mbOut").innerHTML = `
-    <div class="stat hero"><div class="k">Projected saves</div><div class="v">${fmt(r.proj)}</div><div class="s">${fmt(r.sa)} exp SA × ${fmt(r.share,3)} share × ${fmt(r.sv,3)} SV%</div></div>
-    <div class="stat"><div class="k">Edge vs ${line}</div><div class="v ${t==="PASS"?"":side==="OVER"?"good":"bad"}">${e>0?"+":""}${fmt(e)}</div><div class="s">${t==="PASS"?"PASS (under 1.0)":side+" · "+t}</div></div>
-    <div class="stat"><div class="k">Model P(${side.toLowerCase()})</div><div class="v">${pct(ph,0)}</div><div class="s">normal, sd ${fmt(D.sd,2)} saves</div></div>`;
+    <div class="stat hero"><div class="k">Projected saves</div><div class="v">${fmt(dist.proj)}</div><div class="s">${fmt(dist.saGs)} exp SA × ${fmt(r.share,3)} share × ${fmt(r.sv,3)} SV% · spread ±${fmt(dist.sd)}</div></div>
+    <div class="stat"><div class="k">Calibrated P(${d.side.toLowerCase()} ${line})</div><div class="v">${pct(d.p,1)}</div><div class="s">raw model ${pct(d.side==="OVER"?po:1-po,1)}</div></div>
+    <div class="stat"><div class="k">At -110 each way</div><div class="v ${d.play?(d.side==="OVER"?"good":"bad"):""}">${d.play?d.side:"PASS"}</div><div class="s">EV ${evTxt(d)} · break-even ${pct(d.be,1)}</div></div>`;
 }
 
 // ---------- backtest ----------
 function renderBacktest(){
-  const B = D.backtest, T = B["2026"], F = B["2025"];
-  $("#btNote").innerHTML = `<b>How to read this.</b> Historical sportsbook saves lines aren't in any public dataset, so each start is graded against a <b>proxy line</b>: floor(goalie's last-10-start average) + 0.5, the way a lazy book would hang it. Parameters were fit on 2024-25 only, and <b>2025-26 is fully out-of-sample</b>. Real DK/PrizePicks lines are sharper than this proxy, so treat these hit rates as a <b>ceiling</b>. The stress-test view grades against a tougher proxy that already prices team shot suppression, save% and pull risk, which is closer to a real book. Your true number builds in the Tracker tab. <b>Warning from the SOG model:</b> it hit 63–70% against the same kind of stand-in line but only about 51–54% against 475 real PrizePicks lines. Expect a similar drop here.`;
-  const b15 = T.buckets.find(b => b.min_edge === 1.5) || {}, b25 = T.buckets.find(b => b.min_edge === 2.5) || {};
-  $("#btStats").innerHTML = `
-    <div class="stat hero"><div class="k">2025-26 hit rate, edge ≥ 1.5</div><div class="v">${pct(b15.hit)}</div><div class="s">${b15.n} picks · ${b15.units>0?"+":""}${fmt(b15.units)}u at -115</div></div>
-    <div class="stat"><div class="k">Edge ≥ 2.5 (HIGH)</div><div class="v">${pct(b25.hit)}</div><div class="s">${b25.n} picks · ${b25.units>0?"+":""}${fmt(b25.units)}u</div></div>
-    <div class="stat"><div class="k">Avg miss per start (MAE)</div><div class="v">${fmt(T.mae_model,2)}</div><div class="s">vs ${fmt(T.mae_l10,2)} for last-10 avg</div></div>
-    <div class="stat"><div class="k">Stress test, edge ≥ 1.5</div><div class="v">${pct((T.buckets_sharp.find(b=>b.min_edge===1.5)||{}).hit)}</div><div class="s">vs a sharper line that already prices team defense, SV% and pull risk</div></div>
-    <div class="stat"><div class="k">2024-25 (fit) edge ≥ 1.5</div><div class="v">${pct((F.buckets.find(b=>b.min_edge===1.5)||{}).hit)}</div><div class="s">${T.starts} test starts graded</div></div>`;
-  barChart($("#bucketChart"), T.buckets.map(b => ({x: "≥"+b.min_edge, y: b.hit, n: b.n})));
-  lineChart($("#monthChart"), T.monthly.map(m => ({x: m.month.slice(2), y: m.hit, n: m.n})));
-  const drawBuckets = () => {
-    const src = B[$("#btSeason").value][$("#btSplit").value];
-    $("#bucketT").innerHTML = `<thead><tr><th>Min edge</th><th>Picks</th><th>Hit %</th><th>OVER n</th><th>OVER hit</th><th>UNDER n</th><th>UNDER hit</th><th>Units @ -115</th></tr></thead><tbody>` +
-      src.map(b => `<tr><td>${b.min_edge}</td><td>${b.n}</td><td class="${b.hit>=.65?"good":b.hit<.524?"bad":""}"><b>${pct(b.hit)}</b></td><td>${b.over_n}</td><td>${pct(b.over_hit)}</td><td>${b.under_n}</td><td>${pct(b.under_hit)}</td><td>${b.units>0?"+":""}${fmt(b.units)}</td></tr>`).join("") + "</tbody>";
-  };
-  $("#btSeason").onchange = $("#btSplit").onchange = drawBuckets; drawBuckets();
-  $("#calT").innerHTML = `<thead><tr><th>Model P(side)</th><th>Picks</th><th>Predicted</th><th>Actual hit</th></tr></thead><tbody>` +
-    T.calibration.map(c => `<tr><td>${pct(c.p_lo,0)}–${pct(c.p_hi,0)}</td><td>${c.n}</td><td>${pct(c.pred)}</td><td>${pct(c.hit)}</td></tr>`).join("") + "</tbody>";
+  const B = D.backtest, T = B["2026"], F = B["2025"], C = (D.calib && D.calib.markets) || {};
+  const rec = r => r && (r.hit + r.miss) ? `${r.hit}-${r.miss}` : "–";
+  const u = r => r && r.n ? `<span class="${r.units > 0 ? "good" : "bad"}">${r.units > 0 ? "+" : ""}${fmt(r.units,2)}u</span>` : "–";
+  const roi = r => r && r.roi != null ? `<span class="${r.roi > 0 ? "good" : "bad"}">${r.roi > 0 ? "+" : ""}${pct(r.roi,1)}</span>` : "–";
+  const S = C.saves, K = C.sog;
+  $("#btNote").innerHTML = `<b>How to read this.</b> The top tables grade every <b>real DraftKings line</b> this season at the price it had before puck drop${S ? ` (saves ${S.lines} lines, SOG ${K ? K.lines : 0} lines, ${S.from} to ${S.to})` : ""}. <b>Old rule</b>: tiers by edge or probability, no price. <b>New rule</b>: calibrated probability must beat the price's break-even by 2%, with calibration refit week by week using only earlier weeks, so there is no lookahead. Tiers are shown only when HIGH beats MED beats LOW on both hit % and ROI with 30+ plays each; otherwise they're capped at LOW. This refits on every build as more lines are graded.`;
+  const card = (lab, m) => m ? `<div class="stat"><div class="k">${lab}</div><div class="v">${roi(m.new.plays)}</div><div class="s">new rule: ${rec(m.new.plays)} (${pct(m.new.plays.pct,1)}) · ${u(m.new.plays)}<br>old rule: ${rec(m.old.plays)} (${pct(m.old.plays.pct,1)}) · ${u(m.old.plays)} · ROI ${roi(m.old.plays)}</div></div>` : "";
+  $("#btStats").innerHTML = card("Saves ROI, new vs old", S) + card("SOG ROI, new vs old", K) +
+    `<div class="stat"><div class="k">Tier status</div><div class="v" style="font-size:20px">${S && S.tier_cap ? "capped at LOW" : "tiers on"}</div><div class="s">saves ${S ? (S.tiers_ok ? "HIGH > MED > LOW holds" : "not ordered yet") : "–"} · SOG ${K ? (K.tiers_ok ? "ordered" : "not ordered yet") : "–"}</div></div>`;
+  const realT = m => !m ? `<tbody><tr><td class="muted">Not enough graded lines yet.</td></tr></tbody>` :
+    `<thead><tr><th class="l">Rule</th><th>Plays</th><th>Record</th><th>Hit %</th><th>Units</th><th>ROI</th></tr></thead><tbody>` +
+    [["<b>New: price-aware plays</b>", m.new.plays], ["New · HIGH (EV 8%+)", m.new.tiers.HIGH], ["New · MED (EV 5–8%)", m.new.tiers.MED], ["New · LOW (EV 2–5%)", m.new.tiers.LOW],
+     ["New · overs", m.new.overs], ["New · unders", m.new.unders], ["<b>Old: plays</b>", m.old.plays], ["Old · HIGH", m.old.HIGH], ["Old · MED", m.old.MED], ["Old · LOW", m.old.LOW], ["Old · PASS", m.old.PASS],
+     ["Every line, old side", m.old.all], ["Blind unders", m.blind_under]]
+      .map(([k, r]) => `<tr><td class="l">${k}</td><td>${r ? r.n : "–"}</td><td>${rec(r)}</td><td>${r && r.pct != null ? pct(r.pct,1) : "–"}</td><td>${u(r)}</td><td>${roi(r)}</td></tr>`).join("") +
+    `<tr><td class="l muted" colspan="6">Calibration fit on all ${m.cal.n} lines: logit(p) → ${fmt(m.cal.a,3)} + ${fmt(m.cal.b,3)} × logit(p). A slope under 1 means the raw model was overconfident.</td></tr></tbody>`;
+  $("#btRealSaves").innerHTML = realT(S); $("#btRealSog").innerHTML = realT(K);
+  const calT = m => !m ? "" : `<thead><tr><th>P(side)</th><th>Raw n</th><th>Raw predicted</th><th>Raw actual</th><th>Calibrated n</th><th>Cal. predicted</th><th>Cal. actual</th></tr></thead><tbody>` +
+    ["(0.5, 0.55]","(0.55, 0.6]","(0.6, 0.65]","(0.65, 0.7]","(0.7, 1.0]"].map(bk => { const r = m.buckets_raw.find(x => x.bucket === bk), c = m.buckets_cal.find(x => x.bucket === bk);
+      return `<tr><td>${bk}</td><td>${r ? r.n : 0}</td><td>${r ? pct(r.pred,1) : "–"}</td><td>${r ? pct(r.actual,1) : "–"}</td><td>${c ? c.n : 0}</td><td>${c ? pct(c.pred,1) : "–"}</td><td>${c ? pct(c.actual,1) : "–"}</td></tr>`; }).join("") + "</tbody>";
+  $("#btCalSaves").innerHTML = calT(S); $("#btCalSog").innerHTML = calT(K);
+  $("#btProxy").innerHTML = `
+    <div class="stat"><div class="k">Avg miss per start (MAE), 2025-26</div><div class="v">${fmt(T.mae_model,2)}</div><div class="s">vs ${fmt(T.mae_l10,2)} for last-10 avg · ${T.starts} starts</div></div>
+    <div class="stat"><div class="k">Bias, 2025-26</div><div class="v">${T.bias > 0 ? "+" : ""}${fmt(T.bias,2)}</div><div class="s">actual − projected saves</div></div>
+    <div class="stat"><div class="k">Correlation with actual saves</div><div class="v">${fmt(T.corr_model,3)}</div><div class="s">vs ${fmt(T.corr_l10,3)} for last-10 avg</div></div>
+    <div class="stat"><div class="k">2024-25 (fit) MAE</div><div class="v">${fmt(F.mae_model,2)}</div><div class="s">tier hit rates vs proxy: hidden</div></div>`;
   const drawGames = () => {
     const q = fold($("#btQ").value) || fold(Q());
     const rows = D.bt_games.filter(g => !q || [g.goalie, g.team, g.opp].some(f => fold(f).includes(q))).slice(-400).reverse();
-    $("#btGamesT").innerHTML = `<thead><tr><th class="l">Date</th><th class="l">Goalie</th><th class="l">Matchup</th><th>Proj</th><th>Proxy line</th><th>Edge</th><th class="l">Pick</th><th>Saves</th><th class="l">Result</th></tr></thead><tbody>` +
-      rows.map(g => `<tr class="${g.side.toLowerCase()}"><td class="l">${g.date}</td><td class="l">${g.goalie}</td><td class="l">${g.team} ${g.is_home?"vs":"@"} ${g.opp}</td><td>${fmt(g.proj)}</td><td>${g.line}</td><td>${g.edge>0?"+":""}${fmt(g.edge)}</td><td class="l side">${g.side}</td><td>${g.saves}</td><td class="l">${g.hit?'<span class="good">✓ Hit</span>':'<span class="bad">✗ Miss</span>'}</td></tr>`).join("") + "</tbody>";
+    $("#btGamesT").innerHTML = `<thead><tr><th class="l">Date</th><th class="l">Goalie</th><th class="l">Matchup</th><th>Proj</th><th>Proxy line</th><th>Edge</th><th class="l">Side</th><th>Saves</th></tr></thead><tbody>` +
+      rows.map(g => `<tr><td class="l">${g.date}</td><td class="l">${g.goalie}</td><td class="l">${g.team} ${g.is_home?"vs":"@"} ${g.opp}</td><td>${fmt(g.proj)}</td><td>${g.line}</td><td>${g.edge>0?"+":""}${fmt(g.edge)}</td><td class="l">${g.side}</td><td>${g.saves}</td></tr>`).join("") + "</tbody>";
   };
   $("#btQ").oninput = drawGames; drawGames(); window.drawBtGames = drawGames;
 }
@@ -567,8 +657,9 @@ function lineChart(svg, pts){
 // ---------- tracker + slip ----------
 let PICKS = store.get("gm_picks", []);
 function logPick(r){
-  const side = r.edge > 0 ? "OVER" : "UNDER";
-  PICKS.push({date: r.g.date, goalie_id: r.gid, goalie: (G[r.gid]||{}).name, team: r.team, opp: r.opp, line: r.line, proj: +r.proj.toFixed(2), edge: +r.edge.toFixed(2), side, tier: tier(r.edge)});
+  const d = r.d;
+  PICKS.push({date: r.g.date, goalie_id: r.gid, goalie: (G[r.gid]||{}).name, team: r.team, opp: r.opp, line: r.line, proj: +r.proj.toFixed(2),
+              edge: +r.edge.toFixed(2), side: d.side, tier: d.tier, price: d.kind === "book" ? d.price : null, ev: +d.ev.toFixed(4)});
   store.set("gm_picks", PICKS); renderTracker();
 }
 function gradePick(p){
@@ -580,10 +671,10 @@ function renderTracker(){
   const graded = PICKS.map(p => ({...p, g: gradePick(p)}));
   const done = graded.filter(p => p.g);
   const hits = done.filter(p => p.g.hit).length;
-  const units = done.reduce((u, p) => u + (p.g.hit ? 100/115 : -1), 0);
+  const units = done.reduce((u, p) => u + (p.g.hit ? (hasVal(p.price) ? profitU(p.price) : 100/115) : -1), 0);
   $("#trStats").innerHTML = `
     <div class="stat hero"><div class="k">Real hit rate</div><div class="v ${done.length && hits/done.length>=.65?"good":""}">${done.length?pct(hits/done.length):"–"}</div><div class="s">${hits}-${done.length-hits} · target 65%</div></div>
-    <div class="stat"><div class="k">Units at -115</div><div class="v">${done.length?(units>0?"+":"")+fmt(units):"–"}</div></div>
+    <div class="stat"><div class="k">Units (at your logged price; -115 if none)</div><div class="v">${done.length?(units>0?"+":"")+fmt(units):"–"}</div></div>
     <div class="stat"><div class="k">Pending</div><div class="v">${graded.length - done.length}</div></div>`;
   $("#trT").innerHTML = `<thead><tr><th class="l">Date</th><th class="l">Goalie</th><th class="l">Matchup</th><th>Line</th><th>Proj</th><th>Edge</th><th class="l">Pick</th><th class="l">Tier</th><th>Saves</th><th class="l">Result</th><th></th></tr></thead><tbody>` +
     graded.map((p, i) => `<tr class="${p.side.toLowerCase()}"><td class="l">${p.date}</td><td class="l">${p.goalie}</td><td class="l">${p.team} v ${p.opp}</td><td>${p.line}</td><td>${fmt(p.proj)}</td><td>${p.edge>0?"+":""}${fmt(p.edge)}</td><td class="l side">${p.side}</td><td class="l"><span class="pill ${p.tier}">${p.tier}</span></td><td>${p.g?p.g.saves:"–"}</td><td class="l">${!p.g?'<span class="muted">pending</span>':p.g.hit?'<span class="good">✓ Hit</span>':'<span class="bad">✗ Miss</span>'}</td><td><button class="ghost" data-del="${i}">✕</button></td></tr>`).reverse().join("") + "</tbody>";
@@ -598,23 +689,38 @@ $("#trExport").onclick = () => {
   a.download = "goalie_picks.csv"; a.click();
 };
 function renderSlip(){
-  const legs = +$("#slLegs").value, minE = +$("#slEdge").value, pay = +$("#slPay").value;
-  const cands = D.slate.length ? slateRows().filter(r => r.edge != null && Math.abs(r.edge) >= minE) : [];
-  cands.sort((a,b) => Math.abs(b.edge) - Math.abs(a.edge));
+  const legs = +$("#slLegs").value, minE = +$("#slEdge").value / 100, pay = +$("#slPay").value;
+  const cands = D.slate.length ? slateRows().filter(r => r.d && r.d.play && r.d.ev >= minE) : [];
+  cands.sort((a,b) => b.d.ev - a.d.ev);
   const seenGame = new Set(), pick = [];
   for (const r of cands){ if (pick.length >= legs) break; if (seenGame.has(r.g.id)) continue; seenGame.add(r.g.id); pick.push(r); }
-  if (!pick.length){ $("#slOut").innerHTML = `<p class="muted">Enter lines on the slate. The builder picks the biggest edges at or above your minimum, one goalie per game.</p>`; return; }
-  const probs = pick.map(r => r.edge > 0 ? pOver(r.proj, r.line) : 1 - pOver(r.proj, r.line));
+  if (!pick.length){ $("#slOut").innerHTML = `<p class="muted">No confirmed starter clears the price-aware bar right now. The builder takes the highest-EV plays at or above your minimum, one goalie per game.</p>`; return; }
+  const probs = pick.map(r => r.d.p);
   const pAll = probs.reduce((a, b) => a*b, 1);
-  $("#slOut").innerHTML = `<div class="tbl"><table><thead><tr><th class="l">Goalie</th><th class="l">Pick</th><th>Line</th><th>Proj</th><th>P(hit)</th></tr></thead><tbody>` +
-    pick.map((r, i) => `<tr class="${r.edge>0?"over":"under"}"><td class="l">${(G[r.gid]||{}).name} (${r.team})</td><td class="l side">${r.edge>0?"OVER":"UNDER"}</td><td>${r.line}</td><td>${fmt(r.proj)}</td><td>${pct(probs[i],0)}</td></tr>`).join("") +
-    `</tbody></table></div><p>${pick.length < legs ? `<span class="bad">Only ${pick.length} legs qualify.</span> ` : ""}Model P(all hit) <b>${pct(pAll)}</b> · EV at ${pay}x: <b class="${pAll*pay>1?"good":"bad"}">${pAll*pay>1?"+":""}${pct(pAll*pay-1)}</b></p>`;
+  $("#slOut").innerHTML = `<div class="tbl"><table><thead><tr><th class="l">Goalie</th><th class="l">Pick</th><th>Line</th><th>Proj</th><th>P (calibrated)</th><th>EV</th></tr></thead><tbody>` +
+    pick.map((r, i) => `<tr class="${r.d.side.toLowerCase()}"><td class="l">${(G[r.gid]||{}).name} (${r.team})</td><td class="l side">${r.d.side}</td><td>${r.line}</td><td>${fmt(r.proj)}</td><td>${pct(probs[i],0)}</td><td>${evTxt(r.d)}</td></tr>`).join("") +
+    `</tbody></table></div><p>${pick.length < legs ? `<span class="bad">Only ${pick.length} legs qualify.</span> ` : ""}Calibrated P(all hit) <b>${pct(pAll)}</b> · EV at ${pay}x: <b class="${pAll*pay>1?"good":"bad"}">${pAll*pay>1?"+":""}${pct(pAll*pay-1)}</b></p>`;
 }
 ["#slLegs","#slEdge","#slPay"].forEach(s => $(s).oninput = renderSlip);
 
 // ---------- goalies ----------
 function gTier(g){ const x = g.gsax60; if (x == null) return "Average"; return x >= 0.25 ? "Elite" : x >= 0.05 ? "Solid" : x >= -0.15 ? "Average" : "Below"; }
+function renderStarters(){
+  if (!D.slate.length){ $("#gStart").innerHTML = `<tbody><tr><td class="l muted">No games in this build's slate.</td></tr></tbody>`; return; }
+  const rows = slateRows().filter(r => matchQ((G[r.gid]||{}).name, r.team, r.opp));
+  rows.sort((a,b) => (a.g.date + a.g.start).localeCompare(b.g.date + b.g.start) || a.g.id - b.g.id);
+  $("#gStart").innerHTML = `<thead><tr><th class="l">Goalie</th><th class="l">Game</th><th class="l">Status</th><th>Proj shots against</th><th>SV%</th><th>Proj saves</th><th>Line</th><th>Price</th><th class="l">Pick</th><th>P (calibrated)</th><th>EV</th><th class="l">Tier</th></tr></thead><tbody>` +
+    rows.map(r => { const d = r.d, play = d && d.play;
+      return `<tr class="${play ? d.side.toLowerCase() : ""}"><td class="l"><b>${(G[r.gid]||{}).name || "?"}</b> <span class="muted">${r.team}</span></td>
+      <td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp} <span class="muted" style="font-size:11px">${r.g.date}</span></td>
+      <td class="l">${r.confirmed ? '<span class="good">confirmed</span>' : '<span class="bad">unconfirmed</span>'} <span class="muted" style="font-size:11px">${{dk:"DK line",pp:"PrizePicks",manual:"you",b2b:"B2B backup",depth:"roster #1"}[r.src] || r.src}</span></td>
+      <td>${fmt(r.sa)}</td><td>${fmt(r.sv,3)}</td><td><b>${fmt(r.proj)}</b> <span class="muted" style="font-size:11px">±${fmt(r.sd)}</span></td>
+      <td>${r.line ?? "–"}</td><td>${d ? priceTxt(d) || "–" : "–"}</td>
+      <td class="l side">${d ? (play ? d.side : "PASS") : ""}</td><td>${d ? pct(d.p,1) : "–"}</td>
+      <td class="${d && d.ev > 0 ? "good" : d ? "bad" : ""}">${evTxt(d)}</td><td class="l">${d ? `<span class="pill ${d.tier}">${d.tier}</span>` : ""}</td></tr>`; }).join("") + "</tbody>";
+}
 function renderGoalies(){
+  renderStarters();
   const team = $("#gTeam").value, t = $("#gTier").value, min = +$("#gMin").value;
   const rows = D.goalies.filter(g => (g.gp||0) >= min && (!team || g.team === team) && (!t || gTier(g) === t) && matchQ(g.name, g.team)).sort((a,b) => (b.gp||0) - (a.gp||0));
   $("#gCards").innerHTML = (rows.length ? "" : `<p class="muted">No goalies match.</p>`) + rows.map(g => `<div class="gc"><div class="n">${g.name} <span class="muted">${g.team}</span></div>
@@ -648,12 +754,25 @@ function renderLogic(){
   const rows = [["League SOG per team-game (LG)", fmt(D.league,2)], ["a: weight on own team's shots against", P.a], ["b: weight on opponent's shots for", P.b],
     ["Team rate half-life (games)", P.half_life], ["Team prior strength (games)", P.k_team], ["Carry-over between seasons", P.carry],
     ["Save% prior (shots)", P.k_sv], ["Save% half-life (starts)", P.sv_half_life], ["Home multiplier", P.home], ["Playoff multiplier", P.playoff],
-    ["Back-to-back multiplier", P.b2b], ["Opponent back-to-back multiplier", P.opp_b2b ?? 1], ["League time-in-net share", pct(D.lg_share)], ["Residual sd (saves)", fmt(D.sd,2)]];
+    ["Back-to-back multiplier", P.b2b], ["Opponent back-to-back multiplier", P.opp_b2b ?? 1], ["League time-in-net share", pct(D.lg_share)],
+    ["Game script: shots × exp(−gs × logit(win prob)), gs", DIST.gs], ["Shots dispersion (NegBin size K)", DIST.nb_k], ["Minimum saves spread (sd floor)", DIST.sd_floor],
+    ["Saves calibration (a, b)", CAL.saves ? `${CAL.saves.cal.a}, ${CAL.saves.cal.b} (n=${CAL.saves.cal.n})` : "–"], ["SOG calibration (a, b)", CAL.sog ? `${CAL.sog.cal.a}, ${CAL.sog.cal.b} (n=${CAL.sog.cal.n})` : "–"],
+    ["Play rule", "calibrated P > break-even + 2%"], ["DFS per-leg break-even", `${pct(dfsBE(1),1)} at 1x (${DFS.legs} legs at ${DFS.payout}x)`]];
   $("#parT").innerHTML = `<tbody>${rows.map(r => `<tr><td class="l">${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</tbody>`;
   document.querySelectorAll(".k_sv").forEach(e => e.textContent = P.k_sv);
   document.querySelectorAll(".carry").forEach(e => e.textContent = Math.round(P.carry*100) + "%");
 }
 
+function initDfs(){
+  $("#dfsLegs").value = DFS.legs; $("#dfsPay").value = DFS.payout; $("#dfsSub").checked = DFS.sub1x;
+  const upd = () => {
+    DFS.legs = Math.max(2, +$("#dfsLegs").value || 2); DFS.payout = Math.max(1, +$("#dfsPay").value || 3); DFS.sub1x = $("#dfsSub").checked;
+    store.set("gm_dfs", DFS);
+    $("#dfsBE").textContent = `→ per-leg break-even ${pct(dfsBE(1),1)} at 1x (${pct(dfsBE(0.9),1)} at 0.9x, ${pct(dfsBE(0.8),1)} at 0.8x)`;
+  };
+  ["#dfsLegs","#dfsPay","#dfsSub"].forEach(s => $(s).onchange = () => { upd(); renderSlate(); renderSOG(); renderSlip(); renderGoalies(); });
+  upd();
+}
 $("#q").addEventListener("input", () => { renderResults(); renderSlate(); renderGoalies(); renderTeams(); renderWinners(); renderSOG(); if (window.drawBtGames) window.drawBtGames(); });
 
 // ---------- results (model/tracker.py, graded every build) ----------
@@ -662,21 +781,33 @@ function renderResults(){
   if (!T){ $("#resNote").textContent = "No graded results in this build yet."; return; }
   const rec = r => r && (r.hit + r.miss) ? `${r.hit}-${r.miss}${r.push ? "-" + r.push : ""}` : "–";
   const rp = r => r && r.pct != null ? `<span class="${r.pct >= .65 ? "good" : r.pct < .524 ? "bad" : ""}">${pct(r.pct)}</span>` : "–";
+  const un = r => r && r.priced ? `<span class="${r.units > 0 ? "good" : r.units < 0 ? "bad" : ""}">${r.units > 0 ? "+" : ""}${fmt(r.units,2)}u</span>` : "–";
+  const roi = r => r && r.roi != null ? `<span class="${r.roi > 0 ? "good" : "bad"}">${r.roi > 0 ? "+" : ""}${pct(r.roi,1)}</span>` : "–";
   const M = T.model || {}, S = T.markets.saves, K = T.markets.sog, Wn = T.markets.winner;
-  $("#resNote").innerHTML = `Graded automatically from box scores on every build (last ${T.updated}). Real lines come from DraftKings and PrizePicks each build, plus Pick6 boards logged in <code>model/data/real_line_log.csv</code>. <b>Plays</b> = your rules: saves at 1.5+ edge, SOG at 55%+, never a side paying under 1x. When a prop is on more than one book it counts once.`;
+  $("#resNote").innerHTML = `Graded automatically from box scores on every build (last ${T.updated}), at the line and price each prop had <b>at pick time</b>. Units and ROI count lines with a sportsbook price (DraftKings); DFS legs (Pick6 / PrizePicks) have a record but no single-leg price, so they're graded against break-even below. <b>Plays</b> from 10/23 on are price-aware: calibrated probability beats break-even by 2%. Earlier plays keep the rule they were picked under (saves 1.5+ edge, SOG 55%+). When a prop is on more than one book it counts once, and every table below uses that same set, so tiers, sides, books and nights all add up to each market's total.`;
   $("#resStats").innerHTML = `
-    <div class="stat hero"><div class="k">Plays, real lines</div><div class="v">${rp(T.plays)}</div><div class="s">${rec(T.plays)} · target 65%</div></div>
-    <div class="stat"><div class="k">Saves MED+HIGH</div><div class="v">${rp(mergeRec(S.by.MED, S.by.HIGH))}</div><div class="s">${rec(mergeRec(S.by.MED, S.by.HIGH))}</div></div>
-    <div class="stat"><div class="k">SOG 55%+</div><div class="v">${rp(mergeRec(K.by.LOW, K.by.MED, K.by.HIGH))}</div><div class="s">${rec(mergeRec(K.by.LOW, K.by.MED, K.by.HIGH))}</div></div>
-    <div class="stat"><div class="k">Game winners</div><div class="v">${rp(Wn.all)}</div><div class="s">${rec(Wn.all)} · 65%+ calls ${rec(Wn.by["65%+ calls"])}</div></div>
+    <div class="stat hero"><div class="k">Plays, real lines</div><div class="v">${rp(T.plays)}</div><div class="s">${rec(T.plays)} · ${un(T.plays)} · ROI ${roi(T.plays)}</div></div>
+    <div class="stat"><div class="k">Saves plays</div><div class="v">${rp(S.plays)}</div><div class="s">${rec(S.plays)} · ${un(S.plays)} · ROI ${roi(S.plays)}</div></div>
+    <div class="stat"><div class="k">SOG plays</div><div class="v">${rp(K.plays)}</div><div class="s">${rec(K.plays)} · ${un(K.plays)} · ROI ${roi(K.plays)}</div></div>
+    <div class="stat"><div class="k">Game winners</div><div class="v">${rp(Wn.all)}</div><div class="s">${rec(Wn.all)} · ${un(Wn.all)}${Wn.all.priced ? ` on ${Wn.all.priced} priced` : ""}</div></div>
     <div class="stat"><div class="k">Saves error / starters</div><div class="v">${fmt(M.saves_mae,1)}</div><div class="s">avg miss in saves · starters right ${pct(M.starter_pct,0)}</div></div>`;
-  $("#resDays").innerHTML = `<thead><tr><th class="l">Date</th><th>Plays</th><th>Saves (all lines)</th><th>SOG (all lines)</th><th>Winners</th></tr></thead><tbody>` +
-    T.days.map(d => `<tr><td class="l">${d.date}</td><td><b>${rec(d.plays)}</b> ${rp(d.plays)}</td><td>${rec(d.saves)} ${rp(d.saves)}</td><td>${rec(d.sog)} ${rp(d.sog)}</td><td>${rec(d.winner)}</td></tr>`).join("") + "</tbody>";
-  const tierT = (X, keys) => `<thead><tr><th class="l">Bucket</th><th>Record</th><th>Hit %</th></tr></thead><tbody>` +
-    keys.map(k => `<tr><td class="l">${k}</td><td>${rec(X.by[k])}</td><td>${rp(X.by[k])}</td></tr>`).join("") +
-    Object.entries(X.books || {}).map(([b, r]) => `<tr class="dim"><td class="l">${b} (non-PASS)</td><td>${rec(r)}</td><td>${rp(r)}</td></tr>`).join("") + "</tbody>";
-  $("#resSaves").innerHTML = tierT(S, ["HIGH", "MED", "LOW", "PASS", "OVER / MORE", "UNDER / LESS"]);
-  $("#resSog").innerHTML = tierT(K, ["HIGH", "MED", "LOW", "PASS", "OVER / MORE", "UNDER / LESS"]);
+  $("#resDays").innerHTML = `<thead><tr><th class="l">Date</th><th>Plays</th><th>Plays units</th><th>Saves (all lines)</th><th>SOG (all lines)</th><th>Winners</th></tr></thead><tbody>` +
+    T.days.map(d => `<tr><td class="l">${d.date}</td><td><b>${rec(d.plays)}</b> ${rp(d.plays)}</td><td>${un(d.plays)}</td><td>${rec(d.saves)} ${rp(d.saves)}</td><td>${rec(d.sog)} ${rp(d.sog)}</td><td>${rec(d.winner)}</td></tr>`).join("") +
+    `<tr><td class="l"><b>Total</b></td><td><b>${rec(T.plays)}</b> ${rp(T.plays)}</td><td>${un(T.plays)}</td><td>${rec(S.all)} ${rp(S.all)}</td><td>${rec(K.all)} ${rp(K.all)}</td><td>${rec(Wn.all)}</td></tr></tbody>`;
+  const row = (lab, r, cls = "") => `<tr class="${cls}"><td class="l">${lab}</td><td>${rec(r)}</td><td>${rp(r)}</td><td>${un(r)}</td><td>${roi(r)}</td><td class="muted">${r && r.priced ? r.priced : "–"}</td></tr>`;
+  const head = `<thead><tr><th class="l"></th><th>Record</th><th>Hit %</th><th>Units</th><th>ROI</th><th>Priced</th></tr></thead><tbody>`;
+  const mkT = X => head +
+    `<tr><td class="l muted" colspan="6">By tier (all lines)</td></tr>` + ["HIGH","MED","LOW","PASS"].map(k => row(k, X.by[k])).join("") + row("<b>All lines</b>", X.all) +
+    `<tr><td class="l muted" colspan="6">By side</td></tr>` + Object.entries(X.sides).map(([k, r]) => row(k, r)).join("") +
+    `<tr><td class="l muted" colspan="6">Plays only</td></tr>` + row("<b>Plays</b>", X.plays) + Object.entries(X.plays_by_side).map(([k, r]) => row("Plays · " + k, r)).join("") +
+    `<tr><td class="l muted" colspan="6">By book (all lines)</td></tr>` + Object.entries(X.books).map(([b, r]) => row(b, r)).join("") + "</tbody>";
+  $("#resSaves").innerHTML = mkT(S);
+  $("#resSog").innerHTML = mkT(K);
+  $("#resWin").innerHTML = head + Object.entries(Wn.by).map(([k, r]) => row(k, r)).join("") + row("<b>All picks</b>", Wn.all) + "</tbody>";
+  const dfsRows = Object.entries(T.dfs || {});
+  $("#resDfs").innerHTML = dfsRows.length ? `<thead><tr><th class="l">Board</th><th>Record</th><th>Hit %</th><th>Avg break-even</th><th>Vs break-even</th><th>Plays</th></tr></thead><tbody>` +
+    dfsRows.map(([b, r]) => `<tr><td class="l">${b}</td><td>${rec(r)}</td><td>${rp(r)}</td><td>${pct(r.avg_be,1)}</td><td class="${r.pct - r.avg_be > 0 ? "good" : "bad"}">${r.pct != null ? (r.pct - r.avg_be > 0 ? "+" : "") + pct(r.pct - r.avg_be, 1) : "–"}</td><td>${rec(r.plays)} ${rp(r.plays)}</td></tr>`).join("") + "</tbody>"
+    : `<tbody><tr><td class="muted">No graded DFS lines yet.</td></tr></tbody>`;
   $("#resModel").innerHTML = `<thead><tr><th class="l">Date</th><th>Winner picks</th><th>65%+ calls</th><th>Starters right</th><th>Saves avg miss</th><th>Shots-against bias</th><th>SOG avg miss</th></tr></thead><tbody>` +
     (M.days || []).map(d => `<tr><td class="l">${d.date}</td><td>${d.win_hit}/${d.games}</td><td>${d.win65_hit}/${d.win65}</td><td>${d.starter_ok}/${d.starters}</td><td>${fmt(d.saves_mae,1)}</td><td>${d.sa_bias > 0 ? "+" : ""}${fmt(d.sa_bias,1)}</td><td>${fmt(d.sog_mae,2)}</td></tr>`).join("") +
     (M.winner_n ? `<tr><td class="l"><b>All</b></td><td><b>${pct(M.winner_pct,0)}</b> (${M.winner_n})</td><td>${M.win65_n ? pct(M.win65_pct,0) : "–"} (${M.win65_n})</td><td>${pct(M.starter_pct,0)}</td><td>${fmt(M.saves_mae,1)}</td><td>${M.sa_bias > 0 ? "+" : ""}${fmt(M.sa_bias,1)}</td><td>${fmt(M.sog_mae,2)}</td></tr>` : "") + "</tbody>";
@@ -685,9 +816,9 @@ function renderResults(){
   const ds = $("#resDate");
   if (ds.options.length === 1) ds.innerHTML += [...new Set(T.log.map(r => r.date))].map(d => `<option>${d}</option>`).join("");
   const mk = $("#resMk").value, dd = ds.value;
-  $("#resLog").innerHTML = `<thead><tr><th class="l">Date</th><th class="l">Market</th><th class="l">Prop</th><th class="l">Book</th><th>Line</th><th>x</th><th class="l">Side</th><th>Proj</th><th>P(hit)</th><th class="l">Tier</th><th>Actual</th><th class="l">Result</th></tr></thead><tbody>` +
+  $("#resLog").innerHTML = `<thead><tr><th class="l">Date</th><th class="l">Market</th><th class="l">Prop</th><th class="l">Book</th><th>Line</th><th>x</th><th>Price</th><th class="l">Side</th><th>Proj</th><th>P (model)</th><th>P (calibrated)</th><th>EV</th><th class="l">Tier</th><th>Actual</th><th class="l">Result</th></tr></thead><tbody>` +
     T.log.filter(r => (!mk || r.market === mk) && (!dd || r.date === dd) && matchQ(r.player, r.team, r.opp)).map(r =>
-      `<tr class="${r.result === "HIT" ? "over" : r.result === "MISS" ? "under" : "dim"}"><td class="l">${r.date}</td><td class="l">${r.market}</td><td class="l">${r.player} <span class="muted">${r.team}</span></td><td class="l">${r.book || ""}</td><td>${r.line || ""}</td><td>${r.mult || ""}</td><td class="l">${r.side}</td><td>${r.model_proj || ""}</td><td>${r.model_p ? pct(+r.model_p,0) : ""}</td><td class="l">${r.tier || ""}</td><td>${r.actual ?? ""}</td><td class="l side">${r.result || "pending"}</td></tr>`).join("") + "</tbody>";
+      `<tr class="${r.result === "HIT" ? "over" : r.result === "MISS" ? "under" : "dim"}"><td class="l">${r.date}</td><td class="l">${r.market}</td><td class="l">${r.player} <span class="muted">${r.team}</span></td><td class="l">${r.book || ""}</td><td>${r.line || ""}</td><td>${r.mult || ""}</td><td>${amer(r.price)}</td><td class="l">${r.side}</td><td>${r.model_proj || ""}</td><td>${r.model_p ? pct(+r.model_p,0) : ""}</td><td>${hasVal(r.p_cal) ? pct(+r.p_cal,0) : ""}</td><td>${hasVal(r.ev) ? (r.ev > 0 ? "+" : "") + pct(+r.ev,1) : ""}</td><td class="l">${r.tier || ""}</td><td>${r.actual ?? ""}</td><td class="l side">${r.result || "pending"}</td></tr>`).join("") + "</tbody>";
 }
 function mergeRec(...rs){ const o = {hit: 0, miss: 0, push: 0}; for (const r of rs) if (r){ o.hit += r.hit; o.miss += r.miss; o.push += r.push; } o.pct = o.hit + o.miss ? o.hit / (o.hit + o.miss) : null; return o; }
 $("#resMk").onchange = renderResults; $("#resDate").onchange = renderResults;
@@ -720,28 +851,31 @@ const ML = store.get("gm_ml", {});
 function renderWinners(){
   $("#winEmpty").style.display = D.slate.length ? "none" : "block";
   const minE = +$("#wEdge").value / 100;
-  let html = `<thead><tr><th class="l">Game</th><th class="l">Goalies</th><th>xG</th><th>Model win %</th><th>Fair odds</th><th>Away ML</th><th>Home ML</th><th>Edge</th><th class="l">Pick</th></tr></thead><tbody>`;
+  let html = `<thead><tr><th class="l">Game</th><th class="l">Goalies</th><th>xG</th><th>Model win %</th><th>Fair odds</th><th>Away ML</th><th>Home ML</th><th>No-vig market</th><th>EV (at price)</th><th class="l">Pick</th></tr></thead><tbody>`;
   for (const g of D.slate){
     if (!matchQ(g.home, g.away, (G[starterFor(g.home, g.date).gid]||{}).name, (G[starterFor(g.away, g.date).gid]||{}).name)) continue;
     const {lh, la, sh, sa} = gameLambdas(g), ph = winProb(lh, la), pa = 1 - ph;
-    const k = g.date + "|" + g.id, mh = ML[k + "|h"], ma = ML[k + "|a"];
+    const k = g.date + "|" + g.id, dkh = (MLD[g.date + "|" + g.home] || {}).ml, dka = (MLD[g.date + "|" + g.away] || {}).ml;
+    const mh = ML[k + "|h"] ?? dkh, ma = ML[k + "|a"] ?? dka;
     let ih = implied(mh), ia = implied(ma);
     if (ih != null && ia != null){ const s = ih + ia; ih /= s; ia /= s; }
-    const eh = ih != null ? ph - ih : null, ea = ia != null ? pa - ia : null;
-    let pick = "", cls = "", edge = null;
-    if (eh != null && eh >= minE && (ea == null || eh >= ea)){ pick = g.home; edge = eh; cls = "over"; }
-    else if (ea != null && ea >= minE){ pick = g.away; edge = ea; cls = "over"; }
-    const best = Math.max(eh ?? -1, ea ?? -1);
+    const evh = hasVal(mh) ? ph * profitU(mh) - pa : null, eva = hasVal(ma) ? pa * profitU(ma) - ph : null;
+    let pick = "", cls = "";
+    if (evh != null && evh >= minE && (eva == null || evh >= eva)){ pick = g.home; cls = "over"; }
+    else if (eva != null && eva >= minE){ pick = g.away; cls = "over"; }
+    const best = Math.max(evh ?? -9, eva ?? -9);
     const strong = Math.max(ph, pa) >= 0.65 ? ' <span class="pill HIGH">65%+</span>' : "";
+    const src = (x, dk) => x == null ? "" : `<div class="muted" style="font-size:11px">${ML[k + x] != null ? "your price" : dk != null ? "DraftKings" : ""}</div>`;
     html += `<tr class="${cls}"><td class="l">${g.away} @ ${g.home}<div class="muted" style="font-size:11px">${g.date}</div></td>
       <td class="l" style="font-size:12.5px">${(G[sa]||{}).name || "?"} / ${(G[sh]||{}).name || "?"}</td>
       <td>${fmt(la,2)}–${fmt(lh,2)}</td>
       <td>${g.away} <b>${pct(pa,0)}</b> · ${g.home} <b>${pct(ph,0)}</b>${strong}</td>
       <td>${toAmerican(pa)} / ${toAmerican(ph)}</td>
-      <td><input type="number" step="5" data-ml="${k}|a" value="${ma ?? ""}" placeholder="+120"></td>
-      <td><input type="number" step="5" data-ml="${k}|h" value="${mh ?? ""}" placeholder="-140"></td>
-      <td>${best > -1 ? (best > 0 ? "+" : "") + (100*best).toFixed(1) + "%" : "–"}</td>
-      <td class="l side">${pick ? pick + " ML" : (best > -1 ? "PASS" : "")}</td></tr>`;
+      <td><input type="number" step="5" data-ml="${k}|a" value="${ma ?? ""}" placeholder="+120">${src(ma == null ? null : "|a", dka)}</td>
+      <td><input type="number" step="5" data-ml="${k}|h" value="${mh ?? ""}" placeholder="-140">${src(mh == null ? null : "|h", dkh)}</td>
+      <td>${ih != null ? `${g.away} ${pct(ia,0)} · ${g.home} ${pct(ih,0)}` : "–"}</td>
+      <td>${best > -9 ? `${g.away} ${eva != null ? (eva > 0 ? "+" : "") + (100*eva).toFixed(1) + "%" : "–"} · ${g.home} ${evh != null ? (evh > 0 ? "+" : "") + (100*evh).toFixed(1) + "%" : "–"}` : "–"}</td>
+      <td class="l side">${pick ? pick + " ML " + amer(pick === g.home ? mh : ma) : (best > -9 ? "PASS" : "")}</td></tr>`;
   }
   $("#winT").innerHTML = html + "</tbody>";
   $("#winT").querySelectorAll("input[data-ml]").forEach(i => i.onchange = () => {
@@ -786,12 +920,13 @@ function sogLineFor(pl, team, date){
   if (pp) return {line: pp.line, src: "PP", url: pp.url};
   return {line: null, src: ""};
 }
+const SOGM = store.get("gm_sogm", {});   // per-line DFS multiplier you set (Pick6 / PrizePicks)
 function renderSOG(){
   const sel = $("#sGame");
   if (sel.options.length === 1) sel.innerHTML += D.slate.map(g => `<option value="${g.date}|${g.id}">${g.date.slice(5)} ${g.away} @ ${g.home}</option>`).join("");
-  const nDK = (D.dk_sog || []).length;
-  $("#sogNote").textContent = `Projection = shots/60 × expected TOI × opponent shots-allowed factor × home/road. P(hit) uses a negative binomial (shots vary more than a simple Poisson). Lines: your entry, then DraftKings (${nDK} this build), then the PrizePicks board pulled live in your browser${PP_SOG.length ? ` (${PP_SOG.length} SOG props)` : ""}. Tiers: 62%+ HIGH, 58%+ MED, 55%+ LOW.`;
-  const gSel = sel.value, pos = $("#sPos").value, minP = +$("#sMinP").value, top = +$("#sTop").value;
+  const nDK = (D.dk_sog || []).length, c = CAL.sog || {};
+  $("#sogNote").innerHTML = `Projection = shots/60 × expected TOI × opponent shots-allowed factor × home/road. P(over) uses a negative binomial (it fits real shot counts better than a Poisson in every season tested). That probability is then <b>calibrated</b> on every graded real line${c.cal ? ` (${c.cal.n} so far)` : ""}, and a side is a play only when it beats the price's break-even by 2%. DraftKings lines carry their real price; PrizePicks and your own lines are priced as DFS legs at the multiplier you set (1x by default, and sub-1x sides never qualify unless you allow them above). Sorted by EV. ${c.tier_cap === "LOW" ? "<b>Tiers are capped at LOW</b>: on graded history HIGH/MED haven't beaten LOW yet." : ""} Lines: your entry, then DraftKings (${nDK} this build), then the PrizePicks board pulled live in your browser${PP_SOG.length ? ` (${PP_SOG.length} SOG props)` : ""}.`;
+  const gSel = sel.value, pos = $("#sPos").value, minEV = +$("#sMinP").value / 100, top = +$("#sTop").value, onlyPlays = $("#sPlays").checked;
   const rows = [];
   for (const g of D.slate){
     if (gSel && gSel !== g.date + "|" + g.id) continue;
@@ -800,29 +935,41 @@ function renderSOG(){
       for (const pl of list){
         if (!matchQ(pl.name, team, opp)) continue;
         const proj = pl.r60 / 60 * pl.toi * (D.sog.opp[opp] ?? 1) * (home ? SP.home : 1 / SP.home);
-        const L = sogLineFor(pl, team, g.date);
-        let po = null, side = "", ph = null, tier = "";
-        if (L.line != null){ po = sogOver(proj, L.line); side = po >= 0.5 ? "OVER" : "UNDER"; ph = Math.max(po, 1 - po);
-          tier = ph >= .62 ? "HIGH" : ph >= .58 ? "MED" : ph >= .55 ? "LOW" : "PASS"; }
-        if (minP && (ph == null || ph < minP)) continue;
-        rows.push({g, team, opp, home, pl, proj, L, po, side, ph, tier});
+        const L = sogLineFor(pl, team, g.date), mk = g.date + "|" + pl.id;
+        let po = null, d = null;
+        if (L.line != null){
+          po = sogOver(proj, L.line);
+          const m = SOGM[mk] || {};
+          d = decide("sog", po, L.src === "DK" ? {over: L.over, under: L.under} : {multOver: m.o ?? 1, multUnder: m.u ?? 1});
+        }
+        if (onlyPlays && !(d && d.play && d.ev >= minEV)) continue;
+        rows.push({g, team, opp, home, pl, proj, L, po, d, mk});
       }
     }
   }
-  rows.sort((a, b) => (b.ph ?? 0) - (a.ph ?? 0) || b.proj - a.proj);
-  $("#sogT").innerHTML = `<thead><tr><th class="l">Player</th><th class="l">Game</th><th>Shots/60</th><th>TOI</th><th>Last 10</th><th>Proj</th><th>Line</th><th>P(over)</th><th class="l">Pick</th><th>P(hit)</th><th class="l">Tier</th></tr></thead><tbody>` +
-    (rows.length ? rows.map(r => `<tr class="${r.tier && r.tier !== "PASS" ? r.side.toLowerCase() : ""}">
+  const key = r => r.d ? (r.d.play ? 10 + r.d.ev : r.d.ev) : -9;
+  rows.sort((a, b) => key(b) - key(a) || b.proj - a.proj);
+  $("#sogT").innerHTML = `<thead><tr><th class="l">Player</th><th class="l">Game</th><th>Shots/60</th><th>TOI</th><th>Last 10</th><th>Proj</th><th>Line · source</th><th>DFS mult (over / under)</th><th class="l">Pick</th><th>P (calibrated)</th><th>Break-even</th><th>EV</th><th class="l">Tier</th></tr></thead><tbody>` +
+    (rows.length ? rows.map(r => { const d = r.d, play = d && d.play && d.ev >= minEV, m = SOGM[r.mk] || {};
+      const lowVal = d && r.L.line >= 3.5 && d.side === "UNDER" && d.kind === "dfs" && (d.mult ?? 1) < 1;
+      return `<tr class="${play ? d.side.toLowerCase() : d ? "dim" : ""}">
       <td class="l">${r.pl.name} <span class="muted">${r.pl.pos}</span>${r.pl.new ? ' <span class="muted">· no NHL history</span>' : ""}</td>
       <td class="l">${r.team} ${r.home ? "vs" : "@"} ${r.opp}</td>
       <td>${fmt(r.pl.r60,1)}</td><td>${fmt(r.pl.toi,1)}</td>
       <td style="font-size:11.5px">${(r.pl.l10||[]).join(" ") || "–"}</td><td><b>${fmt(r.proj,2)}</b></td>
-      <td><input type="number" step="0.5" style="width:64px" data-sl="${r.g.date}|${r.pl.id}" value="${r.L.line ?? ""}" placeholder="line">${r.L.src && r.L.src !== "manual" ? `<div class="muted" style="font-size:11px">${r.L.src}${r.L.over != null ? ` o${r.L.over}/u${r.L.under ?? "–"}` : ""}</div>` : ""}</td>
-      <td>${r.po != null ? pct(r.po,0) : "–"}</td><td class="l side">${r.tier && r.tier !== "PASS" ? r.side : r.tier ? "PASS" : ""}</td>
-      <td>${r.ph != null ? pct(r.ph,0) : "–"}</td><td class="l">${r.tier ? `<span class="pill ${r.tier}">${r.tier}</span>` : ""}</td></tr>`).join("")
-    : `<tr><td colspan="11" class="l muted">No players match.</td></tr>`) + "</tbody>";
+      <td><input type="number" step="0.5" style="width:64px" data-sl="${r.mk}" value="${r.L.line ?? ""}" placeholder="line">${r.L.src && r.L.src !== "manual" ? `<div class="muted" style="font-size:11px">${r.L.src}${hasVal(r.L.over) ? ` o${amer(r.L.over)}/u${amer(r.L.under) || "–"}` : ""}</div>` : ""}</td>
+      <td>${r.L.line != null && r.L.src !== "DK" ? `<select data-mo="${r.mk}">${[1.2,1.1,1,0.9,0.8].map(x => `<option ${(m.o ?? 1) == x ? "selected" : ""}>${x}</option>`).join("")}</select> <select data-mu="${r.mk}">${[1.2,1.1,1,0.9,0.8].map(x => `<option ${(m.u ?? 1) == x ? "selected" : ""}>${x}</option>`).join("")}</select>` : "–"}</td>
+      <td class="l side">${d ? (play ? d.side : "PASS") : ""}${d ? `<div class="muted" style="font-size:11px">${d.side} ${priceTxt(d)}</div>` : ""}${lowVal ? `<div class="bad" style="font-size:11px">3.5+ under below 1x: low value</div>` : ""}</td>
+      <td>${d ? pct(d.p,1) : "–"}</td><td>${d && d.be != null ? pct(d.be,1) : "–"}</td><td class="${d && d.ev > 0 ? "good" : d ? "bad" : ""}">${evTxt(d)}</td>
+      <td class="l">${d ? `<span class="pill ${d.tier}">${d.tier}</span>` : ""}</td></tr>`; }).join("")
+    : `<tr><td colspan="13" class="l muted">No players match.</td></tr>`) + "</tbody>";
   $("#sogT").querySelectorAll("input[data-sl]").forEach(i => i.onchange = () => {
     if (i.value === "") delete SOGL[i.dataset.sl]; else SOGL[i.dataset.sl] = +i.value;
     store.set("gm_sogl", SOGL); renderSOG();
+  });
+  $("#sogT").querySelectorAll("select[data-mo],select[data-mu]").forEach(x => x.onchange = () => {
+    const k = x.dataset.mo || x.dataset.mu; SOGM[k] = SOGM[k] || {}; SOGM[k][x.dataset.mo ? "o" : "u"] = +x.value;
+    store.set("gm_sogm", SOGM); renderSOG();
   });
 }
 function renderSogBacktest(){
@@ -837,10 +984,10 @@ function renderSogBacktest(){
   $("#sogReal").innerHTML = tbl(R.buckets);
   $("#sogProxy").innerHTML = tbl(T.buckets);
 }
-["#sGame","#sPos","#sMinP","#sTop"].forEach(s => $(s).oninput = renderSOG);
+["#sGame","#sPos","#sMinP","#sTop","#sPlays"].forEach(s => $(s).oninput = renderSOG);
 
 $("#ppRefresh").onclick = pullPrizePicksLive;
-renderSlate(); initBuilder(); renderResults(); renderWinners(); renderWinBacktest(); renderSOG(); renderSogBacktest(); renderBacktest(); renderTracker(); renderSlip(); initGoalies(); renderTeams(); renderLogic();
+initDfs(); renderSlate(); initBuilder(); renderResults(); renderWinners(); renderWinBacktest(); renderSOG(); renderSogBacktest(); renderBacktest(); renderTracker(); renderSlip(); initGoalies(); renderTeams(); renderLogic();
 if (D.slate.length) pullPrizePicksLive();
 </script>
 </body>
