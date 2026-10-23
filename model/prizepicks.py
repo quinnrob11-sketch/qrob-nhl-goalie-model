@@ -101,16 +101,35 @@ def match(pp_rows: list[dict], goalies: list[dict]) -> list[dict]:
 
 
 last_error: str | None = None
+status: str = "not tried"      # "ok", "unavailable" (blocked), or "error"
 
 
-def fetch(goalies: list[dict]) -> list[dict]:
-    global last_error
-    last_error = None
-    try:
-        rows = parse(fetch_raw())
-    except Exception as e:
-        last_error = str(e)
-        print(f"  [prizepicks] board unavailable: {e}")
+def fetch(goalies: list[dict], tries: int = 3) -> list[dict]:
+    """Retry transient failures (timeouts, 5xx, 429) with backoff. A 401/403 is PrizePicks refusing
+    requests from cloud servers, which retrying doesn't change, so the source is marked unavailable
+    and the page falls back to the live pull from the user's own browser."""
+    import time
+    import urllib.error
+    global last_error, status
+    last_error, status = None, "error"
+    for i in range(tries):
+        try:
+            rows = parse(fetch_raw())
+            status = "ok"
+            break
+        except urllib.error.HTTPError as e:
+            if e.code in (401, 403):
+                status = "unavailable"
+                last_error = f"HTTP {e.code}: PrizePicks blocks requests from cloud servers; using the live pull in your browser"
+                print(f"  [prizepicks] {last_error}")
+                return []
+            last_error = f"HTTP {e.code}"
+        except Exception as e:  # timeouts, connection resets
+            last_error = str(e)
+        if i < tries - 1:
+            time.sleep(2 * (i + 1))
+    else:
+        print(f"  [prizepicks] board unavailable after {tries} tries: {last_error}")
         return []
     rows = match(rows, goalies)
     print(f"  [prizepicks] {len(rows)} goalie saves lines "

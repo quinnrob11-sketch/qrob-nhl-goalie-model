@@ -1,0 +1,6 @@
+{
+ "nb_k": 30.0,
+ "gs": 0.015,
+ "sd_floor": 6.0,
+ "fit": "nb_k: max likelihood on 2024-25 starts; gs: shots-against MAE on 2024-26; sd_floor: minimum spread"
+}

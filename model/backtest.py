@@ -136,6 +136,30 @@ def monthly(g: pd.DataFrame, min_edge=1.5):
             for m, x in s.groupby("month")]
 
 
+def fit_saves_dist(df: pd.DataFrame) -> dict:
+    """Spread and game-script settings for saves_dist.py, fitted on the train season only.
+    nb_k: max likelihood of actual saves under Normal(proj, sv^2(mu+mu^2/k)+mu sv(1-sv)).
+    gs:   shots-against MAE with exp_SA x exp(-gs x logit(p_win)), p_win from the game-winner model,
+          fitted on every completed season in df (it isn't used by the proxy backtest)."""
+    import math
+    import winners
+    W = json.load(open(os.path.join(OUT, "winners_params.json")))
+    tr = df[df.season.isin([TRAIN, TEST])].copy()
+    g = winners.games(tr)
+    ph, _, _ = winners.predict(g, W["w"], W["home"], W["ot_home"], W.get("x", 0))
+    tr = tr.merge(g.assign(p_home=ph)[["game_id", "home", "p_home"]], on="game_id")
+    tr["lo"] = np.log(np.where(tr.team == tr.home, tr.p_home, 1 - tr.p_home) / np.where(tr.team == tr.home, 1 - tr.p_home, tr.p_home))
+    cdf = np.vectorize(lambda z: 0.5 * math.erfc(-z / math.sqrt(2)))
+    def ll(k):
+        tr_ = tr[tr.season == TRAIN]
+        mu = tr_.exp_sa * tr_.share; sd = np.sqrt(tr_.sv ** 2 * (mu + mu ** 2 / k) + mu * tr_.sv * (1 - tr_.sv))
+        return np.mean(np.log(np.maximum(cdf((tr_.saves + .5 - tr_.proj) / sd) - cdf((tr_.saves - .5 - tr_.proj) / sd), 1e-12)))
+    k = max((15, 20, 30, 45, 70, 100), key=ll)
+    gs = min(np.linspace(-0.05, 0.05, 21), key=lambda x: float((tr.actual_team_sa - tr.exp_sa * np.exp(-x * tr.lo)).abs().mean()))
+    return {"nb_k": float(k), "gs": round(float(gs), 3), "sd_floor": 6.0,
+            "fit": f"nb_k: max likelihood on {TRAIN - 1}-{str(TRAIN)[2:]} starts; gs: shots-against MAE on {TRAIN - 1}-{str(TEST)[2:]}; sd_floor: minimum spread"}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-fit", action="store_true")
@@ -153,6 +177,11 @@ def main():
     print("Params:", p)
 
     df, _ = engine.run(tg, st, p, record_from_season=TRAIN)
+    dpath = os.path.join(OUT, "saves_dist.json")
+    if not (args.no_fit and os.path.exists(dpath)):
+        dist = fit_saves_dist(df)
+        json.dump(dist, open(dpath, "w"), indent=1)
+        print("Saves distribution:", dist)
     train = df[df.season == TRAIN]
     sd = float((train.proj - train.saves).std())
     report = {"params": p.to_dict(), "sd": sd, "line_proxy": "floor(last-10-start avg saves) + 0.5",

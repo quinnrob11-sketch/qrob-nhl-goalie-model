@@ -11,6 +11,7 @@ DraftKings / PrizePicks line the build saw. Started games are frozen.
   * every real line in model/data/real_line_log.csv. Rows logged from screenshots
     get their actual and HIT/MISS filled in, and lines the build pulled from DK or
     PrizePicks are appended automatically.
+Each line is graded at the price and line it had at pick time; units and ROI use that price.
 The summary goes to model/output/tracking.json for the Results tab.
 """
 from __future__ import annotations
@@ -25,15 +26,19 @@ import os
 import pandas as pd
 
 import data
+import pricing
 import prizepicks
+import saves_dist
 import winners
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CALLS = os.path.join(HERE, "data", "calls")
 LOG = os.path.join(HERE, "data", "real_line_log.csv")
+PRICES = os.path.join(HERE, "data", "dk_prices.csv")
 OUT = os.path.join(HERE, "output", "tracking.json")
-FIELDS = ["date", "market", "player", "team", "opp", "book", "line", "mult", "side", "model_proj",
-          "model_p", "tier", "actual", "result", "note"]
+FIELDS = ["date", "market", "player", "team", "opp", "book", "line", "mult", "price", "side", "model_proj",
+          "model_p", "p_cal", "ev", "tier", "actual", "result", "note"]
+DFS_BOOKS = ("Pick6", "PrizePicks")
 
 
 # ---------- model, mirroring template.html ----------
@@ -70,7 +75,25 @@ def project_saves(payload, gid, team, opp, home, b2b, playoff, opp_b2b=False):
 
 
 def p_over_saves(proj, line, sd):
-    return 0.5 * math.erfc((line - proj) / sd / math.sqrt(2))
+    return saves_dist.p_over(proj, sd, line)
+
+
+def _ml(payload, date, team):
+    """No-vig DraftKings win probability for `team` on `date`, and its American price."""
+    for r in payload.get("ml") or []:
+        if r.get("date") == date and team in (r.get("home"), r.get("away")) and r.get("home_ml") and r.get("away_ml"):
+            ph, pa = saves_dist.devig(r["home_ml"], r["away_ml"])
+            return (ph, r["home_ml"]) if team == r["home"] else (pa, r["away_ml"])
+    return None, None
+
+
+def _dk_prices(rows, date, team, name, line):
+    key = prizepicks.name_key(name)
+    for r in rows or []:
+        if r.get("date") == date and team in (r.get("teams") or [r.get("team")]) and \
+                prizepicks.name_key(r["name"]) == key and float(r["line"]) == float(line):
+            return r.get("over"), r.get("under")
+    return None, None
 
 
 def saves_tier(edge):
@@ -101,6 +124,8 @@ def sog_p_over(mean, line, size):
 def calls_for_game(payload, g):
     date, playoff = g["date"], g.get("type") == "P"
     W, lgg = payload["win"]["params"], payload["win"]["lg_goals"]
+    dist = payload.get("dist") or saves_dist.DEFAULTS
+    calib = (payload.get("calib") or {}).get("markets", {})
     out = {"id": g["id"], "date": date, "start": g.get("start"), "home": g["home"], "away": g["away"],
            "saves": [], "sog": []}
     side = {}
@@ -108,30 +133,55 @@ def calls_for_game(payload, g):
         gid, src, line = starter(payload, team, date)
         b2b = _b2b(payload, team, date)
         sa, sv, proj = project_saves(payload, gid, team, opp, home, b2b, playoff, _b2b(payload, opp, date))
-        side[team] = (sa, sv)
-        gname = next((x["name"] for x in payload["goalies"] if x["id"] == gid), str(gid))
-        out["saves"].append({"team": team, "opp": opp, "goalie_id": gid, "goalie": gname, "src": src,
-                             "b2b": b2b, "exp_sa": round(sa, 2), "proj": round(proj, 2), "line": line,
-                             "book": {"dk": "DraftKings", "pp": "PrizePicks"}.get(src)})
-        players = payload["sog"]["players"].get(team, [])
-        sp = payload["sog"]["params"]
-        for pl in players:
-            mean = pl["r60"] / 60 * pl["toi"] * payload["sog"]["opp"].get(opp, 1) * (sp["home"] if home else 1 / sp["home"])
-            key = prizepicks.name_key(pl["name"])
-            dk = next((r for r in payload.get("dk_sog") or [] if r["date"] == date and team in r["teams"]
-                       and prizepicks.name_key(r["name"]) == key), None)
-            out["sog"].append({"id": pl["id"], "name": pl["name"], "team": team, "opp": opp,
-                               "proj": round(mean, 3), "toi": pl["toi"],
-                               "line": dk["line"] if dk else None, "book": "DraftKings" if dk else None})
+        side[team] = dict(sa=sa, sv=sv, gid=gid, src=src, line=line, b2b=b2b, opp=opp, home=home)
+    # win probability: DraftKings moneyline (no-vig) when posted, otherwise the game-winner model
     th, ta = payload["teams"].get(g["home"], {}), payload["teams"].get(g["away"], {})
-    (sa_h, sv_h), (sa_a, sv_a) = side[g["home"]], side[g["away"]]
-    shot_h, shot_a = sa_a * (1 - sv_a), sa_h * (1 - sv_h)
-    r = lambda f, a: lgg * ((f if f is not None else lgg) / lgg) * ((a if a is not None else lgg) / lgg)
+    h, a = side[g["home"]], side[g["away"]]
+    shot_h, shot_a = a["sa"] * (1 - a["sv"]), h["sa"] * (1 - h["sv"])
+    r = lambda f, a_: lgg * ((f if f is not None else lgg) / lgg) * ((a_ if a_ is not None else lgg) / lgg)
     rate_h = (1 - W["x"]) * r(th.get("gf"), ta.get("ga")) + W["x"] * r(th.get("xgf"), ta.get("xga"))
     rate_a = (1 - W["x"]) * r(ta.get("gf"), th.get("ga")) + W["x"] * r(ta.get("xgf"), th.get("xga"))
     lh = (W["w"] * shot_h + (1 - W["w"]) * rate_h) * W["home"]
     la = (W["w"] * shot_a + (1 - W["w"]) * rate_a) / W["home"]
     out["p_home"] = round(winners.win_prob(lh, la, W["ot_home"]), 4)
+    mkt_home, ml_home = _ml(payload, date, g["home"])
+    _, ml_away = _ml(payload, date, g["away"])
+    out["ml_home"], out["ml_away"] = ml_home, ml_away
+    out["p_home_mkt"] = round(mkt_home, 4) if mkt_home is not None else None
+    p_home = mkt_home if mkt_home is not None else out["p_home"]
+    for team in (g["away"], g["home"]):
+        x = side[team]
+        g_ = next((q for q in payload["goalies"] if q["id"] == x["gid"]), None) or {"sv": .9, "share": payload["lg_share"], "name": str(x["gid"])}
+        p_win = p_home if team == g["home"] else 1 - p_home
+        pr = saves_dist.project(x["sa"], g_["share"], g_["sv"], p_win, dist)
+        row = {"team": team, "opp": x["opp"], "goalie_id": x["gid"], "goalie": g_.get("name", str(x["gid"])), "src": x["src"],
+               "confirmed": x["src"] in ("dk", "pp", "manual"), "b2b": x["b2b"], "p_win": round(p_win, 4),
+               "exp_sa": round(pr["exp_sa"], 2), "proj": round(pr["proj"], 2), "sd": round(pr["sd"], 2),
+               "line": x["line"], "book": {"dk": "DraftKings", "pp": "PrizePicks"}.get(x["src"])}
+        if x["line"] is not None:
+            po = saves_dist.p_over(pr["proj"], pr["sd"], x["line"])
+            over, under = _dk_prices(payload.get("dk"), date, team, row["goalie"], x["line"]) if x["src"] == "dk" else (None, None)
+            dfs = {"mult_over": 1, "mult_under": 1} if x["src"] == "pp" else {}
+            d = pricing.decide(po, calib.get("saves", {}).get("cal"), over, under, cap=calib.get("saves", {}).get("tier_cap"), **dfs)
+            if not row["confirmed"]:
+                d.update(play=False, tier="PASS")
+            row.update(p_over=round(po, 4), over=over, under=under, **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in d.items()})
+        out["saves"].append(row)
+        players = payload["sog"]["players"].get(team, [])
+        sp = payload["sog"]["params"]
+        for pl in players:
+            mean = pl["r60"] / 60 * pl["toi"] * payload["sog"]["opp"].get(x["opp"], 1) * (sp["home"] if x["home"] else 1 / sp["home"])
+            key = prizepicks.name_key(pl["name"])
+            dk = next((q for q in payload.get("dk_sog") or [] if q["date"] == date and team in q["teams"]
+                       and prizepicks.name_key(q["name"]) == key), None)
+            srow = {"id": pl["id"], "name": pl["name"], "team": team, "opp": x["opp"], "proj": round(mean, 3), "toi": pl["toi"],
+                    "line": dk["line"] if dk else None, "book": "DraftKings" if dk else None}
+            if dk:
+                po = sog_p_over(mean, dk["line"], sp["disp"])
+                d = pricing.decide(po, calib.get("sog", {}).get("cal"), dk.get("over"), dk.get("under"), cap=calib.get("sog", {}).get("tier_cap"))
+                srow.update(p_over=round(po, 4), over=dk.get("over"), under=dk.get("under"),
+                            **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in d.items()})
+            out["sog"].append(srow)
     return out
 
 
@@ -199,6 +249,25 @@ def _result(side, actual, line):
     return "HIT" if (over == (side.upper() in ("OVER", "MORE"))) else "MISS"
 
 
+def _auto_row(date, market, name, c, sd, disp):
+    """A logged line from a frozen call. New calls carry the price-aware decision made at pick time;
+    older snapshots (before price-aware picks) fall back to the original rule."""
+    base = {"date": date, "market": market, "player": name, "team": c["team"], "opp": c["opp"], "book": c["book"],
+            "line": c["line"], "mult": 1, "model_proj": round(c["proj"], 2), "note": "auto"}
+    if c.get("side"):
+        price = c.get("over") if c["side"] == "OVER" else c.get("under")
+        po = c.get("p_over")
+        return {**base, "side": c["side"], "price": price if price is not None else "",
+                "model_p": round(po if c["side"] == "OVER" else 1 - po, 4), "p_cal": c.get("p"),
+                "ev": c.get("ev"), "tier": c.get("tier") or "PASS"}
+    if market == "saves":
+        edge = c["proj"] - c["line"]
+        po = 0.5 * math.erfc((c["line"] - c["proj"]) / sd / math.sqrt(2))
+        return {**base, "side": "OVER" if edge > 0 else "UNDER", "model_p": round(max(po, 1 - po), 2), "tier": saves_tier(edge)}
+    po = sog_p_over(c["proj"], c["line"], disp)
+    return {**base, "side": "OVER" if po >= .5 else "UNDER", "model_p": round(max(po, 1 - po), 2), "tier": sog_tier(max(po, 1 - po))}
+
+
 def grade(years, today: dt.date | None = None):
     today = today or dt.datetime.now(dt.timezone.utc).date()
     gb, sb, tb = _box(years)
@@ -218,9 +287,10 @@ def grade(years, today: dt.date | None = None):
             goals = dict(zip(gt.team_abbrev, gt.goals))
             shots_for = dict(zip(gt.team_abbrev, gt.shots_on_goal))
             ot = gg.toi.map(_minutes).max() > 60.5
-            # winner
+            # winner (model pick; graded in units at the DraftKings moneyline when one was posted)
             ph = c["p_home"]
             pick, pp = (c["home"], ph) if ph >= .5 else (c["away"], 1 - ph)
+            ml = c.get("ml_home") if pick == c["home"] else c.get("ml_away")
             won = c["home"] if goals[c["home"]] > goals[c["away"]] else c["away"]
             score = f"{c['away']} {goals[c['away']]}-{goals[c['home']]} {c['home']}{' OT/SO' if ot else ''}"
             model_rows.append({"date": c["date"], "market": "winner", "pick": pick, "p": pp,
@@ -230,8 +300,9 @@ def grade(years, today: dt.date | None = None):
                 log.append({"date": c["date"], "market": "winner", "player": pick, "team": pick,
                             "opp": c["home"] if pick == c["away"] else c["away"], "side": pick,
                             "model_p": round(pp, 2), "tier": "65%+" if pp >= .65 else "",
-                            "book": "model", "actual": score, "result": "HIT" if pick == won else "MISS",
-                            "note": ""})
+                            "book": "model", "price": ml if ml is not None else "",
+                            "ev": round(pricing.profit(ml) * pp - (1 - pp), 4) if ml is not None else "",
+                            "actual": score, "result": "HIT" if pick == won else "MISS", "note": ""})
                 have.add(key)
             # saves
             for s in c["saves"]:
@@ -257,12 +328,7 @@ def grade(years, today: dt.date | None = None):
                 if s.get("line") is not None and right:
                     k = (c["date"], "saves", s["goalie"], s["team"], s["book"])
                     if k not in have:
-                        edge = s["proj"] - s["line"]
-                        po = p_over_saves(s["proj"], s["line"], sd)
-                        log.append({"date": c["date"], "market": "saves", "player": s["goalie"], "team": s["team"],
-                                    "opp": s["opp"], "book": s["book"], "line": s["line"], "mult": 1,
-                                    "side": "OVER" if edge > 0 else "UNDER", "model_proj": round(s["proj"], 1),
-                                    "model_p": round(max(po, 1 - po), 2), "tier": saves_tier(edge), "note": "auto"})
+                        log.append(_auto_row(c["date"], "saves", s["goalie"], s, sd, None))
                         have.add(k)
             # SOG
             for p in c["sog"]:
@@ -281,14 +347,21 @@ def grade(years, today: dt.date | None = None):
                 if p.get("line") is not None:
                     k = (c["date"], "sog", p["name"], p["team"], p["book"])
                     if k not in have:
-                        po = sog_p_over(p["proj"], p["line"], disp)
-                        log.append({"date": c["date"], "market": "sog", "player": p["name"], "team": p["team"],
-                                    "opp": p["opp"], "book": p["book"], "line": p["line"], "mult": 1,
-                                    "side": "OVER" if po >= .5 else "UNDER", "model_proj": round(p["proj"], 2),
-                                    "model_p": round(max(po, 1 - po), 2), "tier": sog_tier(max(po, 1 - po)),
-                                    "note": "auto"})
+                        log.append(_auto_row(c["date"], "sog", p["name"], p, None, disp))
                         have.add(k)
 
+    # DraftKings rows logged without a price (calls frozen before prices were stored): take the
+    # last pre-game price for that exact line from the price history
+    if os.path.exists(PRICES):
+        pr = {}
+        with open(PRICES, newline="") as f:
+            for q in csv.DictReader(f):
+                pr[(q["market"], q["date"], prizepicks.name_key(q["name"]), float(q["line"]))] = q
+        for r in log:
+            if r.get("book") == "DraftKings" and r["market"] in ("saves", "sog") and r.get("price") in (None, "") and r.get("line"):
+                q = pr.get((r["market"], r["date"], prizepicks.name_key(r["player"]), float(r["line"])))
+                if q:
+                    r["price"] = q["over"] if r["side"].upper() in ("OVER", "MORE") else q["under"]
     # fill actuals for any logged line still waiting on a result
     for r in log:
         if r.get("result") or r["market"] not in ("saves", "sog"):
@@ -316,11 +389,22 @@ def grade(years, today: dt.date | None = None):
 
 
 # ---------- summary ----------
+def _units(r):
+    """Profit in units at the pick-time price; None when the row has no sportsbook price (DFS legs)."""
+    if r.get("result") not in ("HIT", "MISS", "PUSH") or r.get("book") in DFS_BOOKS or r.get("price") in (None, ""):
+        return None
+    if r["result"] == "PUSH":
+        return 0.0
+    return pricing.profit(r["price"]) if r["result"] == "HIT" else -1.0
+
+
 def _rec(rows):
     h = sum(r["result"] == "HIT" for r in rows)
     m = sum(r["result"] == "MISS" for r in rows)
+    u = [x for x in (_units(r) for r in rows) if x is not None]
     return {"hit": h, "miss": m, "push": sum(r["result"] == "PUSH" for r in rows),
-            "pct": round(h / (h + m), 4) if h + m else None}
+            "pct": round(h / (h + m), 4) if h + m else None,
+            "priced": len(u), "units": round(sum(u), 2), "roi": round(sum(u) / len(u), 4) if u else None}
 
 
 def _tier(r):
@@ -332,39 +416,58 @@ def _tier(r):
     return r.get("tier") or ""
 
 
-BOOK_PREF = {"Pick6": 0, "Players": 1, "PrizePicks": 1, "user quote": 2, "DraftKings": 3}
+def is_play(r):
+    """Price-aware rows (logged with EV) are plays when their tier isn't PASS. Older rows keep the rule
+    they were picked under: saves at 1.5+ edge, SOG at 55%+, never a sub-1x side."""
+    if str(r.get("mult") or "1") in ("0.8", "0.9"):
+        return False
+    if r.get("ev") not in (None, ""):
+        return _tier(r) not in ("PASS", "")
+    if r["market"] == "saves":
+        return _tier(r) in ("MED", "HIGH")
+    return r["market"] == "sog" and _tier(r) not in ("PASS", "")
+
+
+BOOK_PREF = {"Pick6": 0, "PrizePicks": 1, "user quote": 2, "DraftKings": 3}
 
 
 def summarize(log, model_rows):
     every = [r for r in log if r.get("result") in ("HIT", "MISS", "PUSH")]
-    # the same prop can be logged from more than one book: count it once, preferring the
-    # book you actually play (Pick6, then PrizePicks), and keep a per-book split separately
+    # the same prop can be logged from more than one book: count it once, preferring the book you
+    # actually play (Pick6, then PrizePicks). Every split below uses this same de-duplicated set, so
+    # tiers, sides, books and nights all add up to the market totals.
     best = {}
     for r in every:
         k = (r["date"], r["market"], r["player"], r["team"])
         if k not in best or BOOK_PREF.get(r.get("book"), 9) < BOOK_PREF.get(best[k].get("book"), 9):
             best[k] = r
     graded = list(best.values())
-    # a "play" under the current rules: saves at 1.5+ edge (MED/HIGH), SOG at 55%+, never a sub-1x side
-    plays = [r for r in graded if (_tier(r) in ("MED", "HIGH") if r["market"] == "saves"
-                                   else r["market"] == "sog" and _tier(r) not in ("PASS", ""))
-             and str(r.get("mult") or "1") not in ("0.8", "0.9")]
+    plays = [r for r in graded if is_play(r)]
     out = {"updated": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-           "plays": _rec(plays), "markets": {}, "days": [], "misses": [], "model": {}}
+           "plays": _rec(plays), "markets": {}, "days": [], "misses": [], "model": {}, "dfs": {}}
     for mk in ("saves", "sog", "winner"):
         rows = [r for r in graded if r["market"] == mk]
         if mk == "winner":
-            by = {"All picks": rows, "65%+ calls": [r for r in rows if r.get("tier") == "65%+"],
+            by = {"65%+ calls": [r for r in rows if r.get("tier") == "65%+"],
                   "Under 65%": [r for r in rows if r.get("tier") != "65%+"]}
         else:
             by = {t: [r for r in rows if _tier(r) == t] for t in ("HIGH", "MED", "LOW", "PASS")}
-            by["OVER / MORE"] = [r for r in rows if r["side"].upper() in ("OVER", "MORE") and _tier(r) != "PASS"]
-            by["UNDER / LESS"] = [r for r in rows if r["side"].upper() in ("UNDER", "LESS") and _tier(r) != "PASS"]
-        books = sorted({r.get("book") or "" for r in every if r["market"] == mk} - {"", "model"})
-        out["markets"][mk] = {"all": _rec(rows), "by": {k: _rec(v) for k, v in by.items()},
-                              "books": {b: _rec([r for r in every if r["market"] == mk and r.get("book") == b
-                                                 and _tier(r) not in ("PASS", "")]) for b in books}}
-        out["markets"][mk]["books"] = {b: v for b, v in out["markets"][mk]["books"].items() if v["hit"] + v["miss"]}
+        sides = {"OVER / MORE": [r for r in rows if r["side"].upper() in ("OVER", "MORE")],
+                 "UNDER / LESS": [r for r in rows if r["side"].upper() in ("UNDER", "LESS")]} if mk != "winner" else {}
+        books = sorted({r.get("book") or "" for r in rows})
+        out["markets"][mk] = {"all": _rec(rows), "plays": _rec([r for r in rows if is_play(r)]),
+                              "by": {k: _rec(v) for k, v in by.items()},
+                              "sides": {k: _rec(v) for k, v in sides.items()},
+                              "plays_by_side": {k: _rec([r for r in v if is_play(r)]) for k, v in sides.items()},
+                              "books": {b or "unknown": _rec([r for r in rows if (r.get("book") or "") == b]) for b in books}}
+    # DFS market-basis record: graded at the board's line and multiplier, against the per-leg break-even
+    for b in DFS_BOOKS:
+        rows = [r for r in graded if r.get("book") == b and r["market"] in ("saves", "sog")]
+        if rows:
+            be = [pricing.dfs_break_even(float(r.get("mult") or 1)) for r in rows]
+            rec = _rec(rows)
+            out["dfs"][b] = {**rec, "avg_be": round(sum(be) / len(be), 4),
+                             "plays": _rec([r for r in rows if is_play(r)])}
     for d in sorted({r["date"] for r in graded}, reverse=True):
         rows = [r for r in graded if r["date"] == d]
         out["days"].append({"date": d, "plays": _rec([r for r in plays if r["date"] == d]),
