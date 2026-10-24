@@ -109,6 +109,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 </nav>
 <main>
 <section id="proj" class="on">
+  <div id="staleNote"></div>
   <div id="preNote"></div>
   <div class="card">
     <h2>Slate</h2>
@@ -399,7 +400,19 @@ for (const r of (D.ml || [])){
 }
 
 // ---------- header / tabs ----------
-$("#meta").textContent = `${D.season} season · data through ${D.data_through} · built ${D.built}`;
+// times on the page are Central
+const ctFmt = (d, o) => d.toLocaleString("en-US", Object.assign({timeZone: "America/Chicago"}, o));
+const ctTime = iso => { if (!iso) return ""; const d = new Date(iso); return isNaN(d) ? "" : ctFmt(d, {month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit"}) + " CT"; };
+const ctStart = g => g && g.start ? ctFmt(new Date(g.start), {hour: "numeric", minute: "2-digit"}) + " CT" : "";
+const builtAt = new Date(String(D.built).replace(" UTC", "Z").replace(" ", "T"));
+const builtCT = isNaN(builtAt) ? D.built : ctFmt(builtAt, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}) + " CT";
+$("#meta").textContent = `${D.season} season · data through ${D.data_through} games · built ${builtCT}`;
+{ // stale build on a game day
+  const todayCT = new Intl.DateTimeFormat("en-CA", {timeZone: "America/Chicago"}).format(new Date());
+  const ageH = (Date.now() - builtAt) / 36e5;
+  if (!isNaN(ageH) && ageH > 6 && (D.slate || []).some(g => g.date === todayCT))
+    $("#staleNote").innerHTML = `<div class="alarm"><b class="hd">⚠ Stale build.</b> This page was built ${ageH.toFixed(1)} hours ago (${builtCT}) and there are games today. Lines, starters and prices may have moved, so wait for the next build (or run the workflow) before betting.</div>`;
+}
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
   document.querySelectorAll("main section").forEach(s => s.classList.toggle("on", s.id === b.dataset.t));
@@ -506,7 +519,6 @@ for (const r of (D.dk || [])) if (r.date && r.team) DK[r.date + "|" + r.team] = 
 // DailyFaceoff starting-goalie confirmations (pulled by the build)
 const DF = {};
 for (const r of (D.starters || [])) if (r.date && r.team && r.goalie_id != null) DF[r.date + "|" + r.team] = r;
-const ctTime = iso => { if (!iso) return ""; const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("en-US", {timeZone: "America/Chicago", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit"}) + " CT"; };
 function starterFor(team, date){
   const k = date + "|" + team;
   if (STARTER[k]) return {gid: +STARTER[k], src: "manual"};
@@ -588,7 +600,7 @@ function renderSlate(){
     pill(nDK ? `DraftKings: ${nDK} goalies` : "DraftKings: none yet", nDK > 0),
     pill(D.starters_status === "ok" ? `DailyFaceoff: ${nDF} confirmed` : `DailyFaceoff: ${D.starters_status ? String(D.starters_status).split(":")[0] : "not pulled"}`, D.starters_status === "ok"),
     pill(`Your board: ${(BOARD.rows || []).length} props`, (BOARD.rows || []).length > 0)].join(" ");
-  $("#ppNote").textContent = `As of ${D.built}. ${dkMsg} ${ppMsg} Starter order: your pick, a DailyFaceoff confirmation, a DraftKings line, a PrizePicks prop, a saves prop on your pasted board, then the roster default (unconfirmed). A posted line isn't an official confirmation, so check warmups on close calls; unconfirmed starters (roster default) are never plays until you pick the goalie. Projected saves = shots against (team defense × opponent offense, home/road, back-to-backs, game script from the win probability) × time in net × save%, with a spread that grows with the workload. A side is a play only when its calibrated probability beats the price's break-even by 2%; rows are sorted by EV.`;
+  $("#ppNote").textContent = `As of ${builtCT}. ${dkMsg} ${ppMsg} Starter order: your pick, a DailyFaceoff confirmation, a DraftKings line, a PrizePicks prop, a saves prop on your pasted board, then the roster default (unconfirmed). A posted line isn't an official confirmation, so check warmups on close calls; unconfirmed starters (roster default) are never plays until you pick the goalie. Projected saves = shots against (team defense × opponent offense, home/road, back-to-backs, game script from the win probability) × time in net × save%, with a spread that grows with the workload. A side is a play only when its calibrated probability, blended with the no-vig price when DraftKings posts both sides, beats the price's break-even by 2%; rows are sorted by EV.`;
   const dates = [...new Set(D.slate.map(g => g.date))];
   const dSel = $("#dateF");
   if (!dSel.options.length){ dSel.innerHTML = `<option value="">All</option>` + dates.map(d => `<option>${d}</option>`).join(""); }
@@ -608,7 +620,7 @@ function renderSlate(){
     if (onlyPlays && !play) continue;
     shown++;
     const cls = play ? d.side.toLowerCase() : d ? "dim" : "";
-    html += `<tr class="${cls}"><td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp}<div class="muted" style="font-size:11px">${r.g.date}${r.b2b?" · B2B":""}${r.oppB2b?" · opp B2B":""}${r.g.type==="P"?" · Playoffs":""} · win ${pct(r.pWin,0)} (${r.pWinSrc})</div></td>
+    html += `<tr class="${cls}"><td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp}<div class="muted" style="font-size:11px">${r.g.date}${ctStart(r.g) ? " · " + ctStart(r.g) : ""}${r.b2b?" · B2B":""}${r.oppB2b?" · opp B2B":""}${r.g.type==="P"?" · Playoffs":""} · win ${pct(r.pWin,0)} (${r.pWinSrc})</div></td>
       <td class="l"><select data-st="${r.g.date}|${r.team}">${goalieOptions(r.team, r.gid)}</select>
         <div style="font-size:11px">${r.src==="df"?`<span class="good">✓ confirmed · DailyFaceoff${ctTime(r.df.at) ? " · " + ctTime(r.df.at) : ""}</span>`:r.src==="dk"?'<span class="good">✓ DraftKings line posted</span>':r.src==="pp"?'<span class="good">✓ on PrizePicks board</span>':r.src==="board"?`<span class="good">✓ on your ${r.bd ? r.bd.book : "DFS"} board</span>`:r.src==="manual"?'<span class="good">✓ confirmed by you</span>':'<span class="bad">unconfirmed · excluded from plays</span> <span class="muted">('+(r.src.startsWith("df-")?`DailyFaceoff: ${r.df.status}${ctTime(r.df.at) ? " · " + ctTime(r.df.at) : ""}`:r.src==="b2b"?"back-to-back backup":D.rosters_ok?"roster #1":"depth chart")+'; pick the goalie to confirm)</span>'}${r.src!=="df"&&r.src!=="manual"&&!r.src.startsWith("df-")&&r.df?` <span class="muted">· DailyFaceoff: ${r.df.status}</span>`:""}${(G[r.gid]||{}).new?' <span class="muted">· no NHL history</span>':""}</div></td>
       <td>${fmt(r.sa)}</td><td>${fmt(r.sv,3)}</td><td><b>${fmt(r.proj)}</b> <span class="muted" style="font-size:11px">±${fmt(r.sd)}</span></td>
@@ -970,7 +982,7 @@ function renderWinners(){
     const best = Math.max(evh ?? -9, eva ?? -9);
     const strong = Math.max(ph, pa) >= 0.65 ? ' <span class="pill HIGH">65%+</span>' : "";
     const src = (x, dk) => x == null ? "" : `<div class="muted" style="font-size:11px">${ML[k + x] != null ? "your price" : dk != null ? "DraftKings" : ""}</div>`;
-    html += `<tr class="${cls}"><td class="l">${g.away} @ ${g.home}<div class="muted" style="font-size:11px">${g.date}</div></td>
+    html += `<tr class="${cls}"><td class="l">${g.away} @ ${g.home}<div class="muted" style="font-size:11px">${g.date}${ctStart(g) ? " · " + ctStart(g) : ""}</div></td>
       <td class="l" style="font-size:12.5px">${(G[sa]||{}).name || "?"} / ${(G[sh]||{}).name || "?"}</td>
       <td>${fmt(la,2)}–${fmt(lh,2)}</td>
       <td>${g.away} <b>${pct(pa,0)}</b> · ${g.home} <b>${pct(ph,0)}</b>${strong}</td>
@@ -1047,7 +1059,7 @@ function sogAlarm(){
 }
 function renderSOG(){
   const sel = $("#sGame");
-  if (sel.options.length === 1) sel.innerHTML += D.slate.map(g => `<option value="${g.date}|${g.id}">${g.date.slice(5)} ${g.away} @ ${g.home}</option>`).join("");
+  if (sel.options.length === 1) sel.innerHTML += D.slate.map(g => `<option value="${g.date}|${g.id}">${g.date.slice(5)} ${ctStart(g)} ${g.away} @ ${g.home}</option>`).join("");
   const nDK = (D.dk_sog || []).length, c = CAL.sog || {};
   $("#sogNote").innerHTML = `Projection = shots/60 × expected TOI × opponent shots-allowed factor × home/road. P(over) uses a negative binomial (it fits real shot counts better than a Poisson in every season tested). That probability is then <b>calibrated</b> on every graded real line${c.cal ? ` (${c.cal.n} so far)` : ""}, and a side is a play only when it beats the price's break-even by ${pct(RULE.margin_sog, 0)}. The projection must also sit at least ${RULE.sog_gap} shots past the line in the play direction (under only if projection ≤ line − ${RULE.sog_gap}) unless EV is ${pct(RULE.sog_gap_ev, 0)}+, because on a 1.5 or 2.5 line a count model already leans under when the projection equals the line. DraftKings lines carry their real price; PrizePicks and your own lines are priced as DFS legs at the multiplier you set (1x by default, and sub-1x sides never qualify unless you allow them above). Sorted by EV. ${c.tier_cap === "LOW" ? "<b>Tiers are capped at LOW</b>: on graded history HIGH/MED haven't beaten LOW yet." : ""} Lines: your entry, then DraftKings (${nDK} this build), then the PrizePicks board pulled live in your browser${PP_SOG.length ? ` (${PP_SOG.length} SOG props)` : ""}.`;
   const gSel = sel.value, pos = $("#sPos").value, minEV = +$("#sMinP").value / 100, top = +$("#sTop").value, onlyPlays = $("#sPlays").checked;
@@ -1073,7 +1085,7 @@ function renderSOG(){
       const lowVal = d && r.L.line >= 3.5 && d.side === "UNDER" && d.kind === "dfs" && (d.mult ?? 1) < 1;
       return `<tr class="${play ? d.side.toLowerCase() : d ? "dim" : ""}">
       <td class="l">${r.pl.name} <span class="muted">${r.pl.pos}</span>${r.pl.new ? ' <span class="muted">· no NHL history</span>' : ""}</td>
-      <td class="l">${r.team} ${r.home ? "vs" : "@"} ${r.opp}</td>
+      <td class="l">${r.team} ${r.home ? "vs" : "@"} ${r.opp}<div class="muted" style="font-size:11px">${ctStart(r.g)}</div></td>
       <td>${fmt(r.pl.r60,1)}</td><td>${fmt(r.pl.toi,1)}</td>
       <td style="font-size:11.5px">${(r.pl.l10||[]).join(" ") || "–"}</td><td><b>${fmt(r.proj,2)}</b></td>
       <td><input type="number" step="0.5" style="width:64px" data-sl="${r.mk}" value="${r.L.line ?? ""}" placeholder="line">${r.L.src && r.L.src !== "manual" ? `<div class="muted" style="font-size:11px">${r.L.src}${hasVal(r.L.over) ? ` o${amer(r.L.over)}/u${amer(r.L.under) || "–"}` : ""}</div>` : ""}</td>

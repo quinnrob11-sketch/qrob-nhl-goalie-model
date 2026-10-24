@@ -33,6 +33,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 OUT = os.path.join(HERE, "output")
 SCHEDULE_API = "https://api-web.nhle.com/v1/schedule/{d}"
+DEFUNCT = {"ARI"}                 # franchises no longer in the league (Arizona -> Utah)
 ROSTER_API = "https://api-web.nhle.com/v1/roster/{team}/current"
 
 
@@ -64,6 +65,21 @@ def fetch_slate(today: dt.date):
                 "state": g.get("gameState"),
             })
     return games
+
+
+def latest_final(today: dt.date) -> str | None:
+    """Date of the most recent finished NHL game (schedule API), for the data-freshness check."""
+    try:
+        req = urllib.request.Request(SCHEDULE_API.format(d=(today - dt.timedelta(days=3)).isoformat()),
+                                     headers={"User-Agent": "qrob-goalie-model"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            js = json.load(r)
+    except Exception as e:
+        print(f"  [freshness] schedule unavailable: {e}")
+        return None
+    done = [day.get("date") for day in js.get("gameWeek", []) for g in day.get("games", [])
+            if g.get("gameType") in (2, 3) and g.get("gameState") in ("OFF", "FINAL")]
+    return max(done) if done else None
 
 
 def goal_rates(st: engine.State, team):
@@ -120,7 +136,7 @@ def team_table(tg: pd.DataFrame, st: engine.State, season: int):
         }
     # early in a season, teams that haven't played yet still need ratings
     # (limited to last season's teams so relocated franchises like ARI drop out)
-    active = set(tg[tg.season >= season - 1].team_abbrev)
+    active = set(tg[tg.season >= season - 1].team_abbrev) - DEFUNCT
     for team in active - set(out):
         out[team] = {"gp": 0, "rate_off": round(st.team_rate(st.off, team), 3),
                      "rate_def": round(st.team_rate(st.dfn, team), 3), **goal_rates(st, team)}
@@ -145,7 +161,7 @@ def goalie_table(starts: pd.DataFrame, st: engine.State, season: int):
     res = []
     for gid, name in st.g_name.items():
         hist = list(st.g_hist.get(gid, []))
-        row = {"id": gid, "name": name, "team": st.g_team.get(gid),
+        row = {"id": gid, "name": name, "team": None if st.g_team.get(gid) in DEFUNCT else st.g_team.get(gid),
                "sv": round(st.goalie_sv(gid), 4), "share": round(st.goalie_share(gid), 4),
                "l10": round(float(np.mean(hist)), 2) if hist else None,
                "last10": hist}
@@ -303,7 +319,7 @@ def main():
 
     goalies = goalie_table(st_df, state, display_season)
     slate = fetch_slate(today)
-    teams = {g[k] for g in slate for k in ("home", "away")} or set(state.off)
+    teams = ({g[k] for g in slate for k in ("home", "away")} or set(state.off)) - DEFUNCT
     rosters = fetch_rosters(teams)
     lg_share = round(state.lg_share.s / state.lg_share.w, 4)
     # Current rosters fix offseason moves; goalies with no NHL starts get a
@@ -338,6 +354,7 @@ def main():
         "display_season": f"{display_season - 1}-{str(display_season)[2:]}",
         "preseason": bool(latest < cur),
         "data_through": str(tg.game_date.max()),
+        "latest_final": latest_final(today),
         "params": p.to_dict(),
         "league": round(state.league(), 3),
         "lg_share": lg_share,
@@ -350,7 +367,7 @@ def main():
         "starters": starter_rows,
         "starters_status": starters.status,
         "sog": {"params": sp.to_dict(), "players": sog_export(teams, sst, sp, skater_df),
-                "opp": {t: round(sst.opp_factor(t), 4) for t in sst.team_sa},
+                "opp": {t: round(sst.opp_factor(t), 4) for t in sst.team_sa if t not in DEFUNCT},
                 "backtest": json.load(open(os.path.join(OUT, "sog_backtest.json")))},
         "win": {"params": json.load(open(os.path.join(OUT, "winners_params.json"))),
                 "lg_goals": round(state.lg_goals.s / state.lg_goals.w, 4),

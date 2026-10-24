@@ -2,11 +2,13 @@ name: Rebuild goalie model
 
 on:
   schedule:
-    # 11am ET (after fastRhockey's overnight refresh), then 2pm, 4pm, 6pm and
-    # 7pm ET so starters / saves lines are picked up as PrizePicks posts them.
-    # (UTC times; during standard time these land an hour earlier in ET.)
-    # 8:30am ET: grade last night's games as soon as the box scores land.
+    # UTC times. 12:30 UTC (7:30am CT): grade last night's games once the box
+    # scores land. 13:15 and 14:00 UTC are backups: GitHub sometimes drops or
+    # delays scheduled runs (12:30 didn't run Oct 22-24). Then 15:00, 18:00,
+    # 20:00, 22:00 and 23:00 UTC pick up starters and lines as they post.
     - cron: '30 12 * * *'
+    - cron: '15 13 * * *'
+    - cron: '0 14 * * *'
     - cron: '0 15 * * *'
     - cron: '0 18 * * *'
     - cron: '0 20 * * *'
@@ -44,3 +46,6 @@ jobs:
           git commit -m "auto: rebuild $(date -u +'%Y-%m-%d %H:%M UTC')"
           for i in 1 2 3; do git push && exit 0; git pull --rebase origin "${GITHUB_REF_NAME}"; sleep $((i*3)); done
           exit 1
+      # after the commit, so the site still updates (and shows its stale banner)
+      - name: Data freshness
+        run: python model/freshness.py
