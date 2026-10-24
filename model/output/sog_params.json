@@ -3,7 +3,7 @@
   "toi_hl": 16,
   "k_min": 100,
   "k_toi": 1,
-  "carry": 0.3,
+  "carry": 0.5,
   "c_opp": 1.0,
   "home": 1.0195,
   "disp": 12.0

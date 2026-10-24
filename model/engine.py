@@ -42,6 +42,7 @@ class Params:
     playoff: float = 1.0        # multiplier in playoffs (fitted)
     b2b: float = 1.0            # multiplier when goalie's team played yesterday (fitted)
     opp_b2b: float = 1.0        # multiplier when the OPPONENT played yesterday (tired teams shoot less)
+    lg_half_life: float = 693.0  # team-games; recency weighting of the league shots-per-game average
 
     def to_dict(self):
         return asdict(self)
@@ -69,6 +70,7 @@ class State:
         self.p = p
         self.dec = 0.5 ** (1.0 / p.half_life)
         self.sv_dec = 0.5 ** (1.0 / p.sv_half_life)
+        self.lg_dec = 0.5 ** (1.0 / p.lg_half_life)
         self.off = defaultdict(Decayed)    # team -> SOG for
         self.dfn = defaultdict(Decayed)    # team -> SOG against
         self.gf = defaultdict(Decayed)     # team -> goals for (game-winner model)
@@ -164,7 +166,7 @@ class State:
         if xg_for is not None and xg_for == xg_for:  # skip NaN
             self.xgf[team].add(xg_for, self.dec)
             self.xga[team].add(xg_against, self.dec)
-        self.lg.add(sog_for, 0.999)
+        self.lg.add(sog_for, self.lg_dec)
         self.last_played[team] = date
 
     def update_goalie(self, gid, name, team, saves, shots, toi):

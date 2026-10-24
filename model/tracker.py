@@ -47,16 +47,32 @@ def _b2b(payload, team, date):
     return bool(last) and (dt.date.fromisoformat(date) - dt.date.fromisoformat(last[:10])).days == 1
 
 
+def _line_for(payload, team, date, gid):
+    """The posted line for this goalie: DraftKings first, then PrizePicks. (source, line) or (None, None)."""
+    for src, rows in (("dk", payload.get("dk") or []), ("pp", payload.get("pp") or [])):
+        for r in rows:
+            if r.get("date") == date and r.get("team") == team and r.get("goalie_id") == gid:
+                return src, r["line"]
+    return None, None
+
+
 def starter(payload, team, date):
-    """Same priority as the page: DraftKings, PrizePicks, back-to-back backup, depth chart."""
+    """Same priority as the page: a DailyFaceoff-confirmed starter, then the goalie with a DraftKings
+    line, then a PrizePicks prop, back-to-back backup, depth chart.
+    Returns (goalie_id, starter source, line, line source)."""
+    for r in payload.get("starters") or []:
+        if r.get("date") == date and r.get("team") == team and r.get("goalie_id") is not None \
+                and str(r.get("status", "")).lower() == "confirmed":
+            ls, line = _line_for(payload, team, date, r["goalie_id"])
+            return int(r["goalie_id"]), "df", line, ls
     for src, rows in (("dk", payload.get("dk") or []), ("pp", payload.get("pp") or [])):
         for r in rows:
             if r.get("date") == date and r.get("team") == team and r.get("goalie_id") is not None:
-                return int(r["goalie_id"]), src, r["line"]
+                return int(r["goalie_id"]), src, r["line"], src
     dep = payload["depth"].get(team) or []
     if len(dep) > 1 and _b2b(payload, team, date) and payload.get("last_starter", {}).get(team) == dep[0]:
-        return dep[1], "b2b", None
-    return (dep[0] if dep else None), "depth", None
+        return dep[1], "b2b", None, None
+    return (dep[0] if dep else None), "depth", None, None
 
 
 def project_saves(payload, gid, team, opp, home, b2b, playoff, opp_b2b=False):
@@ -130,10 +146,10 @@ def calls_for_game(payload, g):
            "saves": [], "sog": []}
     side = {}
     for team, opp, home in ((g["away"], g["home"], False), (g["home"], g["away"], True)):
-        gid, src, line = starter(payload, team, date)
+        gid, src, line, lsrc = starter(payload, team, date)
         b2b = _b2b(payload, team, date)
         sa, sv, proj = project_saves(payload, gid, team, opp, home, b2b, playoff, _b2b(payload, opp, date))
-        side[team] = dict(sa=sa, sv=sv, gid=gid, src=src, line=line, b2b=b2b, opp=opp, home=home)
+        side[team] = dict(sa=sa, sv=sv, gid=gid, src=src, line=line, lsrc=lsrc, b2b=b2b, opp=opp, home=home)
     # win probability: DraftKings moneyline (no-vig) when posted, otherwise the game-winner model
     th, ta = payload["teams"].get(g["home"], {}), payload["teams"].get(g["away"], {})
     h, a = side[g["home"]], side[g["away"]]
@@ -155,14 +171,20 @@ def calls_for_game(payload, g):
         p_win = p_home if team == g["home"] else 1 - p_home
         pr = saves_dist.project(x["sa"], g_["share"], g_["sv"], p_win, dist)
         row = {"team": team, "opp": x["opp"], "goalie_id": x["gid"], "goalie": g_.get("name", str(x["gid"])), "src": x["src"],
-               "confirmed": x["src"] in ("dk", "pp", "manual"), "b2b": x["b2b"], "p_win": round(p_win, 4),
+               "confirmed": x["src"] in ("dk", "pp", "manual", "df"), "b2b": x["b2b"], "p_win": round(p_win, 4),
                "exp_sa": round(pr["exp_sa"], 2), "proj": round(pr["proj"], 2), "sd": round(pr["sd"], 2),
-               "line": x["line"], "book": {"dk": "DraftKings", "pp": "PrizePicks"}.get(x["src"])}
+               "line": x["line"], "book": {"dk": "DraftKings", "pp": "PrizePicks"}.get(x["lsrc"])}
+        st_row = next((r for r in payload.get("starters") or [] if r.get("date") == date and r.get("team") == team
+                       and r.get("goalie_id") == x["gid"]), None)
+        if st_row:
+            row["starter_src"] = f"{st_row['source']} {st_row['status']}"
+            row["starter_at"] = st_row.get("at")
         if x["line"] is not None:
             po = saves_dist.p_over(pr["proj"], pr["sd"], x["line"])
-            over, under = _dk_prices(payload.get("dk"), date, team, row["goalie"], x["line"]) if x["src"] == "dk" else (None, None)
-            dfs = {"mult_over": 1, "mult_under": 1} if x["src"] == "pp" else {}
-            d = pricing.decide(po, calib.get("saves", {}).get("cal"), over, under, cap=calib.get("saves", {}).get("tier_cap"), **dfs)
+            over, under = _dk_prices(payload.get("dk"), date, team, row["goalie"], x["line"]) if x["lsrc"] == "dk" else (None, None)
+            dfs = {"mult_over": 1, "mult_under": 1} if x["lsrc"] == "pp" else {}
+            d = pricing.decide(po, calib.get("saves", {}).get("cal"), over, under, cap=calib.get("saves", {}).get("tier_cap"),
+                               market="saves", proj=pr["proj"], line=x["line"], **dfs)
             if not row["confirmed"]:
                 d.update(play=False, tier="PASS")
             row.update(p_over=round(po, 4), over=over, under=under, **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in d.items()})
@@ -178,7 +200,8 @@ def calls_for_game(payload, g):
                     "line": dk["line"] if dk else None, "book": "DraftKings" if dk else None}
             if dk:
                 po = sog_p_over(mean, dk["line"], sp["disp"])
-                d = pricing.decide(po, calib.get("sog", {}).get("cal"), dk.get("over"), dk.get("under"), cap=calib.get("sog", {}).get("tier_cap"))
+                d = pricing.decide(po, calib.get("sog", {}).get("cal"), dk.get("over"), dk.get("under"), cap=calib.get("sog", {}).get("tier_cap"),
+                                   market="sog", proj=mean, line=dk["line"])
                 srow.update(p_over=round(po, 4), over=dk.get("over"), under=dk.get("under"),
                             **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in d.items()})
             out["sog"].append(srow)
@@ -200,12 +223,32 @@ def snapshot(payload, now: dt.datetime | None = None):
         cur = json.load(open(path)) if os.path.exists(path) else {"date": date, "games": {}}
         for g in games:
             cur["games"][str(g["id"])] = calls_for_game(payload, g)
+        cur["alarm"] = night_board(cur, {str(g["id"]) for g in games})
         cur["built"] = payload["built"]
         cur["sd"] = payload["sd"]
         cur["sog_disp"] = payload["sog"]["params"]["disp"]
         with open(path, "w") as f:
             json.dump(cur, f, separators=(",", ":"))
     return sorted(by_date)
+
+
+def night_board(day: dict, fresh: set) -> dict:
+    """One-sided board alarm per market for one night (pricing.night_alarm). The split counts every
+    game on the night; only games not yet started (`fresh`) have plays demoted, started games stay frozen."""
+    out = {}
+    for mk in ("saves", "sog"):
+        rows = [(gid, r) for gid, g in day["games"].items() for r in g.get(mk, []) if r.get("side")]
+        for gid, r in rows:
+            if gid in fresh:
+                r["play_raw"] = r.get("play", False)
+        dec = [{"side": r["side"], "ev": r.get("ev") or 0.0, "play": r.get("play_raw", r.get("play", False))} for _, r in rows]
+        a = pricing.night_alarm(dec)
+        for gid, r in rows:
+            if gid in fresh:
+                r["play"] = r["play_raw"]
+                pricing.apply_alarm(r, a)
+        out[mk] = a
+    return out
 
 
 # ---------- grading ----------
@@ -233,7 +276,26 @@ def _read_log():
         return list(csv.DictReader(f))
 
 
+def dedup(rows):
+    """One row per date + player + market + line + book. A graded row beats an ungraded one, a priced
+    row beats an unpriced one, otherwise the later row wins. Keeps the original order."""
+    def rank(r):
+        return (r.get("result") not in (None, ""), r.get("price") not in (None, ""), r.get("ev") not in (None, ""))
+    best = {}
+    for i, r in enumerate(rows):
+        try:
+            line = float(r.get("line")) if r.get("line") not in (None, "") else ""
+        except ValueError:
+            line = r.get("line")
+        k = (r["date"], prizepicks.name_key(r["player"]), r["market"], line, r.get("book") or "")
+        if k not in best or rank(r) >= rank(rows[best[k]]):
+            best[k] = i
+    keep = set(best.values())
+    return [r for i, r in enumerate(rows) if i in keep]
+
+
 def _write_log(rows):
+    rows[:] = dedup(rows)
     rows.sort(key=lambda r: (r["date"], ["saves", "sog", "winner"].index(r["market"])
                              if r["market"] in ("saves", "sog", "winner") else 9))
     with open(LOG, "w", newline="") as f:
@@ -277,9 +339,12 @@ def grade(years, today: dt.date | None = None):
     model_rows = []        # one row per graded game/side/player, for model-accuracy stats
     notes = {}             # (date, market, player, team) -> auto reason
 
+    alarms = {}            # date -> market -> board split at pick time (one-sided alarm)
     for path in sorted(glob.glob(os.path.join(CALLS, "*.json"))):
         day = json.load(open(path))
         sd, disp = day["sd"], day["sog_disp"]
+        if day.get("alarm"):
+            alarms[day["date"]] = day["alarm"]
         for gid, c in day["games"].items():
             if int(gid) not in final:
                 continue
@@ -382,16 +447,36 @@ def grade(years, today: dt.date | None = None):
         if r["result"] == "MISS" and auto and auto not in (r.get("note") or ""):
             r["note"] = "; ".join(x for x in (r.get("note"), auto) if x)
     _write_log(log)
-    summary = summarize(log, model_rows)
+    summary = summarize(log, model_rows, alarms)
     with open(OUT, "w") as f:
         json.dump(summary, f, separators=(",", ":"))
     return summary
 
 
 # ---------- summary ----------
+def dfs_leg(r):
+    """A DFS leg (Pick6 / PrizePicks) priced like a bet: per-leg break-even of the default entry at the
+    row's multiplier, so a win pays 1/break-even - 1 units (+0.732u at 1x on a 2-pick 3x) and a loss -1.
+    Returns (break-even, EV at the model's probability or None)."""
+    be = pricing.dfs_break_even(float(r.get("mult") or 1))
+    p = r.get("p_cal") if r.get("p_cal") not in (None, "") else r.get("model_p")
+    try:
+        ev = float(p) / be - 1
+    except (TypeError, ValueError):
+        ev = None
+    return be, ev
+
+
 def _units(r):
-    """Profit in units at the pick-time price; None when the row has no sportsbook price (DFS legs)."""
-    if r.get("result") not in ("HIT", "MISS", "PUSH") or r.get("book") in DFS_BOOKS or r.get("price") in (None, ""):
+    """Profit in units at the pick-time price. Sportsbook rows use their American price; DFS legs are
+    priced at the per-leg break-even (dfs_leg). None when there is no price at all."""
+    if r.get("result") not in ("HIT", "MISS", "PUSH"):
+        return None
+    if r.get("book") in DFS_BOOKS:
+        if r["result"] == "PUSH":
+            return 0.0
+        return 1 / dfs_leg(r)[0] - 1 if r["result"] == "HIT" else -1.0
+    if r.get("price") in (None, ""):
         return None
     if r["result"] == "PUSH":
         return 0.0
@@ -402,7 +487,8 @@ def _rec(rows):
     h = sum(r["result"] == "HIT" for r in rows)
     m = sum(r["result"] == "MISS" for r in rows)
     u = [x for x in (_units(r) for r in rows) if x is not None]
-    return {"hit": h, "miss": m, "push": sum(r["result"] == "PUSH" for r in rows),
+    ub = [x for r in rows if r.get("book") not in DFS_BOOKS and (x := _units(r)) is not None]
+    return {"units_book": round(sum(ub), 2), "units_dfs": round(sum(u) - sum(ub), 2),"hit": h, "miss": m, "push": sum(r["result"] == "PUSH" for r in rows),
             "pct": round(h / (h + m), 4) if h + m else None,
             "priced": len(u), "units": round(sum(u), 2), "roi": round(sum(u) / len(u), 4) if u else None}
 
@@ -431,7 +517,25 @@ def is_play(r):
 BOOK_PREF = {"Pick6": 0, "PrizePicks": 1, "user quote": 2, "DraftKings": 3}
 
 
-def summarize(log, model_rows):
+def board_split(plays, alarms=None):
+    """Per night and market: graded plays by side, and whether the one-sided alarm fired at pick time."""
+    out = []
+    for d in sorted({r["date"] for r in plays}, reverse=True):
+        for mk in ("saves", "sog"):
+            x = [r for r in plays if r["date"] == d and r["market"] == mk]
+            if not x:
+                continue
+            o = sum(r["side"].upper() in ("OVER", "MORE") for r in x)
+            a = (alarms or {}).get(d, {}).get(mk) or {}
+            out.append({"date": d, "market": mk, "plays": len(x), "over": o, "under": len(x) - o,
+                        "share": round(max(o, len(x) - o) / len(x), 4),
+                        "one_sided": len(x) >= pricing.ALARM_MIN_PLAYS and max(o, len(x) - o) / len(x) > pricing.ALARM_SHARE,
+                        "alarm": a.get("alarm"), "pre_alarm": {k: a.get(k) for k in ("plays", "over", "under")} if a else None,
+                        "rec": _rec(x)})
+    return out
+
+
+def summarize(log, model_rows, alarms=None):
     every = [r for r in log if r.get("result") in ("HIT", "MISS", "PUSH")]
     # the same prop can be logged from more than one book: count it once, preferring the book you
     # actually play (Pick6, then PrizePicks). Every split below uses this same de-duplicated set, so
@@ -472,6 +576,7 @@ def summarize(log, model_rows):
         rows = [r for r in graded if r["date"] == d]
         out["days"].append({"date": d, "plays": _rec([r for r in plays if r["date"] == d]),
                             **{mk: _rec([r for r in rows if r["market"] == mk]) for mk in ("saves", "sog", "winner")}})
+    out["board_split"] = board_split(plays, alarms)
     play_ids = {id(r) for r in plays}
     out["misses"] = [{k: r.get(k) for k in ("date", "market", "player", "team", "opp", "line", "side",
                                             "model_proj", "actual", "tier", "note")}
@@ -480,8 +585,9 @@ def summarize(log, model_rows):
                                                    or r["market"] == "winner" and r.get("tier") == "65%+")][:40]
     # the page carries the last two weeks of the log; the full history stays in the CSV
     cutoff = str(dt.date.fromisoformat(max((r["date"] for r in log), default="2000-01-01")) - dt.timedelta(days=14))
-    out["log"] = [{k: r.get(k) for k in FIELDS} for r in sorted(log, key=lambda r: r["date"], reverse=True)
-                  if r["date"] > cutoff]
+    out["log"] = [{**{k: r.get(k) for k in FIELDS},
+                   **({"ev": round(dfs_leg(r)[1], 4)} if r.get("book") in DFS_BOOKS and r.get("ev") in (None, "") and dfs_leg(r)[1] is not None else {})}
+                  for r in sorted(log, key=lambda r: r["date"], reverse=True) if r["date"] > cutoff]
     # model accuracy, no book line needed
     mr = pd.DataFrame(model_rows)
     if not mr.empty:
