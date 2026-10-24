@@ -25,6 +25,7 @@ import pricing
 import prizepicks
 import saves_dist
 import sog
+import starters
 import tracker
 import winners
 
@@ -319,6 +320,7 @@ def main():
                 goalies.append(by_id[r["id"]])
     dk = odds.fetch(goalies)
     pp = prizepicks.fetch(goalies)
+    starter_rows = starters.fetch(goalies, sorted({g["date"] for g in slate}))
     # Goalies on the board we have no NHL history for get the same treatment.
     for r in pp:
         if r["goalie_id"] is None:
@@ -345,6 +347,8 @@ def main():
         "pp": pp,
         "pp_error": prizepicks.last_error,
         "pp_status": prizepicks.status,
+        "starters": starter_rows,
+        "starters_status": starters.status,
         "sog": {"params": sp.to_dict(), "players": sog_export(teams, sst, sp, skater_df),
                 "opp": {t: round(sst.opp_factor(t), 4) for t in sst.team_sa},
                 "backtest": json.load(open(os.path.join(OUT, "sog_backtest.json")))},

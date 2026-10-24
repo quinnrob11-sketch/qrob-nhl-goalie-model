@@ -113,7 +113,15 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   <div class="card">
     <h2>Slate</h2>
     <p class="sub" id="ppNote" style="margin:-4px 0 6px"></p>
-    <p style="margin:0 0 10px"><button class="ghost" id="ppRefresh">↻ Refresh PrizePicks</button></p>
+    <p style="margin:0 0 10px"><span id="srcStatus"></span> <button class="ghost" id="ppRefresh">↻ Refresh PrizePicks</button></p>
+    <details class="card" id="boardBox" style="margin:0 0 12px;padding:10px 12px">
+      <summary><b>Paste or upload a PrizePicks / Pick6 board</b> <span class="muted" id="boardCount"></span></summary>
+      <p class="sub">One prop per line. CSV: <code>name,market,line,over mult,under mult</code> (e.g. <code>Igor Shesterkin,saves,25.5,1,0.9</code>). Text works too: <code>Auston Matthews SOG 3.5 1x/0.85x</code>. Market defaults to saves for goalies and SOG for skaters; multipliers default to 1x. These lines are priced as DFS legs at their per-side multipliers (break-even = payout^(−1/legs) ÷ multiplier) on the Projections and SOG tabs, ahead of DraftKings, and a goalie with a saves prop on your board counts as a posted starter.</p>
+      <div class="row" style="margin-bottom:8px"><label>Book<select id="boardBook"><option>Pick6</option><option>PrizePicks</option></select></label>
+        <label>File<input type="file" id="boardFile" accept=".csv,.txt,text/plain,text/csv"></label></div>
+      <textarea id="boardText" rows="5" style="width:100%;font:12px ui-monospace,monospace" placeholder="Igor Shesterkin,saves,25.5,1,0.9&#10;Auston Matthews SOG 3.5 1x/0.85x"></textarea>
+      <p style="margin:6px 0 0"><button id="boardImport">Import board</button> <button class="ghost" id="boardClear">Clear board</button> <span class="muted" id="boardMsg"></span></p>
+    </details>
     <div class="row" style="margin-bottom:10px">
       <label>Min EV %<input type="number" id="minEdge" value="2" step="1" min="0"></label>
       <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="playsOnly"> Plays only</label>
@@ -421,6 +429,33 @@ buildPP();
 const PP_TEAM_FIX = {LA:"LAK", NJ:"NJD", SJ:"SJS", TB:"TBL", MON:"MTL", WAS:"WSH", CLB:"CBJ", NAS:"NSH", UTAH:"UTA", VEG:"VGK", CAL:"CGY"};
 const nameKey = s => { const p = fold(s).replace(/[.']/g, "").trim().split(/\s+/); return p.length < 2 ? p.join(" ") : p[0][0] + " " + p.slice(1).join(" "); };
 const etDate = iso => new Intl.DateTimeFormat("en-CA", {timeZone: "America/New_York"}).format(new Date(iso));
+// Pasted / uploaded DFS board (PrizePicks or Pick6), kept in this browser
+let BOARD = store.get("gm_board", {rows: []});
+function parseBoard(txt, book){
+  const rows = [], goalieKeys = new Set(D.goalies.map(g => nameKey(g.name)));
+  const MK = "(goalie saves|saves|shots on goal|sog|shots)";
+  for (let ln of String(txt).split(/\r?\n/)){
+    ln = ln.trim();
+    if (!ln || /^name\s*[,\t]/i.test(ln)) continue;
+    let name, market = "", line, mo = 1, mu = 1;
+    const c = ln.split(/\t|,/).map(s => s.trim()).filter(Boolean);
+    const num = s => +String(s).replace(/x$/i, "");
+    if (c.length >= 3 && !isNaN(num(c[2]))){ name = c[0]; market = c[1]; line = num(c[2]); if (c[3]) mo = num(c[3]); if (c[4]) mu = num(c[4]); }
+    else if (c.length >= 2 && !isNaN(num(c[1]))){ name = c[0]; line = num(c[1]); if (c[2]) mo = num(c[2]); if (c[3]) mu = num(c[3]); }
+    else {
+      const m = ln.match(new RegExp(`^(.+?)\\s+(?:${MK}\\s+)?(\\d+(?:\\.\\d+)?)\\s*${MK}?(?:\\s+([\\d.]+)x?\\s*/\\s*([\\d.]+)x?)?`, "i"));
+      if (!m) continue;
+      name = m[1]; market = m[2] || m[4] || ""; line = +m[3]; if (m[5]) mo = +m[5]; if (m[6]) mu = +m[6];
+    }
+    if (!name || !(line >= 0)) continue;
+    const key = nameKey(name);
+    market = /save/i.test(market) ? "saves" : /sog|shot/i.test(market) ? "sog" : goalieKeys.has(key) ? "saves" : "sog";
+    rows.push({name: name.trim(), key, market, line, mo: mo > 0 ? mo : 1, mu: mu > 0 ? mu : 1, book});
+  }
+  return rows;
+}
+const boardFor = (market, name) => (BOARD.rows || []).find(r => r.market === market && r.key === nameKey(name)) || null;
+const multTxt = (o, u) => `${o}x / ${u}x`;
 let ppLive = {state: "idle"};
 function parsePP(js){
   const players = {};
@@ -468,11 +503,19 @@ async function pullPrizePicksLive(){
 // DraftKings (via The Odds API): same idea, a posted saves line = expected starter
 const DK = {};
 for (const r of (D.dk || [])) if (r.date && r.team) DK[r.date + "|" + r.team] = r;
+// DailyFaceoff starting-goalie confirmations (pulled by the build)
+const DF = {};
+for (const r of (D.starters || [])) if (r.date && r.team && r.goalie_id != null) DF[r.date + "|" + r.team] = r;
+const ctTime = iso => { if (!iso) return ""; const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("en-US", {timeZone: "America/Chicago", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit"}) + " CT"; };
 function starterFor(team, date){
   const k = date + "|" + team;
   if (STARTER[k]) return {gid: +STARTER[k], src: "manual"};
+  if (DF[k] && String(DF[k].status).toLowerCase() === "confirmed") return {gid: DF[k].goalie_id, src: "df", df: DF[k]};
   if (DK[k]) return {gid: DK[k].goalie_id, src: "dk"};
   if (PP[k]) return {gid: PP[k].goalie_id, src: "pp", pp: PP[k]};
+  const bg = D.goalies.find(g => g.team === team && boardFor("saves", g.name));
+  if (bg) return {gid: bg.id, src: "board"};
+  if (DF[k]) return {gid: DF[k].goalie_id, src: "df-" + String(DF[k].status || "").toLowerCase(), df: DF[k]};
   const dep = D.depth[team] || [], last = D.last_played[team];
   // back-to-back: the goalie who started last night usually sits, so default to the next man up
   if (dep.length > 1 && last && (new Date(date) - new Date(last)) / 864e5 === 1 && (D.last_starter || {})[team] === dep[0])
@@ -507,19 +550,20 @@ function slateRows(){
       const pp = PP[g.date + "|" + team], dk = DK[g.date + "|" + team];
       const ppLine = pp && pp.goalie_id === gid ? pp.line : null;
       const dkLine = dk && dk.goalie_id === gid ? dk.line : null;
-      const line = LINES[key] ?? dkLine ?? ppLine;
-      const lineSrc = LINES[key] != null ? "manual" : dkLine != null ? "dk" : ppLine != null ? "pp" : "";
-      const confirmed = ["dk", "pp", "manual"].includes(st.src);
+      const bd = gid != null && G[gid] ? boardFor("saves", G[gid].name) : null;
+      const line = LINES[key] ?? (bd ? bd.line : null) ?? dkLine ?? ppLine;
+      const lineSrc = LINES[key] != null ? "manual" : bd ? "board" : dkLine != null ? "dk" : ppLine != null ? "pp" : "";
+      const confirmed = ["dk", "pp", "manual", "df", "board"].includes(st.src);
       let d = null, po = null;
       if (line != null){
         po = pOverSaves(dist.proj, dist.sd, line);
-        const opt = lineSrc === "dk" ? {over: dk.over, under: dk.under} : {multOver: 1, multUnder: 1};   // DFS lines are 1x
+        const opt = lineSrc === "dk" ? {over: dk.over, under: dk.under} : lineSrc === "board" ? {multOver: bd.mo, multUnder: bd.mu} : {multOver: 1, multUnder: 1};   // PrizePicks / your lines are 1x
         d = decide("saves", po, opt);
         if (!confirmed){ d.play = false; d.tier = "PASS"; }
       }
       const edge = line != null ? dist.proj - line : null;
       rows.push({g, team, opp, gid, side, b2b, oppB2b, ...pr, sa: dist.saGs, saRaw: pr.sa, proj: dist.proj, sd: dist.sd,
-                 pWin: wp.p, pWinSrc: wp.src, key, line, lineSrc, pp, dk, src: st.src, confirmed, edge, po, d});
+                 pWin: wp.p, pWinSrc: wp.src, key, line, lineSrc, pp, dk, bd, df: st.df || DF[g.date + "|" + team], src: st.src, confirmed, edge, po, d});
     }
   }
   const A = alarmByDate(rows.map(r => ({date: r.g.date, d: r.d})));
@@ -537,7 +581,14 @@ function renderSlate(){
     : ppLive.state === "fail" ? `PrizePicks: live pull ${ppLive.err}.`
     : D.pp_status === "unavailable" ? `PrizePicks: blocked for the build server (it refuses requests from cloud IPs); the board is pulled live in your browser instead.`
     : D.pp_error ? `PrizePicks: unavailable (${D.pp_error}).` : `PrizePicks: no goalie saves props posted yet.`;
-  $("#ppNote").textContent = `As of ${D.built}. ${dkMsg} ${ppMsg} Starter order: a DraftKings line, then a PrizePicks prop, then the roster default (unconfirmed). A posted line isn't an official confirmation, so check warmups on close calls; unconfirmed starters (roster default) are never plays until you pick the goalie. Projected saves = shots against (team defense × opponent offense, home/road, back-to-backs, game script from the win probability) × time in net × save%, with a spread that grows with the workload. A side is a play only when its calibrated probability beats the price's break-even by 2%; rows are sorted by EV.`;
+  const ppBlocked = ppLive.state === "fail" || (!nPP && ppLive.state !== "ok" && D.pp_status === "unavailable");
+  const pill = (txt, ok) => `<span class="pill ${ok ? "HIGH" : ""}" style="${ok ? "" : "background:var(--under-bg);color:var(--under)"}">${txt}</span>`;
+  const nDF = (D.starters || []).filter(r => String(r.status).toLowerCase() === "confirmed").length;
+  $("#srcStatus").innerHTML = [pill(ppBlocked ? "PrizePicks: blocked" : ppLive.state === "ok" || nPP ? "PrizePicks: ok" : "PrizePicks: no props", !ppBlocked),
+    pill(nDK ? `DraftKings: ${nDK} goalies` : "DraftKings: none yet", nDK > 0),
+    pill(D.starters_status === "ok" ? `DailyFaceoff: ${nDF} confirmed` : `DailyFaceoff: ${D.starters_status ? String(D.starters_status).split(":")[0] : "not pulled"}`, D.starters_status === "ok"),
+    pill(`Your board: ${(BOARD.rows || []).length} props`, (BOARD.rows || []).length > 0)].join(" ");
+  $("#ppNote").textContent = `As of ${D.built}. ${dkMsg} ${ppMsg} Starter order: your pick, a DailyFaceoff confirmation, a DraftKings line, a PrizePicks prop, a saves prop on your pasted board, then the roster default (unconfirmed). A posted line isn't an official confirmation, so check warmups on close calls; unconfirmed starters (roster default) are never plays until you pick the goalie. Projected saves = shots against (team defense × opponent offense, home/road, back-to-backs, game script from the win probability) × time in net × save%, with a spread that grows with the workload. A side is a play only when its calibrated probability beats the price's break-even by 2%; rows are sorted by EV.`;
   const dates = [...new Set(D.slate.map(g => g.date))];
   const dSel = $("#dateF");
   if (!dSel.options.length){ dSel.innerHTML = `<option value="">All</option>` + dates.map(d => `<option>${d}</option>`).join(""); }
@@ -559,11 +610,12 @@ function renderSlate(){
     const cls = play ? d.side.toLowerCase() : d ? "dim" : "";
     html += `<tr class="${cls}"><td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp}<div class="muted" style="font-size:11px">${r.g.date}${r.b2b?" · B2B":""}${r.oppB2b?" · opp B2B":""}${r.g.type==="P"?" · Playoffs":""} · win ${pct(r.pWin,0)} (${r.pWinSrc})</div></td>
       <td class="l"><select data-st="${r.g.date}|${r.team}">${goalieOptions(r.team, r.gid)}</select>
-        <div style="font-size:11px">${r.src==="dk"?'<span class="good">✓ DraftKings line posted</span>':r.src==="pp"?'<span class="good">✓ on PrizePicks board</span>':r.src==="manual"?'<span class="good">✓ confirmed by you</span>':'<span class="bad">unconfirmed · excluded from plays</span> <span class="muted">('+(r.src==="b2b"?"back-to-back backup":D.rosters_ok?"roster #1":"depth chart")+'; pick the goalie to confirm)</span>'}${(G[r.gid]||{}).new?' <span class="muted">· no NHL history</span>':""}</div></td>
+        <div style="font-size:11px">${r.src==="df"?`<span class="good">✓ confirmed · DailyFaceoff${ctTime(r.df.at) ? " · " + ctTime(r.df.at) : ""}</span>`:r.src==="dk"?'<span class="good">✓ DraftKings line posted</span>':r.src==="pp"?'<span class="good">✓ on PrizePicks board</span>':r.src==="board"?`<span class="good">✓ on your ${r.bd ? r.bd.book : "DFS"} board</span>`:r.src==="manual"?'<span class="good">✓ confirmed by you</span>':'<span class="bad">unconfirmed · excluded from plays</span> <span class="muted">('+(r.src.startsWith("df-")?`DailyFaceoff: ${r.df.status}${ctTime(r.df.at) ? " · " + ctTime(r.df.at) : ""}`:r.src==="b2b"?"back-to-back backup":D.rosters_ok?"roster #1":"depth chart")+'; pick the goalie to confirm)</span>'}${r.src!=="df"&&r.src!=="manual"&&!r.src.startsWith("df-")&&r.df?` <span class="muted">· DailyFaceoff: ${r.df.status}</span>`:""}${(G[r.gid]||{}).new?' <span class="muted">· no NHL history</span>':""}</div></td>
       <td>${fmt(r.sa)}</td><td>${fmt(r.sv,3)}</td><td><b>${fmt(r.proj)}</b> <span class="muted" style="font-size:11px">±${fmt(r.sd)}</span></td>
       <td><input type="number" step="0.5" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line">
         ${r.lineSrc==="dk"?`<div style="font-size:11px" class="muted">DK o${amer(r.dk.over)||"–"} / u${amer(r.dk.under)||"–"}</div>`:""}
         ${r.lineSrc==="pp"?`<div style="font-size:11px"><a href="${r.pp.url}" target="_blank" rel="noopener" class="muted">PrizePicks · 1x</a></div>`:""}
+        ${r.lineSrc==="board"?`<div style="font-size:11px" class="muted">${r.bd.book} · ${multTxt(r.bd.mo, r.bd.mu)}</div>`:""}
         ${r.lineSrc==="manual"?`<div style="font-size:11px" class="muted">your line · priced as DFS 1x</div>`:""}</td>
       <td class="l side">${d ? (play ? d.side : "PASS") : ""}${d ? `<div class="muted" style="font-size:11px">${d.side} ${priceTxt(d)}</div>` : ""}</td>
       <td>${d?pct(d.p,1):"–"}</td><td>${d&&d.be!=null?pct(d.be,1):"–"}</td><td class="${d&&d.ev>0?"good":d?"bad":""}">${evTxt(d)}</td>
@@ -759,7 +811,7 @@ function renderStarters(){
     rows.map(r => { const d = r.d, play = d && d.play;
       return `<tr class="${play ? d.side.toLowerCase() : ""}"><td class="l"><b>${(G[r.gid]||{}).name || "?"}</b> <span class="muted">${r.team}</span></td>
       <td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp} <span class="muted" style="font-size:11px">${r.g.date}</span></td>
-      <td class="l">${r.confirmed ? '<span class="good">confirmed</span>' : '<span class="bad">unconfirmed</span>'} <span class="muted" style="font-size:11px">${{dk:"DK line",pp:"PrizePicks",manual:"you",b2b:"B2B backup",depth:"roster #1"}[r.src] || r.src}</span></td>
+      <td class="l">${r.confirmed ? '<span class="good">confirmed</span>' : '<span class="bad">unconfirmed</span>'} <span class="muted" style="font-size:11px">${{dk:"DK line",pp:"PrizePicks",manual:"you",b2b:"B2B backup",depth:"roster #1",df:"DailyFaceoff",board:"your DFS board"}[r.src] || (r.src.startsWith("df-") ? "DailyFaceoff " + r.src.slice(3) : r.src)}${r.df && r.df.at ? " · " + ctTime(r.df.at) : ""}</span></td>
       <td>${fmt(r.sa)}</td><td>${fmt(r.sv,3)}</td><td><b>${fmt(r.proj)}</b> <span class="muted" style="font-size:11px">±${fmt(r.sd)}</span></td>
       <td>${r.line ?? "–"}</td><td>${d ? priceTxt(d) || "–" : "–"}</td>
       <td class="l side">${d ? (play ? d.side : "PASS") : ""}</td><td>${d ? pct(d.p,1) : "–"}</td>
@@ -832,9 +884,9 @@ function renderResults(){
   const un = r => r && r.priced ? `<span class="${r.units > 0 ? "good" : r.units < 0 ? "bad" : ""}">${r.units > 0 ? "+" : ""}${fmt(r.units,2)}u</span>` : "–";
   const roi = r => r && r.roi != null ? `<span class="${r.roi > 0 ? "good" : "bad"}">${r.roi > 0 ? "+" : ""}${pct(r.roi,1)}</span>` : "–";
   const M = T.model || {}, S = T.markets.saves, K = T.markets.sog, Wn = T.markets.winner;
-  $("#resNote").innerHTML = `Graded automatically from box scores on every build (last ${T.updated}), at the line and price each prop had <b>at pick time</b>. Units and ROI count lines with a sportsbook price (DraftKings); DFS legs (Pick6 / PrizePicks) have a record but no single-leg price, so they're graded against break-even below. <b>Plays</b> from 10/23 on are price-aware: calibrated probability beats break-even by 2%. Earlier plays keep the rule they were picked under (saves 1.5+ edge, SOG 55%+). When a prop is on more than one book it counts once, and every table below uses that same set, so tiers, sides, books and nights all add up to each market's total.`;
+  $("#resNote").innerHTML = `Graded automatically from box scores on every build (last ${T.updated}), at the line and price each prop had <b>at pick time</b>. Units and ROI use the sportsbook price (DraftKings). DFS legs (Pick6 / PrizePicks) are priced at the per-leg break-even of a 2-pick 3x entry: at 1x on a 2-pick 3x a win pays +0.73u and a loss costs 1u. Book and DFS units are also shown separately. <b>Plays</b> from 10/23 on are price-aware: the calibrated probability (blended with the no-vig price from the 10/24 audit on) beats break-even by the margin. Earlier plays keep the rule they were picked under (saves 1.5+ edge, SOG 55%+). When a prop is on more than one book it counts once, and every table below uses that same set, so tiers, sides, books and nights all add up to each market's total.`;
   $("#resStats").innerHTML = `
-    <div class="stat hero"><div class="k">Plays, real lines</div><div class="v">${rp(T.plays)}</div><div class="s">${rec(T.plays)} · ${un(T.plays)} · ROI ${roi(T.plays)}</div></div>
+    <div class="stat hero"><div class="k">Plays, real lines</div><div class="v">${rp(T.plays)}</div><div class="s">${rec(T.plays)} · ${un(T.plays)} · ROI ${roi(T.plays)}${T.plays.units_book != null ? `<br>book ${T.plays.units_book > 0 ? "+" : ""}${fmt(T.plays.units_book,2)}u · DFS legs ${T.plays.units_dfs > 0 ? "+" : ""}${fmt(T.plays.units_dfs,2)}u` : ""}</div></div>
     <div class="stat"><div class="k">Saves plays</div><div class="v">${rp(S.plays)}</div><div class="s">${rec(S.plays)} · ${un(S.plays)} · ROI ${roi(S.plays)}</div></div>
     <div class="stat"><div class="k">SOG plays</div><div class="v">${rp(K.plays)}</div><div class="s">${rec(K.plays)} · ${un(K.plays)} · ROI ${roi(K.plays)}</div></div>
     <div class="stat"><div class="k">Game winners</div><div class="v">${rp(Wn.all)}</div><div class="s">${rec(Wn.all)} · ${un(Wn.all)}${Wn.all.priced ? ` on ${Wn.all.priced} priced` : ""}</div></div>
@@ -965,6 +1017,8 @@ let PP_SOG = [];
 function sogLineFor(pl, team, date){
   const k = date + "|" + pl.id;
   if (SOGL[k] != null) return {line: SOGL[k], src: "manual"};
+  const bd = boardFor("sog", pl.name);
+  if (bd) return {line: bd.line, src: bd.book, mo: bd.mo, mu: bd.mu};
   const key = nameKey(pl.name);
   const dk = (D.dk_sog || []).find(r => r.date === date && r.teams.includes(team) && nameKey(r.name) === key);
   if (dk) return {line: dk.line, src: "DK", over: dk.over, under: dk.under};
@@ -980,7 +1034,7 @@ function sogDecision(g, team, opp, home, pl){
   if (L.line != null){
     po = sogOver(proj, L.line);
     const m = SOGM[mk] || {};
-    d = decide("sog", po, Object.assign({proj, line: L.line}, L.src === "DK" ? {over: L.over, under: L.under} : {multOver: m.o ?? 1, multUnder: m.u ?? 1}));
+    d = decide("sog", po, Object.assign({proj, line: L.line}, L.src === "DK" ? {over: L.over, under: L.under} : {multOver: m.o ?? L.mo ?? 1, multUnder: m.u ?? L.mu ?? 1}));
   }
   return {proj, L, mk, po, d};
 }
@@ -1023,7 +1077,7 @@ function renderSOG(){
       <td>${fmt(r.pl.r60,1)}</td><td>${fmt(r.pl.toi,1)}</td>
       <td style="font-size:11.5px">${(r.pl.l10||[]).join(" ") || "–"}</td><td><b>${fmt(r.proj,2)}</b></td>
       <td><input type="number" step="0.5" style="width:64px" data-sl="${r.mk}" value="${r.L.line ?? ""}" placeholder="line">${r.L.src && r.L.src !== "manual" ? `<div class="muted" style="font-size:11px">${r.L.src}${hasVal(r.L.over) ? ` o${amer(r.L.over)}/u${amer(r.L.under) || "–"}` : ""}</div>` : ""}</td>
-      <td>${r.L.line != null && r.L.src !== "DK" ? `<select data-mo="${r.mk}">${[1.2,1.1,1,0.9,0.8].map(x => `<option ${(m.o ?? 1) == x ? "selected" : ""}>${x}</option>`).join("")}</select> <select data-mu="${r.mk}">${[1.2,1.1,1,0.9,0.8].map(x => `<option ${(m.u ?? 1) == x ? "selected" : ""}>${x}</option>`).join("")}</select>` : "–"}</td>
+      <td>${r.L.line != null && r.L.src !== "DK" ? `<select data-mo="${r.mk}">${[...new Set([1.2,1.1,1,0.9,0.85,0.8,0.75, m.o ?? r.L.mo ?? 1])].sort((a,b)=>b-a).map(x => `<option ${(m.o ?? r.L.mo ?? 1) == x ? "selected" : ""}>${x}</option>`).join("")}</select> <select data-mu="${r.mk}">${[...new Set([1.2,1.1,1,0.9,0.85,0.8,0.75, m.u ?? r.L.mu ?? 1])].sort((a,b)=>b-a).map(x => `<option ${(m.u ?? r.L.mu ?? 1) == x ? "selected" : ""}>${x}</option>`).join("")}</select>` : "–"}</td>
       <td class="l side">${d ? (play ? d.side : "PASS") : ""}${d ? `<div class="muted" style="font-size:11px">${d.side} ${priceTxt(d)}</div>` : ""}${lowVal ? `<div class="bad" style="font-size:11px">3.5+ under below 1x: low value</div>` : ""}</td>
       <td>${d ? pct(d.p,1) : "–"}</td><td>${d && d.be != null ? pct(d.be,1) : "–"}</td><td class="${d && d.ev > 0 ? "good" : d ? "bad" : ""}">${evTxt(d)}</td>
       <td class="l">${d ? `<span class="pill ${d.tier}">${d.tier}</span>` : ""}</td></tr>`; }).join("")
@@ -1052,6 +1106,20 @@ function renderSogBacktest(){
 ["#sGame","#sPos","#sMinP","#sTop","#sPlays"].forEach(s => $(s).oninput = renderSOG);
 
 $("#ppRefresh").onclick = pullPrizePicksLive;
+function boardRefresh(msg){
+  $("#boardCount").textContent = (BOARD.rows || []).length ? `(${BOARD.rows.length} props loaded)` : "";
+  if (msg !== undefined) $("#boardMsg").textContent = msg;
+  renderSlate(); renderSOG(); renderSlip();
+}
+$("#boardFile").onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { $("#boardText").value = rd.result; }; rd.readAsText(f); };
+$("#boardImport").onclick = () => {
+  const rows = parseBoard($("#boardText").value, $("#boardBook").value);
+  const keep = (BOARD.rows || []).filter(r => !rows.some(x => x.key === r.key && x.market === r.market));
+  BOARD = {rows: keep.concat(rows), at: new Date().toISOString()}; store.set("gm_board", BOARD);
+  boardRefresh(rows.length ? `Imported ${rows.length} props (${rows.filter(r => r.market === "saves").length} saves, ${rows.filter(r => r.market === "sog").length} SOG).` : "Nothing recognised. Use name,market,line,over mult,under mult.");
+};
+$("#boardClear").onclick = () => { BOARD = {rows: []}; store.set("gm_board", BOARD); boardRefresh("Board cleared."); };
+$("#boardCount").textContent = (BOARD.rows || []).length ? `(${BOARD.rows.length} props loaded)` : "";
 initDfs(); renderSlate(); initBuilder(); renderResults(); renderWinners(); renderWinBacktest(); renderSOG(); renderSogBacktest(); renderBacktest(); renderTracker(); renderSlip(); initGoalies(); renderTeams(); renderLogic();
 if (D.slate.length) pullPrizePicksLive();
 </script>
