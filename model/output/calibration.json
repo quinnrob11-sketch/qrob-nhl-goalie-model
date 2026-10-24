@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-24 16:30 UTC",
+ "updated": "2026-10-24 17:18 UTC",
  "markets": {
   "saves": {
    "cal": {
@@ -99,53 +99,53 @@
    },
    "new": {
     "plays": {
-     "n": 26,
-     "hit": 16,
-     "miss": 10,
-     "pct": 0.6154,
-     "units": 3.94,
-     "roi": 0.1514
+     "n": 65,
+     "hit": 33,
+     "miss": 32,
+     "pct": 0.5077,
+     "units": -3.43,
+     "roi": -0.0527
     },
     "overs": {
-     "n": 5,
-     "hit": 1,
-     "miss": 4,
-     "pct": 0.2,
-     "units": -3.09,
-     "roi": -0.6182
+     "n": 8,
+     "hit": 3,
+     "miss": 5,
+     "pct": 0.375,
+     "units": -2.23,
+     "roi": -0.2787
     },
     "unders": {
-     "n": 21,
-     "hit": 15,
-     "miss": 6,
-     "pct": 0.7143,
-     "units": 7.03,
-     "roi": 0.3347
+     "n": 57,
+     "hit": 30,
+     "miss": 27,
+     "pct": 0.5263,
+     "units": -1.2,
+     "roi": -0.021
     },
     "tiers": {
      "HIGH": {
-      "n": 14,
-      "hit": 10,
-      "miss": 4,
-      "pct": 0.7143,
-      "units": 4.56,
-      "roi": 0.326
+      "n": 32,
+      "hit": 19,
+      "miss": 13,
+      "pct": 0.5938,
+      "units": 3.36,
+      "roi": 0.1049
      },
      "MED": {
-      "n": 9,
-      "hit": 5,
-      "miss": 4,
-      "pct": 0.5556,
-      "units": 0.54,
-      "roi": 0.06
+      "n": 26,
+      "hit": 11,
+      "miss": 15,
+      "pct": 0.4231,
+      "units": -5.34,
+      "roi": -0.2053
      },
      "LOW": {
-      "n": 3,
-      "hit": 1,
-      "miss": 2,
-      "pct": 0.3333,
-      "units": -1.17,
-      "roi": -0.3889
+      "n": 7,
+      "hit": 3,
+      "miss": 4,
+      "pct": 0.4286,
+      "units": -1.45,
+      "roi": -0.2064
      }
     },
     "before_alarm": {
@@ -180,7 +180,7 @@
       "pre_over": 0,
       "pre_under": 2,
       "over": 0,
-      "under": 1,
+      "under": 2,
       "alarm": true
      },
      {
@@ -188,15 +188,15 @@
       "pre_over": 0,
       "pre_under": 4,
       "over": 0,
-      "under": 1,
+      "under": 4,
       "alarm": true
      },
      {
       "date": "2026-10-03",
       "pre_over": 2,
       "pre_under": 8,
-      "over": 0,
-      "under": 1,
+      "over": 2,
+      "under": 8,
       "alarm": true
      },
      {
@@ -236,7 +236,7 @@
       "pre_over": 0,
       "pre_under": 4,
       "over": 0,
-      "under": 1,
+      "under": 4,
       "alarm": true
      },
      {
@@ -252,7 +252,7 @@
       "pre_over": 0,
       "pre_under": 4,
       "over": 0,
-      "under": 1,
+      "under": 4,
       "alarm": true
      },
      {
@@ -275,8 +275,8 @@
       "date": "2026-10-13",
       "pre_over": 1,
       "pre_under": 9,
-      "over": 0,
-      "under": 1,
+      "over": 1,
+      "under": 9,
       "alarm": true
      },
      {
@@ -292,7 +292,7 @@
       "pre_over": 0,
       "pre_under": 3,
       "over": 0,
-      "under": 1,
+      "under": 3,
       "alarm": true
      },
      {
@@ -308,7 +308,7 @@
       "pre_over": 0,
       "pre_under": 6,
       "over": 0,
-      "under": 1,
+      "under": 6,
       "alarm": true
      },
      {
@@ -324,7 +324,7 @@
       "pre_over": 0,
       "pre_under": 2,
       "over": 0,
-      "under": 1,
+      "under": 2,
       "alarm": true
      },
      {
@@ -332,7 +332,7 @@
       "pre_over": 0,
       "pre_under": 4,
       "over": 0,
-      "under": 1,
+      "under": 4,
       "alarm": true
      },
      {
@@ -731,12 +731,12 @@
    },
    "new": {
     "plays": {
-     "n": 24,
-     "hit": 20,
-     "miss": 4,
-     "pct": 0.8333,
-     "units": 18.57,
-     "roi": 0.7738
+     "n": 62,
+     "hit": 36,
+     "miss": 26,
+     "pct": 0.5806,
+     "units": 10.52,
+     "roi": 0.1696
     },
     "overs": {
      "n": 4,
@@ -747,29 +747,29 @@
      "roi": 0.5154
     },
     "unders": {
-     "n": 20,
-     "hit": 17,
-     "miss": 3,
-     "pct": 0.85,
-     "units": 16.51,
-     "roi": 0.8255
+     "n": 58,
+     "hit": 33,
+     "miss": 25,
+     "pct": 0.569,
+     "units": 8.46,
+     "roi": 0.1458
     },
     "tiers": {
      "HIGH": {
-      "n": 16,
-      "hit": 13,
-      "miss": 3,
-      "pct": 0.8125,
-      "units": 11.85,
-      "roi": 0.7406
+      "n": 31,
+      "hit": 19,
+      "miss": 12,
+      "pct": 0.6129,
+      "units": 8.96,
+      "roi": 0.289
      },
      "MED": {
-      "n": 7,
-      "hit": 7,
-      "miss": 0,
-      "pct": 1.0,
-      "units": 7.72,
-      "roi": 1.1031
+      "n": 30,
+      "hit": 17,
+      "miss": 13,
+      "pct": 0.5667,
+      "units": 2.56,
+      "roi": 0.0853
      },
      "LOW": {
       "n": 1,
@@ -812,7 +812,7 @@
       "pre_over": 0,
       "pre_under": 12,
       "over": 0,
-      "under": 2,
+      "under": 12,
       "alarm": true
      },
      {
@@ -820,7 +820,7 @@
       "pre_over": 0,
       "pre_under": 3,
       "over": 0,
-      "under": 1,
+      "under": 3,
       "alarm": true
      },
      {
@@ -828,7 +828,7 @@
       "pre_over": 0,
       "pre_under": 22,
       "over": 0,
-      "under": 3,
+      "under": 22,
       "alarm": true
      },
      {
@@ -868,7 +868,7 @@
       "pre_over": 0,
       "pre_under": 2,
       "over": 0,
-      "under": 1,
+      "under": 2,
       "alarm": true
      },
      {
@@ -876,7 +876,7 @@
       "pre_over": 0,
       "pre_under": 2,
       "over": 0,
-      "under": 1,
+      "under": 2,
       "alarm": true
      },
      {
@@ -884,7 +884,7 @@
       "pre_over": 0,
       "pre_under": 4,
       "over": 0,
-      "under": 1,
+      "under": 4,
       "alarm": true
      },
      {
@@ -908,7 +908,7 @@
       "pre_over": 0,
       "pre_under": 2,
       "over": 0,
-      "under": 1,
+      "under": 2,
       "alarm": true
      },
      {
@@ -940,7 +940,7 @@
       "pre_over": 0,
       "pre_under": 2,
       "over": 0,
-      "under": 1,
+      "under": 2,
       "alarm": true
      },
      {
