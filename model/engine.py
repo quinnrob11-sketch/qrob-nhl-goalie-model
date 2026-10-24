@@ -30,22 +30,39 @@ LEAGUE_SV = 0.900
 
 @dataclass
 class Params:
-    half_life: float = 20.0     # games; recency weighting of team shot rates
-    k_team: float = 10.0        # prior strength (games at league average)
+    """Defaults are the fitted values in model/output/params.json (a test keeps them equal)."""
+    half_life: float = 30.0     # games; recency weighting of team shot rates
+    k_team: float = 3.0         # prior strength (games at league average)
     carry: float = 0.35         # share of last season's evidence kept at a new season
     a: float = 0.85             # weight of own team's shots-against
-    b: float = 0.65             # weight of opponent's shots-for
-    k_sv: float = 1500.0        # save% prior strength, in shots
-    sv_half_life: float = 60.0  # starts; recency weighting of save%
+    b: float = 0.9              # weight of opponent's shots-for
+    k_sv: float = 4000.0        # save% prior strength, in shots
+    sv_half_life: float = 120.0  # starts; recency weighting of save%
     k_share: float = 15.0       # prior strength for time-in-net share, in starts
-    home: float = 1.0           # multiplier on exp_SA when the goalie is home (fitted)
-    playoff: float = 1.0        # multiplier in playoffs (fitted)
-    b2b: float = 1.0            # multiplier when goalie's team played yesterday (fitted)
-    opp_b2b: float = 1.0        # multiplier when the OPPONENT played yesterday (tired teams shoot less)
+    home: float = 0.9817        # multiplier on exp_SA when the goalie is home (fitted)
+    playoff: float = 1.007      # multiplier in playoffs (fitted)
+    b2b: float = 1.0129         # multiplier when goalie's team played yesterday (fitted)
+    opp_b2b: float = 0.9678     # multiplier when the OPPONENT played yesterday (tired teams shoot less)
     lg_half_life: float = 693.0  # team-games; recency weighting of the league shots-per-game average
 
     def to_dict(self):
         return asdict(self)
+
+    @classmethod
+    def load(cls, path: str) -> "Params":
+        """Fitted params from JSON. A missing file is an error, never a silent fall back to defaults;
+        bookkeeping keys (frozen_at, frozen_hash) are ignored."""
+        return cls(**load_fields(cls, path))
+
+
+def load_fields(cls, path: str) -> dict:
+    import json
+    import os
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"model params file missing: {path} (refusing to fall back to defaults)")
+    raw = json.load(open(path))
+    names = set(cls.__dataclass_fields__)
+    return {k: v for k, v in raw.items() if k in names}
 
 
 class Decayed:

@@ -34,17 +34,23 @@ TRAIN, TEST = 2025, 2026
 
 @dataclass
 class SogParams:
-    rate_hl: float = 30.0     # games; half-life of shots/60
-    toi_hl: float = 8.0       # games; half-life of TOI
-    k_min: float = 200.0      # prior strength for shots/60, in minutes at position average
-    k_toi: float = 3.0        # prior strength for TOI, in games
+    """Defaults are the fitted values in model/output/sog_params.json (a test keeps them equal)."""
+    rate_hl: float = 60.0     # games; half-life of shots/60
+    toi_hl: float = 16.0      # games; half-life of TOI
+    k_min: float = 100.0      # prior strength for shots/60, in minutes at position average
+    k_toi: float = 1.0        # prior strength for TOI, in games
     carry: float = 0.5        # share of last season's evidence kept at a new season
-    c_opp: float = 0.5        # weight of the opponent's shots-allowed factor
-    home: float = 1.0         # home multiplier (fitted from residuals)
+    c_opp: float = 1.0        # weight of the opponent's shots-allowed factor
+    home: float = 1.0195      # home multiplier (fitted from residuals)
     disp: float = 12.0        # negative-binomial size (larger = closer to Poisson)
 
     def to_dict(self):
         return asdict(self)
+
+    @classmethod
+    def load(cls, path: str) -> "SogParams":
+        import engine
+        return cls(**engine.load_fields(cls, path))
 
 
 class D:
@@ -296,7 +302,7 @@ def main():
     s = load([2024, TRAIN, TEST])
     ppath = os.path.join(OUT, "sog_params.json")
     if "--no-fit" in sys.argv and os.path.exists(ppath):
-        p = SogParams(**json.load(open(ppath)))
+        p = SogParams.load(ppath)
     else:
         print("Fitting SOG model on 2024-25 ...")
         p, _ = fit(s)

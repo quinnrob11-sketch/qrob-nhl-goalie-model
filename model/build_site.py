@@ -255,8 +255,7 @@ def _np(o):
     raise TypeError(type(o))
 
 
-DIST = json.load(open(os.path.join(OUT, "saves_dist.json"))) if os.path.exists(os.path.join(OUT, "saves_dist.json")) \
-    else dict(saves_dist.DEFAULTS)
+DIST = saves_dist.load(os.path.join(OUT, "saves_dist.json"))
 PRICES = os.path.join(HERE, "data", "dk_prices.csv")
 
 
@@ -300,7 +299,7 @@ def main():
     latest = int(have[-1])
 
     ppath = os.path.join(OUT, "params.json")
-    p = engine.Params(**json.load(open(ppath))) if os.path.exists(ppath) else engine.Params()
+    p = engine.Params.load(ppath)
     df, state = engine.run(tg, st_df, p)
     # Preseason: the new season hasn't started in the data yet, so apply the
     # same between-season regression the backtest uses.
@@ -309,7 +308,7 @@ def main():
 
     display_season = latest
     report = json.load(open(os.path.join(OUT, "backtest.json")))
-    sp = sog.SogParams(**json.load(open(os.path.join(OUT, "sog_params.json"))))
+    sp = sog.SogParams.load(os.path.join(OUT, "sog_params.json"))
     skater_df = sog.load(years)
     sog_rows, sst = sog.run(skater_df, sp, record_from=cur)   # this season's walk-forward SOG projections (calibration replay)
     if latest < cur:
