@@ -66,6 +66,8 @@ tr.over{background:var(--over-bg)} tr.under{background:var(--under-bg)} tr.dim t
 .stat .k{font-size:12px;color:var(--text-2)} .stat .v{font-size:26px;font-weight:650;margin-top:2px} .stat .s{font-size:12px;color:var(--muted)}
 .hero .v{font-size:48px}
 .muted{color:var(--muted)} .good{color:var(--over)} .bad{color:var(--under)}
+.alarm{background:var(--under-bg);color:var(--text);border-left:4px solid var(--under);padding:10px 12px;border-radius:6px;font-size:13px;margin-bottom:10px}
+.alarm b.hd{color:var(--under)}
 .chart{width:100%;height:auto;display:block}
 .chart text{fill:var(--text-2);font-size:11px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--text-2);margin:6px 0}
@@ -118,6 +120,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
       <label>Side<select id="sideF"><option value="">Both</option><option>OVER</option><option>UNDER</option></select></label>
       <label>Date<select id="dateF"></select></label>
     </div>
+    <div id="alarmSaves"></div>
     <div class="tbl"><table id="slateT"></table></div>
     <p class="muted" id="slateEmpty" style="display:none">No NHL schedule in this build yet. It fills in once the season's games are published. Use the matchup builder below meanwhile.</p>
   </div>
@@ -141,6 +144,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   <div class="note" id="resNote"></div>
   <div class="stats" id="resStats" style="margin-bottom:16px"></div>
   <div class="card"><h2>Night by night</h2><div class="tbl"><table id="resDays"></table></div></div>
+  <div class="card"><h2>Board balance: plays by side, per night</h2><p class="sub">Graded plays per night and market. <span class="bad">Red</span> = more than 75% on one side. "Alarm" = the one-sided board alarm fired at pick time and kept only that night's top 10% of plays by EV (logged from the 2026-10-24 build on).</p><div class="tbl" style="max-height:420px;overflow:auto"><table id="resSplit"></table></div></div>
   <div class="grid2">
     <div class="card"><h2>Saves, real lines</h2><div class="tbl"><table id="resSaves"></table></div></div>
     <div class="card"><h2>SOG, real lines</h2><div class="tbl"><table id="resSog"></table></div></div>
@@ -179,6 +183,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
       <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="sPlays"> Plays only</label>
       <label>Players per team<select id="sTop"><option>8</option><option>12</option><option value="99">All</option></select></label>
     </div>
+    <div id="alarmSog"></div>
     <div class="tbl"><table id="sogT"></table></div>
   </div>
   <div class="card"><h2>Backtest</h2>
@@ -312,7 +317,8 @@ function tier(e){ e = Math.abs(e); return e >= 2.5 ? "HIGH" : e >= 1.5 ? "MED" :
 const MARGIN = 0.02;
 const DIST = Object.assign({nb_k: 30, gs: 0.01, gs_cap: 0.12, sd_floor: 6}, D.dist || {});
 const CAL = (D.calib && D.calib.markets) || {};
-const RULE = Object.assign({margin: 0.02, margin_sog: 0.03, sog_gap: 0.15, sog_gap_ev: 0.05, blend_w: 0.6}, D.pricing || {});
+const RULE = Object.assign({margin: 0.02, margin_sog: 0.03, sog_gap: 0.15, sog_gap_ev: 0.05, blend_w: 0.6,
+  alarm_share: 0.75, alarm_top: 0.10, alarm_min_plays: 2}, D.pricing || {});
 const DFS = Object.assign({legs: 2, payout: 3, sub1x: false}, store.get("gm_dfs", {}));
 const hasVal = v => v !== undefined && v !== null && v !== "" && !isNaN(+v);
 const impliedP = o => !hasVal(o) ? null : (+o < 0 ? -o / (-o + 100) : 100 / (+o + 100));
@@ -343,6 +349,23 @@ function decide(market, pOverRaw, o = {}){
   best.tier = best.play ? evTier(best.ev, c.tier_cap) : "PASS";
   best.pModel = pm; best.pMkt = mk;
   return best;
+}
+// one-sided board alarm (mirrors pricing.night_alarm): per market per night, if more than alarm_share of the
+// plays are on one side, only that night's top alarm_top of plays by EV stay plays
+function nightAlarm(ds){
+  const p = ds.filter(d => d && d.play), ev = p.map(d => d.ev).sort((a, b) => b - a), n = ev.length;
+  const over = p.filter(d => d.side === "OVER").length, share = n ? Math.max(over, n - over) / n : 0;
+  const alarm = n >= RULE.alarm_min_plays && share > RULE.alarm_share, keep = alarm ? Math.max(1, Math.ceil(RULE.alarm_top * n)) : n;
+  return {plays: n, over, under: n - over, share, side: over * 2 > n ? "OVER" : over * 2 < n ? "UNDER" : "even", alarm, keep, thr: alarm ? ev[keep - 1] : null};
+}
+function applyAlarm(d, a){ if (d && a && a.alarm && d.play && d.ev < a.thr - 1e-12){ d.play = false; d.tier = "PASS"; d.alarm = true; } return d; }
+function alarmByDate(items){
+  const by = {}; for (const it of items) (by[it.date] = by[it.date] || []).push(it.d);
+  return Object.fromEntries(Object.entries(by).map(([k, ds]) => [k, nightAlarm(ds)]));
+}
+function alarmBanner(label, A, dateF){
+  return Object.entries(A || {}).filter(([d, a]) => a.alarm && (!dateF || d === dateF)).sort().map(([d, a]) =>
+    `<div class="alarm"><b class="hd">⚠ One-sided board: ${label}, ${d}.</b> ${a.side === "UNDER" ? a.under : a.over} of ${a.plays} plays are <b class="${a.side === "OVER" ? "good" : "bad"}">${a.side}</b> (${pct(a.share, 0)}; OVER ${a.over} / UNDER ${a.under}). When the board leans this hard the lean is more likely the model than the slate, so only the top ${pct(RULE.alarm_top, 0)} by EV stay plays: ${a.keep} kept, ${a.plays - a.keep} moved to PASS.</div>`).join("");
 }
 const evTxt = d => !d || d.kind === "none" ? "–" : (d.ev > 0 ? "+" : "") + (100 * d.ev).toFixed(1) + "%";
 const priceTxt = d => !d ? "" : d.kind === "book" ? amer(d.price) : d.kind === "dfs" ? d.mult + "x" : "";
@@ -499,6 +522,9 @@ function slateRows(){
                  pWin: wp.p, pWinSrc: wp.src, key, line, lineSrc, pp, dk, src: st.src, confirmed, edge, po, d});
     }
   }
+  const A = alarmByDate(rows.map(r => ({date: r.g.date, d: r.d})));
+  rows.forEach(r => applyAlarm(r.d, A[r.g.date]));
+  rows.alarm = A;
   return rows;
 }
 function renderSlate(){
@@ -518,7 +544,9 @@ function renderSlate(){
   $("#slateEmpty").style.display = D.slate.length ? "none" : "block";
   if (!D.slate.length){ $("#slateT").innerHTML = ""; return; }
   const minEV = +$("#minEdge").value / 100, sideF = $("#sideF").value, dateF = dSel.value, onlyPlays = $("#playsOnly").checked;
-  let rows = slateRows().filter(r => !dateF || r.g.date === dateF);
+  const all = slateRows();
+  $("#alarmSaves").innerHTML = alarmBanner("saves", all.alarm, dateF);
+  let rows = all.filter(r => !dateF || r.g.date === dateF);
   rows.sort((a,b) => ((b.d && b.d.play ? b.d.ev : -9) - (a.d && a.d.play ? a.d.ev : -9)) || ((b.d ? b.d.ev : -9) - (a.d ? a.d.ev : -9)) || b.proj - a.proj);
   let html = `<thead><tr><th class="l">Game</th><th class="l">Goalie</th><th>Exp SA</th><th>SV%</th><th>Proj saves</th><th>Line · price</th><th class="l">Pick</th><th>P (calibrated)</th><th>Break-even</th><th>EV</th><th class="l">Tier</th><th></th></tr></thead><tbody>`;
   let shown = 0;
@@ -814,6 +842,10 @@ function renderResults(){
   $("#resDays").innerHTML = `<thead><tr><th class="l">Date</th><th>Plays</th><th>Plays units</th><th>Saves (all lines)</th><th>SOG (all lines)</th><th>Winners</th></tr></thead><tbody>` +
     T.days.map(d => `<tr><td class="l">${d.date}</td><td><b>${rec(d.plays)}</b> ${rp(d.plays)}</td><td>${un(d.plays)}</td><td>${rec(d.saves)} ${rp(d.saves)}</td><td>${rec(d.sog)} ${rp(d.sog)}</td><td>${rec(d.winner)}</td></tr>`).join("") +
     `<tr><td class="l"><b>Total</b></td><td><b>${rec(T.plays)}</b> ${rp(T.plays)}</td><td>${un(T.plays)}</td><td>${rec(S.all)} ${rp(S.all)}</td><td>${rec(K.all)} ${rp(K.all)}</td><td>${rec(Wn.all)}</td></tr></tbody>`;
+  const SP_ = T.board_split || [];
+  $("#resSplit").innerHTML = SP_.length ? `<thead><tr><th class="l">Date</th><th class="l">Market</th><th>Plays</th><th>OVER</th><th>UNDER</th><th>One side</th><th class="l">Alarm at pick time</th><th>Record</th><th>Units</th></tr></thead><tbody>` +
+    SP_.map(s => `<tr><td class="l">${s.date}</td><td class="l">${s.market}</td><td>${s.plays}</td><td class="good">${s.over}</td><td class="bad">${s.under}</td><td class="${s.one_sided ? "bad" : ""}">${pct(s.share, 0)} ${s.over > s.under ? "OVER" : s.under > s.over ? "UNDER" : ""}</td><td class="l">${s.alarm == null ? '<span class="muted">not logged</span>' : s.alarm ? `<span class="bad">fired</span> <span class="muted">(${s.pre_alarm.over}/${s.pre_alarm.under} before)</span>` : "no"}</td><td>${rec(s.rec)}</td><td>${un(s.rec)}</td></tr>`).join("") + "</tbody>"
+    : `<tbody><tr><td class="muted">No graded plays yet.</td></tr></tbody>`;
   const row = (lab, r, cls = "") => `<tr class="${cls}"><td class="l">${lab}</td><td>${rec(r)}</td><td>${rp(r)}</td><td>${un(r)}</td><td>${roi(r)}</td><td class="muted">${r && r.priced ? r.priced : "–"}</td></tr>`;
   const head = `<thead><tr><th class="l"></th><th>Record</th><th>Hit %</th><th>Units</th><th>ROI</th><th>Priced</th></tr></thead><tbody>`;
   const mkT = X => head +
@@ -941,27 +973,40 @@ function sogLineFor(pl, team, date){
   return {line: null, src: ""};
 }
 const SOGM = store.get("gm_sogm", {});   // per-line DFS multiplier you set (Pick6 / PrizePicks)
+function sogDecision(g, team, opp, home, pl){
+  const proj = pl.r60 / 60 * pl.toi * (D.sog.opp[opp] ?? 1) * (home ? SP.home : 1 / SP.home);
+  const L = sogLineFor(pl, team, g.date), mk = g.date + "|" + pl.id;
+  let po = null, d = null;
+  if (L.line != null){
+    po = sogOver(proj, L.line);
+    const m = SOGM[mk] || {};
+    d = decide("sog", po, Object.assign({proj, line: L.line}, L.src === "DK" ? {over: L.over, under: L.under} : {multOver: m.o ?? 1, multUnder: m.u ?? 1}));
+  }
+  return {proj, L, mk, po, d};
+}
+// the night's SOG board split counts every line on the slate, not just the rows the filters show
+function sogAlarm(){
+  const items = [];
+  for (const g of D.slate) for (const [team, opp, home] of [[g.away, g.home, false], [g.home, g.away, true]])
+    for (const pl of D.sog.players[team] || []){ const x = sogDecision(g, team, opp, home, pl); if (x.d) items.push({date: g.date, d: x.d}); }
+  return alarmByDate(items);
+}
 function renderSOG(){
   const sel = $("#sGame");
   if (sel.options.length === 1) sel.innerHTML += D.slate.map(g => `<option value="${g.date}|${g.id}">${g.date.slice(5)} ${g.away} @ ${g.home}</option>`).join("");
   const nDK = (D.dk_sog || []).length, c = CAL.sog || {};
   $("#sogNote").innerHTML = `Projection = shots/60 × expected TOI × opponent shots-allowed factor × home/road. P(over) uses a negative binomial (it fits real shot counts better than a Poisson in every season tested). That probability is then <b>calibrated</b> on every graded real line${c.cal ? ` (${c.cal.n} so far)` : ""}, and a side is a play only when it beats the price's break-even by ${pct(RULE.margin_sog, 0)}. The projection must also sit at least ${RULE.sog_gap} shots past the line in the play direction (under only if projection ≤ line − ${RULE.sog_gap}) unless EV is ${pct(RULE.sog_gap_ev, 0)}+, because on a 1.5 or 2.5 line a count model already leans under when the projection equals the line. DraftKings lines carry their real price; PrizePicks and your own lines are priced as DFS legs at the multiplier you set (1x by default, and sub-1x sides never qualify unless you allow them above). Sorted by EV. ${c.tier_cap === "LOW" ? "<b>Tiers are capped at LOW</b>: on graded history HIGH/MED haven't beaten LOW yet." : ""} Lines: your entry, then DraftKings (${nDK} this build), then the PrizePicks board pulled live in your browser${PP_SOG.length ? ` (${PP_SOG.length} SOG props)` : ""}.`;
   const gSel = sel.value, pos = $("#sPos").value, minEV = +$("#sMinP").value / 100, top = +$("#sTop").value, onlyPlays = $("#sPlays").checked;
-  const rows = [];
+  const rows = [], A = sogAlarm();
+  $("#alarmSog").innerHTML = alarmBanner("SOG", A, gSel ? gSel.split("|")[0] : "");
   for (const g of D.slate){
     if (gSel && gSel !== g.date + "|" + g.id) continue;
     for (const [team, opp, home] of [[g.away, g.home, false], [g.home, g.away, true]]){
       const list = (D.sog.players[team] || []).filter(p => !pos || p.pos === pos).slice(0, top);
       for (const pl of list){
         if (!matchQ(pl.name, team, opp)) continue;
-        const proj = pl.r60 / 60 * pl.toi * (D.sog.opp[opp] ?? 1) * (home ? SP.home : 1 / SP.home);
-        const L = sogLineFor(pl, team, g.date), mk = g.date + "|" + pl.id;
-        let po = null, d = null;
-        if (L.line != null){
-          po = sogOver(proj, L.line);
-          const m = SOGM[mk] || {};
-          d = decide("sog", po, Object.assign({proj, line: L.line}, L.src === "DK" ? {over: L.over, under: L.under} : {multOver: m.o ?? 1, multUnder: m.u ?? 1}));
-        }
+        const {proj, L, mk, po, d} = sogDecision(g, team, opp, home, pl);
+        applyAlarm(d, A[g.date]);
         if (onlyPlays && !(d && d.play && d.ev >= minEV)) continue;
         rows.push({g, team, opp, home, pl, proj, L, po, d, mk});
       }

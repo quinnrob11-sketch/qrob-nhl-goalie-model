@@ -59,5 +59,33 @@ class SogRule(unittest.TestCase):
         self.assertGreater(pricing.MARGIN_SOG, pricing.MARGIN)
 
 
+class OneSidedAlarm(unittest.TestCase):
+    def test_alarm_keeps_top_ten_percent(self):
+        ds = [{"side": "UNDER", "ev": e, "play": True} for e in (.10, .09, .05, .04, .03, .03, .02, .02, .025, .06, .02)]
+        ds.append({"side": "OVER", "ev": .03, "play": True})
+        a = pricing.night_alarm(ds)
+        self.assertTrue(a["alarm"]); self.assertEqual(a["kept"], 2); self.assertEqual((a["over"], a["under"]), (1, 11))
+        for d in ds:
+            pricing.apply_alarm(d, a)
+        self.assertEqual(sorted(d["ev"] for d in ds if d["play"]), [.09, .10])
+        self.assertTrue(all(d["tier"] == "PASS" for d in ds if not d["play"]))
+
+    def test_balanced_board_untouched(self):
+        ds = [{"side": s, "ev": .04, "play": True} for s in ("OVER", "UNDER", "OVER", "UNDER")]
+        a = pricing.night_alarm(ds)
+        self.assertFalse(a["alarm"])
+        self.assertTrue(all(pricing.apply_alarm(d, a)["play"] for d in ds))
+
+    def test_tracker_freezes_started_games(self):
+        import tracker
+        mk = lambda side, ev: {"side": side, "ev": ev, "play": True, "tier": "LOW"}
+        day = {"games": {"1": {"saves": [mk("UNDER", .09), mk("UNDER", .03)], "sog": []},
+                         "2": {"saves": [mk("UNDER", .04), mk("UNDER", .05)], "sog": []}}}
+        a = tracker.night_board(day, fresh={"2"})
+        self.assertTrue(a["saves"]["alarm"])
+        self.assertTrue(day["games"]["1"]["saves"][1]["play"])           # started game: frozen
+        self.assertFalse(any(r["play"] for r in day["games"]["2"]["saves"]))  # below the night's top 10% EV
+
+
 if __name__ == "__main__":
     unittest.main()

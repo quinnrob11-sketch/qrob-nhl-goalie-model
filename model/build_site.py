@@ -294,7 +294,7 @@ def main():
     report = json.load(open(os.path.join(OUT, "backtest.json")))
     sp = sog.SogParams(**json.load(open(os.path.join(OUT, "sog_params.json"))))
     skater_df = sog.load(years)
-    _, sst = sog.run(skater_df, sp, record_from=10**6)
+    sog_rows, sst = sog.run(skater_df, sp, record_from=cur)   # this season's walk-forward SOG projections (calibration replay)
     if latest < cur:
         sst.new_season(cur)
     bt = pd.read_csv(os.path.join(OUT, "backtest_games.csv"))
@@ -382,7 +382,8 @@ def main():
         payload["tracking"] = json.load(open(tracker.OUT)) if os.path.exists(tracker.OUT) else None
     try:
         payload["calib"] = calibrate.fit(tracker._read_log(), saves_rows(df, cur), DIST,
-                                         pd.read_csv(PRICES) if os.path.exists(PRICES) else None)
+                                         pd.read_csv(PRICES) if os.path.exists(PRICES) else None,
+                                         sog_rows=sog_rows, sog_disp=sp.disp)
         with open(os.path.join(OUT, "calibration.json"), "w") as f:
             json.dump(payload["calib"], f, indent=1, default=_np)
     except Exception as e:

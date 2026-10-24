@@ -4,7 +4,8 @@ For each market (saves, SOG) it takes every graded real line in real_line_log.cs
 price, plus the model's raw P(over) for it:
   * saves: recomputed with the CURRENT saves model (walk-forward engine rows, no lookahead), so the
     calibration always matches the model in use;
-  * SOG: the P(over) logged at pick time.
+  * SOG: recomputed with the CURRENT SOG model (walk-forward sog.run rows), falling back to the
+    P(over) logged at pick time for lines that don't match a projection.
 
 Outputs (model/output/calibration.json, shown on the Backtest tab):
   * calibration per market, fitted on all graded history (used for tonight's picks). It is
@@ -101,8 +102,10 @@ def _buckets(p_side, win):
     return [{"bucket": str(i), "pred": round(r.pred, 3), "actual": round(r.act, 3), "n": int(r.n)} for i, r in b.iterrows()]
 
 
-def lines_frame(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict) -> pd.DataFrame:
-    """Graded, priced DraftKings lines with the model's raw P(over)."""
+def lines_frame(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict,
+                sog_rows: pd.DataFrame | None = None, sog_disp: float | None = None) -> pd.DataFrame:
+    """Graded, priced DraftKings lines with the model's raw P(over), recomputed with the CURRENT models
+    (walk-forward rows) where they match; otherwise the P(over) logged at pick time."""
     rows = [r for r in log if r.get("book") == "DraftKings" and r.get("result") in ("HIT", "MISS", "PUSH")
             and r.get("price") not in (None, "") and r["market"] in ("saves", "sog")]
     df = pd.DataFrame(rows)
@@ -125,6 +128,17 @@ def lines_frame(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict
                                                          on=["date", "key", "team"], how="left").set_index("index")
         newp = [saves_dist.p_over(**_sp(r, dist_prm)) if r.exp_sa == r.exp_sa else np.nan for r in m.itertuples()]
         df.loc[m.index, "p_over"] = newp
+    if sog_rows is not None and len(sog_rows):
+        import tracker
+        s = sog_rows.copy()
+        s["date"] = pd.to_datetime(s.date).dt.strftime("%Y-%m-%d")
+        s["key"] = s.player.map(prizepicks.name_key)
+        s = s.drop_duplicates(["date", "key", "team"])
+        df["key"] = df.player.map(prizepicks.name_key)
+        m = df[df.market == "sog"].reset_index().merge(s[["date", "key", "team", "proj"]], on=["date", "key", "team"],
+                                                     how="inner").set_index("index")
+        df.loc[m.index, "p_over"] = [tracker.sog_p_over(pj, ln, sog_disp or 12.0) for pj, ln in zip(m.proj, m.line)]
+        df.loc[m.index, "model_proj"] = m.proj.values
     return df.dropna(subset=["p_over", "price", "actual"])
 
 
@@ -144,7 +158,7 @@ def _side_buckets(p_over, went_over, push):
 
 def replay(x: pd.DataFrame, mk: str) -> pd.DataFrame:
     """Walk-forward: each week's lines are calibrated on earlier weeks only, then decided with the live
-    rule (pricing.decide). Returns one row per line with the decision and its result."""
+    rule (pricing.decide) and the one-sided night alarm. Returns one row per line with the decision and its result."""
     y = x.went_over.values; push = x.push.values
     rows = []
     for wk in sorted(x.wk.unique()):
@@ -155,6 +169,15 @@ def replay(x: pd.DataFrame, mk: str) -> pd.DataFrame:
             rows.append({"idx": r.Index, "date": r.date, "side": d["side"], "p": d["p"], "ev": d["ev"], "play": d["play"],
                          "tier": pricing.tier(d["ev"]) if d["play"] else "PASS", "price": r.over if d["side"] == "OVER" else r.under,
                          "p_cal_over": d["p_model"], "p_final_over": d["p"] if d["side"] == "OVER" else 1 - d["p"]})
+    # one-sided board alarm, per night, exactly as the tracker applies it
+    for d in sorted({r["date"] for r in rows}):
+        night = [r for r in rows if r["date"] == d]
+        al = pricing.night_alarm(night)
+        for r in night:
+            r["play_raw"] = r["play"]
+            pricing.apply_alarm(r, al)
+            if r.get("alarm"):
+                r["tier"] = "PASS"
     out = pd.DataFrame(rows).set_index("idx").loc[x.index]
     out["win"] = np.where(out.side == "OVER", x.went_over, ~x.went_over)
     out["push"] = push
@@ -170,8 +193,9 @@ def _by_side(r: pd.DataFrame, m) -> dict:
             "unders": _rec(r.win.values[u], r.prof.values[u], r.push.values[u])}
 
 
-def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices: pd.DataFrame | None = None) -> dict:
-    df = lines_frame(log, saves_rows, dist_prm)
+def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices: pd.DataFrame | None = None,
+        sog_rows: pd.DataFrame | None = None, sog_disp: float | None = None) -> dict:
+    df = lines_frame(log, saves_rows, dist_prm, sog_rows, sog_disp)
     out = {"updated": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "markets": {},
            "rule": {"blend_w": pricing.BLEND_W, "min_cal_n": pricing.MIN_CAL_N}}
     if df.empty:
@@ -220,6 +244,14 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
         raw_so = x.p_over.values >= 0.5
         new = _by_side(r, play)
         new["tiers"] = tiers
+        new["before_alarm"] = _by_side(r, r.play_raw.values)
+        nights = []
+        for d, g in r.groupby("date"):
+            pre, post = g.play_raw.values.astype(bool), g.play.values.astype(bool)
+            nights.append({"date": str(d), "pre_over": int((pre & (g.side == "OVER").values).sum()), "pre_under": int((pre & (g.side == "UNDER").values).sum()),
+                           "over": int((post & (g.side == "OVER").values).sum()), "under": int((post & (g.side == "UNDER").values).sum()),
+                           "alarm": bool(g.get("alarm", pd.Series(dtype=object)).fillna(False).astype(bool).any())})
+        new["nights"] = nights
         out["markets"][mk] = {
             "cal": cal, "platt_ref": platt_fit(x.p_over.values, x.went_over.values), "tier_cap": None if ok else "LOW", "tiers_ok": bool(ok),
             "new": new, "old": old, "blind_under": blind_under,

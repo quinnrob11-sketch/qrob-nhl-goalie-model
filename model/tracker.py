@@ -202,12 +202,32 @@ def snapshot(payload, now: dt.datetime | None = None):
         cur = json.load(open(path)) if os.path.exists(path) else {"date": date, "games": {}}
         for g in games:
             cur["games"][str(g["id"])] = calls_for_game(payload, g)
+        cur["alarm"] = night_board(cur, {str(g["id"]) for g in games})
         cur["built"] = payload["built"]
         cur["sd"] = payload["sd"]
         cur["sog_disp"] = payload["sog"]["params"]["disp"]
         with open(path, "w") as f:
             json.dump(cur, f, separators=(",", ":"))
     return sorted(by_date)
+
+
+def night_board(day: dict, fresh: set) -> dict:
+    """One-sided board alarm per market for one night (pricing.night_alarm). The split counts every
+    game on the night; only games not yet started (`fresh`) have plays demoted, started games stay frozen."""
+    out = {}
+    for mk in ("saves", "sog"):
+        rows = [(gid, r) for gid, g in day["games"].items() for r in g.get(mk, []) if r.get("side")]
+        for gid, r in rows:
+            if gid in fresh:
+                r["play_raw"] = r.get("play", False)
+        dec = [{"side": r["side"], "ev": r.get("ev") or 0.0, "play": r.get("play_raw", r.get("play", False))} for _, r in rows]
+        a = pricing.night_alarm(dec)
+        for gid, r in rows:
+            if gid in fresh:
+                r["play"] = r["play_raw"]
+                pricing.apply_alarm(r, a)
+        out[mk] = a
+    return out
 
 
 # ---------- grading ----------
@@ -279,9 +299,12 @@ def grade(years, today: dt.date | None = None):
     model_rows = []        # one row per graded game/side/player, for model-accuracy stats
     notes = {}             # (date, market, player, team) -> auto reason
 
+    alarms = {}            # date -> market -> board split at pick time (one-sided alarm)
     for path in sorted(glob.glob(os.path.join(CALLS, "*.json"))):
         day = json.load(open(path))
         sd, disp = day["sd"], day["sog_disp"]
+        if day.get("alarm"):
+            alarms[day["date"]] = day["alarm"]
         for gid, c in day["games"].items():
             if int(gid) not in final:
                 continue
@@ -384,7 +407,7 @@ def grade(years, today: dt.date | None = None):
         if r["result"] == "MISS" and auto and auto not in (r.get("note") or ""):
             r["note"] = "; ".join(x for x in (r.get("note"), auto) if x)
     _write_log(log)
-    summary = summarize(log, model_rows)
+    summary = summarize(log, model_rows, alarms)
     with open(OUT, "w") as f:
         json.dump(summary, f, separators=(",", ":"))
     return summary
@@ -433,7 +456,25 @@ def is_play(r):
 BOOK_PREF = {"Pick6": 0, "PrizePicks": 1, "user quote": 2, "DraftKings": 3}
 
 
-def summarize(log, model_rows):
+def board_split(plays, alarms=None):
+    """Per night and market: graded plays by side, and whether the one-sided alarm fired at pick time."""
+    out = []
+    for d in sorted({r["date"] for r in plays}, reverse=True):
+        for mk in ("saves", "sog"):
+            x = [r for r in plays if r["date"] == d and r["market"] == mk]
+            if not x:
+                continue
+            o = sum(r["side"].upper() in ("OVER", "MORE") for r in x)
+            a = (alarms or {}).get(d, {}).get(mk) or {}
+            out.append({"date": d, "market": mk, "plays": len(x), "over": o, "under": len(x) - o,
+                        "share": round(max(o, len(x) - o) / len(x), 4),
+                        "one_sided": len(x) >= pricing.ALARM_MIN_PLAYS and max(o, len(x) - o) / len(x) > pricing.ALARM_SHARE,
+                        "alarm": a.get("alarm"), "pre_alarm": {k: a.get(k) for k in ("plays", "over", "under")} if a else None,
+                        "rec": _rec(x)})
+    return out
+
+
+def summarize(log, model_rows, alarms=None):
     every = [r for r in log if r.get("result") in ("HIT", "MISS", "PUSH")]
     # the same prop can be logged from more than one book: count it once, preferring the book you
     # actually play (Pick6, then PrizePicks). Every split below uses this same de-duplicated set, so
@@ -474,6 +515,7 @@ def summarize(log, model_rows):
         rows = [r for r in graded if r["date"] == d]
         out["days"].append({"date": d, "plays": _rec([r for r in plays if r["date"] == d]),
                             **{mk: _rec([r for r in rows if r["market"] == mk]) for mk in ("saves", "sog", "winner")}})
+    out["board_split"] = board_split(plays, alarms)
     play_ids = {id(r) for r in plays}
     out["misses"] = [{k: r.get(k) for k in ("date", "market", "player", "team", "opp", "line", "side",
                                             "model_proj", "actual", "tier", "note")}

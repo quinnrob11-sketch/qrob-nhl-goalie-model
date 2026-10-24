@@ -19,6 +19,9 @@ SOG_GAP = 0.15              # SOG play only if the projection sits this far past
 SOG_GAP_EV = 0.05           # ...unless its EV is at least this
 BLEND_W = 0.6               # weight on the model in the market blend (both prices posted)
 MIN_CAL_N = 500             # graded lines before a market's calibration is used at full strength
+ALARM_SHARE = 0.75          # one-sided board: more than this share of a night's plays (per market) on one side...
+ALARM_TOP = 0.10            # ...keeps only that night's top 10% of plays by EV
+ALARM_MIN_PLAYS = 2         # a single play is trivially one-sided; two or more can trip the alarm
 EV_TIERS = (("HIGH", 0.08), ("MED", 0.05), ("LOW", MARGIN))
 DFS_DEFAULT = {"legs": 2, "payout": 3.0}          # 2-pick power play at 3x -> 57.7% per leg
 
@@ -26,7 +29,8 @@ DFS_DEFAULT = {"legs": 2, "payout": 3.0}          # 2-pick power play at 3x -> 5
 def config() -> dict:
     """The decision knobs, exported to the page so its mirror of decide() uses the same values."""
     return {"margin": MARGIN, "margin_sog": MARGIN_SOG, "sog_gap": SOG_GAP, "sog_gap_ev": SOG_GAP_EV,
-            "blend_w": BLEND_W, "min_cal_n": MIN_CAL_N}
+            "blend_w": BLEND_W, "min_cal_n": MIN_CAL_N,
+            "alarm_share": ALARM_SHARE, "alarm_top": ALARM_TOP, "alarm_min_plays": ALARM_MIN_PLAYS}
 
 
 def implied(american) -> float | None:
@@ -111,3 +115,25 @@ def decide(p_over_raw: float, cal: dict | None, over_price=None, under_price=Non
     best["tier"] = tier(best["ev"], cap) if best["play"] else "PASS"
     best["p_model"], best["p_mkt"] = p_model, p_mkt
     return best
+
+
+def night_alarm(decisions: list[dict]) -> dict:
+    """One market, one night. decisions: dicts with side / ev / play. If more than ALARM_SHARE of the
+    plays are on one side, only plays at or above the night's top-ALARM_TOP EV stay plays (`thr`).
+    Returns the split; apply it with apply_alarm."""
+    ev = sorted((d["ev"] for d in decisions if d.get("play")), reverse=True)
+    n = len(ev)
+    over = sum(1 for d in decisions if d.get("play") and d["side"] == "OVER")
+    share = max(over, n - over) / n if n else 0.0
+    alarm = n >= ALARM_MIN_PLAYS and share > ALARM_SHARE
+    keep = max(1, math.ceil(ALARM_TOP * n)) if alarm else n
+    return {"plays": n, "over": over, "under": n - over, "share": round(share, 4),
+            "side": ("OVER" if over * 2 > n else "UNDER" if over * 2 < n else "even") if n else None,
+            "alarm": bool(alarm), "kept": keep, "thr": ev[keep - 1] if alarm else None}
+
+
+def apply_alarm(d: dict, alarm: dict) -> dict:
+    """Demote a play below the night's alarm threshold to PASS (in place)."""
+    if alarm.get("alarm") and d.get("play") and d["ev"] < alarm["thr"] - 1e-12:
+        d.update(play=False, tier="PASS", alarm=True)
+    return d
