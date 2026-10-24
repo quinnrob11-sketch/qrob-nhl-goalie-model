@@ -113,6 +113,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 .sp.OVER{background:var(--over-bg);color:var(--over)} .sp.UNDER{background:var(--under-bg);color:var(--under)} .sp.TEAM{background:var(--accent-soft);color:var(--accent)}
 .capped{display:inline-block;margin-left:4px;font-size:9.5px;color:var(--muted);border:1px dashed var(--border);border-radius:4px;padding:0 3px;vertical-align:1px}
 .board .empty td{color:var(--muted);text-align:left}
+.warn-inline{color:var(--warn);font-weight:600}
 .goal{height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;margin-top:6px}
 .goal i{display:block;height:100%;background:var(--accent)}
 @media (max-width:760px){
@@ -775,15 +776,19 @@ function renderBoard(){
   const mkF = $("#fMk").value, sideF = $("#fSide").value, dateF = $("#dateF").value, plays = $("#fPlays").checked;
   const minP = $("#f60").checked ? 0.60 : (+$("#fMinP").value || 0) / 100;
   const keep = (r, sides = true) => (!dateF || r.date === dateF) && r.prob >= minP - 1e-9 && (!plays || r.play) && (!sides || !sideF || r.side === sideF) && matchQ(...r.q);
-  const S = boardRowsSaves().filter(r => keep(r)), K = boardRowsSog().filter(r => keep(r)), Wn = boardRowsWin().filter(r => keep(r, false));
+  const allS = boardRowsSaves(), allK = boardRowsSog(), allW = boardRowsWin();
+  const S = allS.filter(r => keep(r)), K = allK.filter(r => keep(r)), Wn = allW.filter(r => keep(r, false));
+  // plays the probability filter hides are counted, never hidden silently
+  const hid = (all, sides = true) => all.filter(r => r.play && r.prob < minP - 1e-9 && (!dateF || r.date === dateF) && (!sides || !sideF || r.side === sideF) && matchQ(...r.q)).length;
   $("#cardSaves").style.display = !mkF || mkF === "saves" ? "" : "none";
   $("#cardSog").style.display = !mkF || mkF === "sog" ? "" : "none";
   $("#cardWin").style.display = (!mkF || mkF === "win") && !sideF ? "" : "none";
   boardTable("#bSaves", "saves", S, {label: "saves lines"});
   boardTable("#bSog", "sog", K, {label: "SOG lines"});
   boardTable("#bWin", "win", Wn, {win: true, label: "games"});
-  const cnt = (rows) => `${rows.length} shown · ${rows.filter(r => r.play).length} plays`;
-  $("#nSaves").textContent = cnt(S); $("#nSog").textContent = cnt(K); $("#nWin").textContent = cnt(Wn);
+  const cnt = (rows, h) => `${rows.length} shown · ${rows.filter(r => r.play).length} plays` +
+    (h ? ` · <span class="warn-inline">${h} play${h === 1 ? "" : "s"} below ${Math.round(100 * minP)}% hidden (lower the minimum to see ${h === 1 ? "it" : "them"})</span>` : "");
+  $("#nSaves").innerHTML = cnt(S, hid(allS)); $("#nSog").innerHTML = cnt(K, hid(allK)); $("#nWin").innerHTML = cnt(Wn, hid(allW, false));
   renderStatus();
 }
 function renderStatus(){
