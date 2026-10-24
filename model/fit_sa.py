@@ -92,7 +92,7 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
     tg, st = data.load_all([2024, 2025, 2026, 2027])
-    P0 = engine.Params(**json.load(open(os.path.join(OUT, "params.json"))))
+    P0 = engine.Params.load(os.path.join(OUT, "params.json"))
     D0 = json.load(open(os.path.join(OUT, "saves_dist.json")))
     cap = D0.get("gs_cap", saves_dist.DEFAULTS["gs_cap"])
 

@@ -169,7 +169,7 @@ def main():
     tg, st = data.load_all([2024, TRAIN, TEST])
     ppath = os.path.join(OUT, "params.json")
     if args.no_fit and os.path.exists(ppath):
-        p = engine.Params(**json.load(open(ppath)))
+        p = engine.Params.load(ppath)
     else:
         print("Fitting on 2024-25 ...")
         p = fit(tg, st)

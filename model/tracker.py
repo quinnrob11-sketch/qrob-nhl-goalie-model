@@ -232,22 +232,13 @@ def snapshot(payload, now: dt.datetime | None = None):
     return sorted(by_date)
 
 
-def night_board(day: dict, fresh: set) -> dict:
-    """One-sided board alarm per market for one night (pricing.night_alarm). The split counts every
-    game on the night; only games not yet started (`fresh`) have plays demoted, started games stay frozen."""
+def night_board(day: dict, fresh: set | None = None) -> dict:
+    """One-sided board warning per market for one night (pricing.night_alarm), counting every game on
+    the night. Display only: it never changes a play. (`fresh` is kept for callers; unused.)"""
     out = {}
     for mk in ("saves", "sog"):
-        rows = [(gid, r) for gid, g in day["games"].items() for r in g.get(mk, []) if r.get("side")]
-        for gid, r in rows:
-            if gid in fresh:
-                r["play_raw"] = r.get("play", False)
-        dec = [{"side": r["side"], "ev": r.get("ev") or 0.0, "play": r.get("play_raw", r.get("play", False))} for _, r in rows]
-        a = pricing.night_alarm(dec)
-        for gid, r in rows:
-            if gid in fresh:
-                r["play"] = r["play_raw"]
-                pricing.apply_alarm(r, a)
-        out[mk] = a
+        rows = [r for g in day["games"].values() for r in g.get(mk, []) if r.get("side")]
+        out[mk] = pricing.night_alarm([{"side": r["side"], "play": r.get("play", False)} for r in rows])
     return out
 
 
@@ -514,6 +505,20 @@ def is_play(r):
     return r["market"] == "sog" and _tier(r) not in ("PASS", "")
 
 
+PROB_BUCKETS = (("<55", 0, .55), ("55-60", .55, .60), ("60-65", .60, .65), ("65+", .65, 2))
+FORWARD_GOAL = 150         # forward-graded plays a market needs before tiers above LOW (calibrate.GATE_N)
+
+
+def _p_side(r) -> float:
+    """Probability of the picked side at pick time: calibrated when logged, else the model's."""
+    for k in ("p_cal", "model_p"):
+        try:
+            return float(r[k])
+        except (KeyError, TypeError, ValueError):
+            continue
+    return 0.0
+
+
 BOOK_PREF = {"Pick6": 0, "PrizePicks": 1, "user quote": 2, "DraftKings": 3}
 
 
@@ -564,6 +569,14 @@ def summarize(log, model_rows, alarms=None):
                               "sides": {k: _rec(v) for k, v in sides.items()},
                               "plays_by_side": {k: _rec([r for r in v if is_play(r)]) for k, v in sides.items()},
                               "books": {b or "unknown": _rec([r for r in rows if (r.get("book") or "") == b]) for b in books}}
+        # plays by the probability they had when picked, graded at the line they were picked at
+        # (every winner pick counts; props count their plays)
+        pl = rows if mk == "winner" else [r for r in rows if is_play(r)]
+        out["markets"][mk]["prob_buckets"] = {k: _rec([r for r in pl if lo <= _p_side(r) < hi])
+                                              for k, lo, hi in PROB_BUCKETS}
+        if mk != "winner":
+            fwd = [r for r in pl if r.get("ev") not in (None, "")]
+            out["markets"][mk]["forward"] = {**_rec(fwd), "goal": FORWARD_GOAL}
     # DFS market-basis record: graded at the board's line and multiplier, against the per-leg break-even
     for b in DFS_BOOKS:
         rows = [r for r in graded if r.get("book") == b and r["market"] in ("saves", "sog")]

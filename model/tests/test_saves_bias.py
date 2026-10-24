@@ -26,7 +26,7 @@ class SavesBias(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         tg, st = data.load_all([2025, 2026, 2027])
-        P = engine.Params(**json.load(open(os.path.join(OUT, "params.json"))))
+        P = engine.Params.load(os.path.join(OUT, "params.json"))
         df, _ = engine.run(tg, st, P, record_from_season=2027)
         cls.df = fit_sa.with_pwin(df)
         cls.dist = json.load(open(os.path.join(OUT, "saves_dist.json")))

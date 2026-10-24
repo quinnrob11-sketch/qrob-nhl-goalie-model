@@ -117,7 +117,7 @@ def evaluate(g, prm, season, base_home):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    p = engine.Params(**json.load(open(os.path.join(OUT, "params.json"))))
+    p = engine.Params.load(os.path.join(OUT, "params.json"))
     tg, st = data.load_all([2024, TRAIN, TEST])
     df, _ = engine.run(tg, st, p, record_from_season=TRAIN)
     g = games(df)

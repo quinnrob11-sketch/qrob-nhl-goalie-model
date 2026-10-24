@@ -21,7 +21,17 @@ from __future__ import annotations
 
 import math
 
-DEFAULTS = {"nb_k": 30.0, "gs": 0.01, "gs_cap": 0.12, "sd_floor": 6.0}
+# the fitted values in model/output/saves_dist.json (a test keeps them equal)
+DEFAULTS = {"nb_k": 30.0, "gs": 0.025, "gs_cap": 0.12, "sd_floor": 5.5}
+
+
+def load(path: str) -> dict:
+    """Fitted distribution settings. A missing file is an error, never a silent fall back."""
+    import json
+    import os
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"saves distribution file missing: {path} (refusing to fall back to defaults)")
+    return json.load(open(path))
 
 
 def game_script(exp_sa: float, p_win: float | None, gs: float, cap: float = DEFAULTS["gs_cap"]) -> float:

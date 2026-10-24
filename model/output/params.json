@@ -11,5 +11,7 @@
   "playoff": 1.007,
   "b2b": 1.0129,
   "opp_b2b": 0.9678,
-  "lg_half_life": 693.0
+  "lg_half_life": 693.0,
+  "frozen_at": "2026-10-24",
+  "frozen_hash": "8daeb8b15b523bce"
 }

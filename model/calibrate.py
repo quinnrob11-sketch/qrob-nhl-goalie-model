@@ -186,7 +186,7 @@ def _side_buckets(p_over, went_over, push):
 
 def replay(x: pd.DataFrame, mk: str) -> pd.DataFrame:
     """Walk-forward: each week's lines are calibrated on earlier weeks only, then decided with the live
-    rule (pricing.decide) and the one-sided night alarm. Returns one row per line with the decision and its result."""
+    rule (pricing.decide); the one-sided night warning is recorded, not applied. Returns one row per line with the decision and its result."""
     y = x.went_over.values; push = x.push.values
     rows = []
     for wk in sorted(x.wk.unique()):
@@ -197,15 +197,13 @@ def replay(x: pd.DataFrame, mk: str) -> pd.DataFrame:
             rows.append({"idx": r.Index, "date": r.date, "side": d["side"], "p": d["p"], "ev": d["ev"], "play": d["play"],
                          "tier": pricing.tier(d["ev"]) if d["play"] else "PASS", "price": r.over if d["side"] == "OVER" else r.under,
                          "p_cal_over": d["p_model"], "p_final_over": d["p"] if d["side"] == "OVER" else 1 - d["p"]})
-    # one-sided board alarm, per night, exactly as the tracker applies it
+    # one-sided board warning per night: display only, it never removes a play
     for d in sorted({r["date"] for r in rows}):
         night = [r for r in rows if r["date"] == d]
         al = pricing.night_alarm(night)
         for r in night:
             r["play_raw"] = r["play"]
-            pricing.apply_alarm(r, al)
-            if r.get("alarm"):
-                r["tier"] = "PASS"
+            r["alarm"] = al["alarm"]
     out = pd.DataFrame(rows).set_index("idx").loc[x.index]
     out["win"] = np.where(out.side == "OVER", x.went_over, ~x.went_over)
     out["push"] = push
