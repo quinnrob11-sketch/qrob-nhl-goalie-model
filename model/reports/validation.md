@@ -43,7 +43,7 @@ Since Oct 15 (105 lines), the current model's proj − actual is -1.22. On these
 | saves mean (proj − line) within ±0.5 | -0.61 | ❌ lines sit 0.64 above actual saves, so an unbiased projection can't also be within 0.5 of the line. Moving the projection up to the line would add a 0.6-save over bias. |
 | UNDER share of plays ≤ 75% per market | saves 80.8%, SOG 83.3% (from 91% / 95%) | ❌ per market overall; ✅ enforced per night by the alarm. What's left is real: blind saves unders beat blind overs on every line band, and SOG overs only pay at 3.5+. |
 | saves calibration not driven by intercept | side-split, no intercept (a = 0); shrunk toward identity below 500 lines | ✅ |
-| no test regressions | 17 unit tests pass (new Tests workflow on PRs) | ✅ |
+| no test regressions | 16 unit tests pass (new Tests workflow on PRs) | ✅ |
 | every tab renders, no console errors | all 8 tabs rendered in headless Chromium, 0 errors (only the blocked PrizePicks fetch, which is expected) | ✅ |
 
 ## Which overs and unders to take (evidence)
