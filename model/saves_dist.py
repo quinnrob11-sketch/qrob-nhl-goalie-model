@@ -15,19 +15,21 @@ pulled goalies and game-to-game save% swings fatten the tails.
 
 Game script: exp_SA x exp(-GS x logit(p_win)), p_win = the goalie's team win probability (no-vig
 DraftKings moneyline when posted, otherwise the game-winner model). Heavier underdogs face more
-shots. GS fitted on prior seasons.
+shots. GS is refit walk-forward (fit_sa.py) and the multiplier is capped at 1 +/- GS_CAP (12%).
 """
 from __future__ import annotations
 
 import math
 
-DEFAULTS = {"nb_k": 30.0, "gs": 0.01, "sd_floor": 6.0}
+DEFAULTS = {"nb_k": 30.0, "gs": 0.01, "gs_cap": 0.12, "sd_floor": 6.0}
 
 
-def game_script(exp_sa: float, p_win: float | None, gs: float) -> float:
+def game_script(exp_sa: float, p_win: float | None, gs: float, cap: float = DEFAULTS["gs_cap"]) -> float:
+    """exp_SA x exp(-gs x logit(p_win)), the multiplier capped to 1 +/- cap."""
     if p_win is None or not 0 < p_win < 1 or not gs:
         return exp_sa
-    return exp_sa * math.exp(-gs * math.log(p_win / (1 - p_win)))
+    m = math.exp(-gs * math.log(p_win / (1 - p_win)))
+    return exp_sa * min(max(m, 1 - cap), 1 + cap)
 
 
 def spread(mu: float, sv: float, k: float, floor: float) -> float:
@@ -36,8 +38,8 @@ def spread(mu: float, sv: float, k: float, floor: float) -> float:
 
 def project(exp_sa: float, share: float, sv: float, p_win: float | None, prm: dict) -> dict:
     """Projected saves, its spread, and the shots behind it."""
-    k, gs, floor = (prm.get(x, DEFAULTS[x]) for x in ("nb_k", "gs", "sd_floor"))
-    sa = game_script(exp_sa, p_win, gs)
+    k, gs, cap, floor = (prm.get(x, DEFAULTS[x]) for x in ("nb_k", "gs", "gs_cap", "sd_floor"))
+    sa = game_script(exp_sa, p_win, gs, cap)
     mu = sa * share
     return {"exp_sa": sa, "mu": mu, "proj": mu * sv, "sd": spread(mu, sv, k, floor)}
 

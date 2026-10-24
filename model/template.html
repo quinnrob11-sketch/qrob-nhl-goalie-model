@@ -242,7 +242,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 
 <section id="logic">
   <div class="card"><h2>Formula</h2>
-    <p><code>exp_SA = LG × (TeamSA/LG)<sup>a</sup> × (OppSF/LG)<sup>b</sup> × home × playoff × b2b × opponent b2b × exp(−gs × logit(win prob))</code></p>
+    <p><code>exp_SA = LG × (TeamSA/LG)<sup>a</sup> × (OppSF/LG)<sup>b</sup> × home × playoff × b2b × opponent b2b × exp(−gs × logit(win prob))</code>, the game-script multiplier capped at ±12%.</p>
     <p><code>saves ~ Normal(mean = exp_SA × share × sv, var = sv²(μ + μ²/K) + μ·sv(1−sv)), μ = exp_SA × share</code>: shots against vary like a negative binomial and each shot is saved with probability sv, so heavier workloads (underdogs) get a wider spread. P(hit) is then calibrated on graded real lines, and a play needs calibrated P above the price's break-even + 2%.</p>
     <p><code>Projected saves = exp_SA × time-in-net share × save%</code> &nbsp; <code>Edge = Projected − Line</code></p>
     <div class="tbl"><table id="parT"></table></div>
@@ -310,7 +310,7 @@ function tier(e){ e = Math.abs(e); return e >= 2.5 ? "HIGH" : e >= 1.5 ? "MED" :
 // Sportsbook: break-even = implied probability of that side's price. DFS pick'em: per-leg
 // break-even = payout^(-1/legs) / multiplier, and only 1x sides qualify by default.
 const MARGIN = 0.02;
-const DIST = Object.assign({nb_k: 30, gs: 0.01, sd_floor: 6}, D.dist || {});
+const DIST = Object.assign({nb_k: 30, gs: 0.01, gs_cap: 0.12, sd_floor: 6}, D.dist || {});
 const CAL = (D.calib && D.calib.markets) || {};
 const DFS = Object.assign({legs: 2, payout: 3, sub1x: false}, store.get("gm_dfs", {}));
 const hasVal = v => v !== undefined && v !== null && v !== "" && !isNaN(+v);
@@ -339,7 +339,7 @@ const priceTxt = d => !d ? "" : d.kind === "book" ? amer(d.price) : d.kind === "
 // saves as a distribution: shots x save%, spread grows with the workload (model/saves_dist.py)
 function savesDist(sa, share, sv, pWin){
   let x = sa;
-  if (pWin > 0 && pWin < 1 && DIST.gs) x = sa * Math.exp(-DIST.gs * Math.log(pWin / (1 - pWin)));
+  if (pWin > 0 && pWin < 1 && DIST.gs) x = sa * Math.min(Math.max(Math.exp(-DIST.gs * Math.log(pWin / (1 - pWin))), 1 - DIST.gs_cap), 1 + DIST.gs_cap);
   const mu = x * share, sd = Math.max(Math.sqrt(sv * sv * (mu + mu * mu / DIST.nb_k) + mu * sv * (1 - sv)), DIST.sd_floor);
   return {saGs: x, mu, proj: mu * sv, sd};
 }
