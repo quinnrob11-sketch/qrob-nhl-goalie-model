@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-24 16:11 UTC",
+ "updated": "2026-10-24 16:24 UTC",
  "markets": {
   "saves": {
    "cal": {
@@ -21,6 +21,82 @@
    },
    "tier_cap": "LOW",
    "tiers_ok": false,
+   "gate": {
+    "open": false,
+    "plays": 3,
+    "need": 150,
+    "hit_needed": 0.5774,
+    "record": {
+     "units_book": 2.82,
+     "units_dfs": 0.0,
+     "hit": 3,
+     "miss": 0,
+     "push": 0,
+     "pct": 1.0,
+     "priced": 3,
+     "units": 2.82,
+     "roi": 0.9406
+    },
+    "by_tier": {
+     "HIGH": {
+      "units_book": 0,
+      "units_dfs": 0,
+      "hit": 0,
+      "miss": 0,
+      "push": 0,
+      "pct": null,
+      "priced": 0,
+      "units": 0,
+      "roi": null
+     },
+     "MED": {
+      "units_book": 0,
+      "units_dfs": 0,
+      "hit": 0,
+      "miss": 0,
+      "push": 0,
+      "pct": null,
+      "priced": 0,
+      "units": 0,
+      "roi": null
+     },
+     "LOW": {
+      "units_book": 2.82,
+      "units_dfs": 0.0,
+      "hit": 3,
+      "miss": 0,
+      "push": 0,
+      "pct": 1.0,
+      "priced": 3,
+      "units": 2.82,
+      "roi": 0.9406
+     }
+    },
+    "by_side": {
+     "OVER": {
+      "units_book": 0,
+      "units_dfs": 0,
+      "hit": 0,
+      "miss": 0,
+      "push": 0,
+      "pct": null,
+      "priced": 0,
+      "units": 0,
+      "roi": null
+     },
+     "UNDER": {
+      "units_book": 2.82,
+      "units_dfs": 0.0,
+      "hit": 3,
+      "miss": 0,
+      "push": 0,
+      "pct": 1.0,
+      "priced": 3,
+      "units": 2.82,
+      "roi": 0.9406
+     }
+    }
+   },
    "new": {
     "plays": {
      "n": 26,
@@ -577,6 +653,82 @@
    },
    "tier_cap": "LOW",
    "tiers_ok": false,
+   "gate": {
+    "open": false,
+    "plays": 11,
+    "need": 150,
+    "hit_needed": 0.5774,
+    "record": {
+     "units_book": 1.81,
+     "units_dfs": 0.0,
+     "hit": 6,
+     "miss": 5,
+     "push": 0,
+     "pct": 0.5455,
+     "priced": 11,
+     "units": 1.81,
+     "roi": 0.1649
+    },
+    "by_tier": {
+     "HIGH": {
+      "units_book": 0,
+      "units_dfs": 0,
+      "hit": 0,
+      "miss": 0,
+      "push": 0,
+      "pct": null,
+      "priced": 0,
+      "units": 0,
+      "roi": null
+     },
+     "MED": {
+      "units_book": 0,
+      "units_dfs": 0,
+      "hit": 0,
+      "miss": 0,
+      "push": 0,
+      "pct": null,
+      "priced": 0,
+      "units": 0,
+      "roi": null
+     },
+     "LOW": {
+      "units_book": 1.81,
+      "units_dfs": 0.0,
+      "hit": 6,
+      "miss": 5,
+      "push": 0,
+      "pct": 0.5455,
+      "priced": 11,
+      "units": 1.81,
+      "roi": 0.1649
+     }
+    },
+    "by_side": {
+     "OVER": {
+      "units_book": -1.0,
+      "units_dfs": 0.0,
+      "hit": 0,
+      "miss": 1,
+      "push": 0,
+      "pct": 0.0,
+      "priced": 1,
+      "units": -1.0,
+      "roi": -1.0
+     },
+     "UNDER": {
+      "units_book": 2.81,
+      "units_dfs": 0.0,
+      "hit": 6,
+      "miss": 4,
+      "push": 0,
+      "pct": 0.6,
+      "priced": 10,
+      "units": 2.81,
+      "roi": 0.2814
+     }
+    }
+   },
    "new": {
     "plays": {
      "n": 24,
@@ -1153,5 +1305,159 @@
  "rule": {
   "blend_w": 0.6,
   "min_cal_n": 500
+ },
+ "gate": {
+  "saves": {
+   "open": false,
+   "plays": 3,
+   "need": 150,
+   "hit_needed": 0.5774,
+   "record": {
+    "units_book": 2.82,
+    "units_dfs": 0.0,
+    "hit": 3,
+    "miss": 0,
+    "push": 0,
+    "pct": 1.0,
+    "priced": 3,
+    "units": 2.82,
+    "roi": 0.9406
+   },
+   "by_tier": {
+    "HIGH": {
+     "units_book": 0,
+     "units_dfs": 0,
+     "hit": 0,
+     "miss": 0,
+     "push": 0,
+     "pct": null,
+     "priced": 0,
+     "units": 0,
+     "roi": null
+    },
+    "MED": {
+     "units_book": 0,
+     "units_dfs": 0,
+     "hit": 0,
+     "miss": 0,
+     "push": 0,
+     "pct": null,
+     "priced": 0,
+     "units": 0,
+     "roi": null
+    },
+    "LOW": {
+     "units_book": 2.82,
+     "units_dfs": 0.0,
+     "hit": 3,
+     "miss": 0,
+     "push": 0,
+     "pct": 1.0,
+     "priced": 3,
+     "units": 2.82,
+     "roi": 0.9406
+    }
+   },
+   "by_side": {
+    "OVER": {
+     "units_book": 0,
+     "units_dfs": 0,
+     "hit": 0,
+     "miss": 0,
+     "push": 0,
+     "pct": null,
+     "priced": 0,
+     "units": 0,
+     "roi": null
+    },
+    "UNDER": {
+     "units_book": 2.82,
+     "units_dfs": 0.0,
+     "hit": 3,
+     "miss": 0,
+     "push": 0,
+     "pct": 1.0,
+     "priced": 3,
+     "units": 2.82,
+     "roi": 0.9406
+    }
+   }
+  },
+  "sog": {
+   "open": false,
+   "plays": 11,
+   "need": 150,
+   "hit_needed": 0.5774,
+   "record": {
+    "units_book": 1.81,
+    "units_dfs": 0.0,
+    "hit": 6,
+    "miss": 5,
+    "push": 0,
+    "pct": 0.5455,
+    "priced": 11,
+    "units": 1.81,
+    "roi": 0.1649
+   },
+   "by_tier": {
+    "HIGH": {
+     "units_book": 0,
+     "units_dfs": 0,
+     "hit": 0,
+     "miss": 0,
+     "push": 0,
+     "pct": null,
+     "priced": 0,
+     "units": 0,
+     "roi": null
+    },
+    "MED": {
+     "units_book": 0,
+     "units_dfs": 0,
+     "hit": 0,
+     "miss": 0,
+     "push": 0,
+     "pct": null,
+     "priced": 0,
+     "units": 0,
+     "roi": null
+    },
+    "LOW": {
+     "units_book": 1.81,
+     "units_dfs": 0.0,
+     "hit": 6,
+     "miss": 5,
+     "push": 0,
+     "pct": 0.5455,
+     "priced": 11,
+     "units": 1.81,
+     "roi": 0.1649
+    }
+   },
+   "by_side": {
+    "OVER": {
+     "units_book": -1.0,
+     "units_dfs": 0.0,
+     "hit": 0,
+     "miss": 1,
+     "push": 0,
+     "pct": 0.0,
+     "priced": 1,
+     "units": -1.0,
+     "roi": -1.0
+    },
+    "UNDER": {
+     "units_book": 2.81,
+     "units_dfs": 0.0,
+     "hit": 6,
+     "miss": 4,
+     "push": 0,
+     "pct": 0.6,
+     "priced": 10,
+     "units": 2.81,
+     "roi": 0.2814
+    }
+   }
+  }
  }
 }

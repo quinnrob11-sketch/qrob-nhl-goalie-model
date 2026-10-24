@@ -14,8 +14,9 @@ Outputs (model/output/calibration.json, shown on the Backtest tab):
     Below MIN_CAL_N (500) graded lines the slopes are shrunk toward identity by n / 500;
   * a walk-forward replay: each week is calibrated only on earlier weeks, blended with the no-vig
     market (pricing.BLEND_W), and decided by the live rule (pricing.decide), then graded at the
-    real price -> hit %, units, ROI by side and EV tier. If HIGH > MED > LOW doesn't hold on both
-    hit % and ROI, the market's tiers are capped at LOW;
+    real price -> hit %, units, ROI by side and EV tier (HIGH > MED > LOW ordering reported);
+  * the tier gate: tiers are capped at LOW until a market has 150 forward-graded plays (logged with a
+    price-aware EV) hitting above 57.7% (2-pick 1x DFS break-even) with positive ROI;
   * the old rule (edge / probability tiers, no price) on the same lines, for comparison;
   * calibration buckets (predicted vs actual), overall and by side for raw / calibrated / final.
 """
@@ -32,6 +33,33 @@ import prizepicks
 import saves_dist
 
 MIN_TIER_N = 30
+GATE_N = 150                      # forward-graded plays a market needs before tiers above LOW...
+GATE_HIT = pricing.dfs_break_even(1.0)   # ...with a hit rate above 2-pick 1x DFS break-even (57.7%)...
+                                         # ...and positive ROI
+
+
+def forward_gate(log: list[dict]) -> dict:
+    """Tier gate from plays graded going forward (rows logged with a price-aware EV), de-duplicated the
+    way the tracker counts them. Tiers stay capped at LOW until a market has GATE_N such plays with
+    hit rate above GATE_HIT and ROI above zero. Also returns the forward record by tier and by side."""
+    import tracker
+    best = {}
+    for r in log:
+        if r.get("result") not in ("HIT", "MISS", "PUSH") or r["market"] not in ("saves", "sog") or r.get("ev") in (None, ""):
+            continue
+        k = (r["date"], r["market"], r["player"], r["team"])
+        if k not in best or tracker.BOOK_PREF.get(r.get("book"), 9) < tracker.BOOK_PREF.get(best[k].get("book"), 9):
+            best[k] = r
+    out = {}
+    for mk in ("saves", "sog"):
+        plays = [r for r in best.values() if r["market"] == mk and tracker.is_play(r)]
+        rec = tracker._rec(plays)
+        n = rec["hit"] + rec["miss"]
+        ok = n >= GATE_N and (rec["pct"] or 0) > GATE_HIT and (rec["roi"] or 0) > 0
+        out[mk] = {"open": bool(ok), "plays": n, "need": GATE_N, "hit_needed": round(GATE_HIT, 4), "record": rec,
+                   "by_tier": {t: tracker._rec([r for r in plays if r.get("tier") == t]) for t in ("HIGH", "MED", "LOW")},
+                   "by_side": {s: tracker._rec([r for r in plays if r["side"].upper() == s]) for s in ("OVER", "UNDER")}}
+    return out
 
 
 def _lg(p):
@@ -209,6 +237,8 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
     else:
         df["over"] = np.where(df.side_over, df.price, np.nan); df["under"] = np.where(~df.side_over, df.price, np.nan)
     df["wk"] = pd.to_datetime(df.date).dt.isocalendar().week.astype(int)
+    gate = forward_gate(log)
+    out["gate"] = gate
     for mk in ("saves", "sog"):
         x = df[df.market == mk].dropna(subset=["over", "under"]).reset_index(drop=True)
         if len(x) < 40:
@@ -253,7 +283,8 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
                            "alarm": bool(g.get("alarm", pd.Series(dtype=object)).fillna(False).astype(bool).any())})
         new["nights"] = nights
         out["markets"][mk] = {
-            "cal": cal, "platt_ref": platt_fit(x.p_over.values, x.went_over.values), "tier_cap": None if ok else "LOW", "tiers_ok": bool(ok),
+            "cal": cal, "platt_ref": platt_fit(x.p_over.values, x.went_over.values),
+            "tier_cap": None if gate[mk]["open"] else "LOW", "tiers_ok": bool(ok), "gate": gate[mk],
             "new": new, "old": old, "blind_under": blind_under,
             "buckets_raw": _buckets(np.maximum(x.p_over.values, 1 - x.p_over.values),
                                     np.where(raw_so, x.went_over, ~x.went_over)),
