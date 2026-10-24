@@ -162,7 +162,8 @@ def calls_for_game(payload, g):
             po = saves_dist.p_over(pr["proj"], pr["sd"], x["line"])
             over, under = _dk_prices(payload.get("dk"), date, team, row["goalie"], x["line"]) if x["src"] == "dk" else (None, None)
             dfs = {"mult_over": 1, "mult_under": 1} if x["src"] == "pp" else {}
-            d = pricing.decide(po, calib.get("saves", {}).get("cal"), over, under, cap=calib.get("saves", {}).get("tier_cap"), **dfs)
+            d = pricing.decide(po, calib.get("saves", {}).get("cal"), over, under, cap=calib.get("saves", {}).get("tier_cap"),
+                               market="saves", proj=pr["proj"], line=x["line"], **dfs)
             if not row["confirmed"]:
                 d.update(play=False, tier="PASS")
             row.update(p_over=round(po, 4), over=over, under=under, **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in d.items()})
@@ -178,7 +179,8 @@ def calls_for_game(payload, g):
                     "line": dk["line"] if dk else None, "book": "DraftKings" if dk else None}
             if dk:
                 po = sog_p_over(mean, dk["line"], sp["disp"])
-                d = pricing.decide(po, calib.get("sog", {}).get("cal"), dk.get("over"), dk.get("under"), cap=calib.get("sog", {}).get("tier_cap"))
+                d = pricing.decide(po, calib.get("sog", {}).get("cal"), dk.get("over"), dk.get("under"), cap=calib.get("sog", {}).get("tier_cap"),
+                                   market="sog", proj=mean, line=dk["line"])
                 srow.update(p_over=round(po, 4), over=dk.get("over"), under=dk.get("under"),
                             **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in d.items()})
             out["sog"].append(srow)

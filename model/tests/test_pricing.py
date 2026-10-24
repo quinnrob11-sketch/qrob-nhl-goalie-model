@@ -40,5 +40,24 @@ class Calibration(unittest.TestCase):
         self.assertAlmostEqual(d["p"], p if d["side"] == "OVER" else 1 - p)
 
 
+class SogRule(unittest.TestCase):
+    def test_gap_required_for_small_ev(self):
+        # proj at the line: count model leans under, but no projection disagreement -> not a play
+        d = pricing.decide(0.40, None, 120, -105, market="sog", proj=1.5, line=1.5)
+        if d["side"] == "UNDER" and d["ev"] < pricing.SOG_GAP_EV:
+            self.assertFalse(d["play"])
+        d2 = pricing.decide(0.40, None, 120, -105, market="sog", proj=1.30, line=1.5)
+        self.assertEqual(d2["side"], "UNDER")
+        self.assertEqual(d2["play"], d2["p"] > d2["be"] + pricing.MARGIN_SOG and d2["ev"] >= pricing.MARGIN_SOG)
+
+    def test_big_ev_skips_gap(self):
+        d = pricing.decide(0.25, None, 150, 100, market="sog", proj=1.5, line=1.5)
+        self.assertGreaterEqual(d["ev"], pricing.SOG_GAP_EV)
+        self.assertTrue(d["play"])
+
+    def test_sog_margin(self):
+        self.assertGreater(pricing.MARGIN_SOG, pricing.MARGIN)
+
+
 if __name__ == "__main__":
     unittest.main()

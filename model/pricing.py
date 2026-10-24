@@ -1,7 +1,8 @@
 """Price-aware decisions shared by the tracker, the calibration fit and the dashboard.
 
 Final probability = BLEND_W x calibrated model + (1 - BLEND_W) x no-vig market, when the book posts both
-prices (DraftKings). A side is a PLAY only when that probability beats the price's break-even by MARGIN:
+prices (DraftKings). A side is a PLAY only when that probability beats the price's break-even by MARGIN (MARGIN_SOG for SOG,
+where the projection must also sit SOG_GAP past the line in the play direction unless EV >= SOG_GAP_EV):
   * sportsbook (American odds): break-even = implied probability of that side's price;
   * DFS pick'em (Pick6 / PrizePicks): per-leg break-even = payout^(-1/legs) / multiplier.
     Only 1x sides qualify by default.
@@ -13,6 +14,9 @@ from __future__ import annotations
 import math
 
 MARGIN = 0.02
+MARGIN_SOG = 0.03           # SOG needs more: half-point lines on a discrete count lean UNDER at proj = line
+SOG_GAP = 0.15              # SOG play only if the projection sits this far past the line in the play direction...
+SOG_GAP_EV = 0.05           # ...unless its EV is at least this
 BLEND_W = 0.6               # weight on the model in the market blend (both prices posted)
 MIN_CAL_N = 500             # graded lines before a market's calibration is used at full strength
 EV_TIERS = (("HIGH", 0.08), ("MED", 0.05), ("LOW", MARGIN))
@@ -21,7 +25,8 @@ DFS_DEFAULT = {"legs": 2, "payout": 3.0}          # 2-pick power play at 3x -> 5
 
 def config() -> dict:
     """The decision knobs, exported to the page so its mirror of decide() uses the same values."""
-    return {"margin": MARGIN, "blend_w": BLEND_W, "min_cal_n": MIN_CAL_N}
+    return {"margin": MARGIN, "margin_sog": MARGIN_SOG, "sog_gap": SOG_GAP, "sog_gap_ev": SOG_GAP_EV,
+            "blend_w": BLEND_W, "min_cal_n": MIN_CAL_N}
 
 
 def implied(american) -> float | None:
@@ -98,7 +103,11 @@ def decide(p_over_raw: float, cal: dict | None, over_price=None, under_price=Non
         cand = {"side": side, "p": p, "be": be, "ev": ev}
         if best is None or ev > best["ev"]:
             best = cand
-    best["play"] = best["p"] > best["be"] + MARGIN and best["ev"] >= MARGIN
+    margin = MARGIN_SOG if market == "sog" else MARGIN
+    best["play"] = best["p"] > best["be"] + margin and best["ev"] >= margin
+    if best["play"] and market == "sog" and proj is not None and line is not None and best["ev"] < SOG_GAP_EV:
+        gap = proj - line if best["side"] == "OVER" else line - proj
+        best["play"] = gap >= SOG_GAP - 1e-9
     best["tier"] = tier(best["ev"], cap) if best["play"] else "PASS"
     best["p_model"], best["p_mkt"] = p_model, p_mkt
     return best

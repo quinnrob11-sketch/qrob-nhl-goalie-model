@@ -312,7 +312,7 @@ function tier(e){ e = Math.abs(e); return e >= 2.5 ? "HIGH" : e >= 1.5 ? "MED" :
 const MARGIN = 0.02;
 const DIST = Object.assign({nb_k: 30, gs: 0.01, gs_cap: 0.12, sd_floor: 6}, D.dist || {});
 const CAL = (D.calib && D.calib.markets) || {};
-const RULE = Object.assign({blend_w: 0.6}, D.pricing || {});
+const RULE = Object.assign({margin: 0.02, margin_sog: 0.03, sog_gap: 0.15, sog_gap_ev: 0.05, blend_w: 0.6}, D.pricing || {});
 const DFS = Object.assign({legs: 2, payout: 3, sub1x: false}, store.get("gm_dfs", {}));
 const hasVal = v => v !== undefined && v !== null && v !== "" && !isNaN(+v);
 const impliedP = o => !hasVal(o) ? null : (+o < 0 ? -o / (-o + 100) : 100 / (+o + 100));
@@ -335,7 +335,11 @@ function decide(market, pOverRaw, o = {}){
     else { be = null; ev = -1; kind = "none"; }
     if (!best || ev > best.ev) best = {side, p, be, ev, kind, price, mult: hasVal(mult) ? +mult : null};
   }
-  best.play = best.kind !== "none" && best.p > best.be + MARGIN && best.ev >= MARGIN;
+  const mg = market === "sog" ? RULE.margin_sog : RULE.margin;
+  best.play = best.kind !== "none" && best.p > best.be + mg && best.ev >= mg;
+  // SOG: the projection must actually disagree with the line in the play direction, unless EV is big
+  if (best.play && market === "sog" && hasVal(o.proj) && hasVal(o.line) && best.ev < RULE.sog_gap_ev)
+    best.play = (best.side === "OVER" ? o.proj - o.line : o.line - o.proj) >= RULE.sog_gap - 1e-9;
   best.tier = best.play ? evTier(best.ev, c.tier_cap) : "PASS";
   best.pModel = pm; best.pMkt = mk;
   return best;
@@ -941,7 +945,7 @@ function renderSOG(){
   const sel = $("#sGame");
   if (sel.options.length === 1) sel.innerHTML += D.slate.map(g => `<option value="${g.date}|${g.id}">${g.date.slice(5)} ${g.away} @ ${g.home}</option>`).join("");
   const nDK = (D.dk_sog || []).length, c = CAL.sog || {};
-  $("#sogNote").innerHTML = `Projection = shots/60 × expected TOI × opponent shots-allowed factor × home/road. P(over) uses a negative binomial (it fits real shot counts better than a Poisson in every season tested). That probability is then <b>calibrated</b> on every graded real line${c.cal ? ` (${c.cal.n} so far)` : ""}, and a side is a play only when it beats the price's break-even by 2%. DraftKings lines carry their real price; PrizePicks and your own lines are priced as DFS legs at the multiplier you set (1x by default, and sub-1x sides never qualify unless you allow them above). Sorted by EV. ${c.tier_cap === "LOW" ? "<b>Tiers are capped at LOW</b>: on graded history HIGH/MED haven't beaten LOW yet." : ""} Lines: your entry, then DraftKings (${nDK} this build), then the PrizePicks board pulled live in your browser${PP_SOG.length ? ` (${PP_SOG.length} SOG props)` : ""}.`;
+  $("#sogNote").innerHTML = `Projection = shots/60 × expected TOI × opponent shots-allowed factor × home/road. P(over) uses a negative binomial (it fits real shot counts better than a Poisson in every season tested). That probability is then <b>calibrated</b> on every graded real line${c.cal ? ` (${c.cal.n} so far)` : ""}, and a side is a play only when it beats the price's break-even by ${pct(RULE.margin_sog, 0)}. The projection must also sit at least ${RULE.sog_gap} shots past the line in the play direction (under only if projection ≤ line − ${RULE.sog_gap}) unless EV is ${pct(RULE.sog_gap_ev, 0)}+, because on a 1.5 or 2.5 line a count model already leans under when the projection equals the line. DraftKings lines carry their real price; PrizePicks and your own lines are priced as DFS legs at the multiplier you set (1x by default, and sub-1x sides never qualify unless you allow them above). Sorted by EV. ${c.tier_cap === "LOW" ? "<b>Tiers are capped at LOW</b>: on graded history HIGH/MED haven't beaten LOW yet." : ""} Lines: your entry, then DraftKings (${nDK} this build), then the PrizePicks board pulled live in your browser${PP_SOG.length ? ` (${PP_SOG.length} SOG props)` : ""}.`;
   const gSel = sel.value, pos = $("#sPos").value, minEV = +$("#sMinP").value / 100, top = +$("#sTop").value, onlyPlays = $("#sPlays").checked;
   const rows = [];
   for (const g of D.slate){
@@ -956,7 +960,7 @@ function renderSOG(){
         if (L.line != null){
           po = sogOver(proj, L.line);
           const m = SOGM[mk] || {};
-          d = decide("sog", po, L.src === "DK" ? {over: L.over, under: L.under} : {multOver: m.o ?? 1, multUnder: m.u ?? 1});
+          d = decide("sog", po, Object.assign({proj, line: L.line}, L.src === "DK" ? {over: L.over, under: L.under} : {multOver: m.o ?? 1, multUnder: m.u ?? 1}));
         }
         if (onlyPlays && !(d && d.play && d.ev >= minEV)) continue;
         rows.push({g, team, opp, home, pl, proj, L, po, d, mk});
