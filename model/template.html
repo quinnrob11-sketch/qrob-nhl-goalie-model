@@ -52,7 +52,8 @@ button.btn{font:inherit;background:var(--accent);color:#fff;border:0;border-radi
 button.ghost{font:inherit;background:none;color:var(--text-2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer}
 .tbl{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
-th,td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+.tbl tbody tr:nth-child(even):not(.over):not(.under) td{background:var(--surface-2)}
 th{font-size:12px;color:var(--text-2);font-weight:600;cursor:pointer;position:sticky;top:0;background:var(--surface)}
 th:first-child,td:first-child,th.l,td.l{text-align:left}
 tr.over td.side{color:var(--over);font-weight:700} tr.under td.side{color:var(--under);font-weight:700}
@@ -74,6 +75,9 @@ tr.over{background:var(--over-bg)} tr.under{background:var(--under-bg)} tr.dim t
 .legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
 #tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.15);display:none;z-index:10}
 .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.mk h3{margin:0 0 4px;font-size:14px} .mk .big{font-size:24px;font-weight:650;font-variant-numeric:tabular-nums}
+.mk table td,.mk table th{padding:7px 10px}
 @media (max-width:760px){.grid2{grid-template-columns:1fr}}
 .search{display:block;width:100%;max-width:420px;margin-top:12px;padding:9px 12px;font-size:15px}
 code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.5px}
@@ -81,6 +85,42 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 .gc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px}
 .gc .n{font-weight:650} .gc dl{display:grid;grid-template-columns:1fr auto;gap:2px 10px;margin:8px 0 0;font-size:12.5px}
 .gc dt{color:var(--text-2)} .gc dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+/* status bar */
+.statusbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12.5px;color:var(--text-2)}
+.statusbar b{color:var(--text);font-weight:600}
+.statusbar .warn{color:var(--under);font-weight:600}
+.statusbar .alarms{flex-basis:100%;display:flex;flex-direction:column;gap:4px}
+.statusbar .alarms div{background:var(--under-bg);border-left:3px solid var(--under);padding:5px 8px;border-radius:5px;color:var(--text)}
+/* filter row */
+.filters{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:end;margin-bottom:12px}
+.filters label.chk{flex-direction:row;align-items:center;gap:6px;padding-bottom:6px}
+/* board tables: one per market */
+.board{overflow:auto;max-height:72vh;border:1px solid var(--border);border-radius:8px}
+.board table{border-collapse:separate;border-spacing:0}
+.board th,.board td{padding:9px 12px;border-bottom:1px solid var(--border);background:var(--surface)}
+.board tbody tr:nth-child(even) td{background:var(--surface-2)}
+.board thead th{position:sticky;top:0;z-index:2;background:var(--surface);user-select:none}
+.board th.sortable:hover{color:var(--text)}
+.board th .arr{font-size:10px;margin-left:3px;color:var(--accent)}
+.board td.num,.board th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.board .pin{position:sticky;left:0;z-index:1;box-shadow:1px 0 0 var(--border)}
+.board thead th.pin{z-index:3}
+.board td.l,.board th.l{text-align:left}
+.board td.sub2{font-size:11px;color:var(--muted)}
+.board tr.pass td{color:var(--muted)}
+.diff-sup,.board tr td.diff-sup{color:var(--over);font-weight:600} .diff-neu,.board tr td.diff-neu{color:var(--muted)} .diff-con,.board tr td.diff-con{color:var(--under);font-weight:600}
+.sp{display:inline-block;min-width:52px;text-align:center;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700}
+.sp.OVER{background:var(--over-bg);color:var(--over)} .sp.UNDER{background:var(--under-bg);color:var(--under)} .sp.TEAM{background:var(--accent-soft);color:var(--accent)}
+.capped{display:inline-block;margin-left:4px;font-size:9.5px;color:var(--muted);border:1px dashed var(--border);border-radius:4px;padding:0 3px;vertical-align:1px}
+.board .empty td{color:var(--muted);text-align:left}
+.goal{height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;margin-top:6px}
+.goal i{display:block;height:100%;background:var(--accent)}
+@media (max-width:760px){
+  main{padding:10px}
+  .board th,.board td{padding:8px 9px;font-size:13px}
+  .board{max-height:none}
+  .card{padding:12px}
+}
 </style>
 </head>
 <body>
@@ -97,7 +137,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   </div>
 </header>
 <nav id="tabs">
-  <button data-t="proj" class="on">Projections</button>
+  <button data-t="proj" class="on">Board</button>
   <button data-t="res">Results</button>
   <button data-t="win">Game Winners</button>
   <button data-t="sogt">SOG Props</button>
@@ -109,11 +149,24 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 </nav>
 <main>
 <section id="proj" class="on">
-  <div id="staleNote"></div>
+  <div class="statusbar" id="statusBar"></div>
   <div id="preNote"></div>
-  <div class="card">
-    <h2>Slate</h2>
-    <p class="sub" id="ppNote" style="margin:-4px 0 6px"></p>
+  <div class="filters card" style="padding:10px 12px">
+    <label>Market<select id="fMk"><option value="">All</option><option value="saves">Saves</option><option value="sog">SOG</option><option value="win">Winners</option></select></label>
+    <label>Side<select id="fSide"><option value="">Both</option><option>OVER</option><option>UNDER</option></select></label>
+    <label>Min probability %<input type="number" id="fMinP" value="55" step="1" min="0" max="100" style="width:70px"></label>
+    <label class="chk"><input type="checkbox" id="f60"> 60%+ only</label>
+    <label class="chk"><input type="checkbox" id="fPlays"> Plays only</label>
+    <label>Date<select id="dateF"></select></label>
+  </div>
+  <div class="card" id="cardSaves"><h2>Saves <span class="muted" id="nSaves" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSaves"></table></div></div>
+  <div class="card" id="cardSog"><h2>SOG <span class="muted" id="nSog" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSog"></table></div></div>
+  <div class="card" id="cardWin"><h2>Winners <span class="muted" id="nWin" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bWin"></table></div>
+    <p class="sub" style="margin:8px 0 0">Line = the DraftKings moneyline for the pick, Proj = the model's fair price, Diff = model win % − no-vig market % (points).</p></div>
+  <p class="sub" id="boardKey" style="margin:-4px 0 14px">Diff = projection − line. <span class="diff-sup">Green</span>: the projection backs the pick side by 0.15+. <span class="diff-neu">Gray</span>: within 0.15 of the line. <span class="diff-con">Red</span>: the projection points the other way. Probability is the calibrated chance the pick side hits (saves calls of 65%+ are shown as 60%, <span class="capped">capped</span>, because they've hit 46%). Click Time, Line, Diff or Prob to sort.</p>
+  <details class="card" id="editBox">
+    <summary><b>Starters, lines and sources</b> <span class="muted">· change a goalie, type your own line, paste a DFS board</span></summary>
+    <p class="sub" id="ppNote" style="margin:8px 0 6px"></p>
     <p style="margin:0 0 10px"><span id="srcStatus"></span> <button class="ghost" id="ppRefresh">↻ Refresh PrizePicks</button></p>
     <details class="card" id="boardBox" style="margin:0 0 12px;padding:10px 12px">
       <summary><b>Paste or upload a PrizePicks / Pick6 board</b> <span class="muted" id="boardCount"></span></summary>
@@ -123,16 +176,9 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
       <textarea id="boardText" rows="5" style="width:100%;font:12px ui-monospace,monospace" placeholder="Igor Shesterkin,saves,25.5,1,0.9&#10;Auston Matthews SOG 3.5 1x/0.85x"></textarea>
       <p style="margin:6px 0 0"><button id="boardImport">Import board</button> <button class="ghost" id="boardClear">Clear board</button> <span class="muted" id="boardMsg"></span></p>
     </details>
-    <div class="row" style="margin-bottom:10px">
-      <label>Min EV %<input type="number" id="minEdge" value="2" step="1" min="0"></label>
-      <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="playsOnly"> Plays only</label>
-      <label>Side<select id="sideF"><option value="">Both</option><option>OVER</option><option>UNDER</option></select></label>
-      <label>Date<select id="dateF"></select></label>
-    </div>
-    <div id="alarmSaves"></div>
     <div class="tbl"><table id="slateT"></table></div>
     <p class="muted" id="slateEmpty" style="display:none">No NHL schedule in this build yet. It fills in once the season's games are published. Use the matchup builder below meanwhile.</p>
-  </div>
+  </details>
   <div class="card">
     <h2>Matchup builder</h2>
     <div class="row">
@@ -151,9 +197,12 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 
 <section id="res">
   <div class="note" id="resNote"></div>
+  <div class="card"><h2>Plays by market and probability</h2>
+    <p class="sub">Every play graded at the line it had when picked, grouped by the probability it had then (winners: every model pick). The bar counts plays picked under the price-aware rule (10/23 on) toward the 150 needed before tiers above LOW open.</p>
+    <div class="grid3" id="resProb"></div></div>
   <div class="stats" id="resStats" style="margin-bottom:16px"></div>
   <div class="card"><h2>Night by night</h2><div class="tbl"><table id="resDays"></table></div></div>
-  <div class="card"><h2>Board balance: plays by side, per night</h2><p class="sub">Graded plays per night and market. <span class="bad">Red</span> = more than 75% on one side. "Alarm" = the one-sided board alarm fired at pick time and kept only that night's top 10% of plays by EV (logged from the 2026-10-24 build on).</p><div class="tbl" style="max-height:420px;overflow:auto"><table id="resSplit"></table></div></div>
+  <div class="card"><h2>Board balance: plays by side, per night</h2><p class="sub">Graded plays per night and market. <span class="bad">Red</span> = more than 75% on one side. "Warning" = the one-sided board warning fired at pick time (logged from the 2026-10-24 build on; it is display only and never removes a play).</p><div class="tbl" style="max-height:420px;overflow:auto"><table id="resSplit"></table></div></div>
   <div class="grid2">
     <div class="card"><h2>Saves, real lines</h2><div class="tbl"><table id="resSaves"></table></div></div>
     <div class="card"><h2>SOG, real lines</h2><div class="tbl"><table id="resSog"></table></div></div>
@@ -192,7 +241,6 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
       <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="sPlays"> Plays only</label>
       <label>Players per team<select id="sTop"><option>8</option><option>12</option><option value="99">All</option></select></label>
     </div>
-    <div id="alarmSog"></div>
     <div class="tbl"><table id="sogT"></table></div>
   </div>
   <div class="card"><h2>Backtest</h2>
@@ -324,10 +372,10 @@ function tier(e){ e = Math.abs(e); return e >= 2.5 ? "HIGH" : e >= 1.5 ? "MED" :
 // Sportsbook: break-even = implied probability of that side's price. DFS pick'em: per-leg
 // break-even = payout^(-1/legs) / multiplier, and only 1x sides qualify by default.
 const MARGIN = 0.02;
-const DIST = Object.assign({nb_k: 30, gs: 0.01, gs_cap: 0.12, sd_floor: 6}, D.dist || {});
+const DIST = Object.assign({nb_k: 30, gs: 0.025, gs_cap: 0.12, sd_floor: 5.5}, D.dist || {});
 const CAL = (D.calib && D.calib.markets) || {};
 const RULE = Object.assign({margin: 0.02, margin_sog: 0.03, sog_gap: 0.15, sog_gap_ev: 0.05, blend_w: 0.6,
-  alarm_share: 0.75, alarm_top: 0.10, alarm_min_plays: 2}, D.pricing || {});
+  alarm_share: 0.75, alarm_min_plays: 2, saves_cap_at: 0.65, saves_cap_to: 0.60}, D.pricing || {});
 const DFS = Object.assign({legs: 2, payout: 3, sub1x: false}, store.get("gm_dfs", {}));
 const hasVal = v => v !== undefined && v !== null && v !== "" && !isNaN(+v);
 const impliedP = o => !hasVal(o) ? null : (+o < 0 ? -o / (-o + 100) : 100 / (+o + 100));
@@ -357,24 +405,25 @@ function decide(market, pOverRaw, o = {}){
     best.play = (best.side === "OVER" ? o.proj - o.line : o.line - o.proj) >= RULE.sog_gap - 1e-9;
   best.tier = best.play ? evTier(best.ev, c.tier_cap) : "PASS";
   best.pModel = pm; best.pMkt = mk;
+  // display / ranking only: saves calls of 65%+ show as 60% ("capped"); the decision above is unchanged
+  best.capped = market === "saves" && best.p >= RULE.saves_cap_at;
+  best.pShow = best.capped ? RULE.saves_cap_to : best.p;
   return best;
 }
-// one-sided board alarm (mirrors pricing.night_alarm): per market per night, if more than alarm_share of the
-// plays are on one side, only that night's top alarm_top of plays by EV stay plays
+// one-sided board warning (mirrors pricing.night_alarm): per market per night, more than alarm_share of
+// the plays on one side. Display only: it never removes a play.
 function nightAlarm(ds){
-  const p = ds.filter(d => d && d.play), ev = p.map(d => d.ev).sort((a, b) => b - a), n = ev.length;
+  const p = ds.filter(d => d && d.play), n = p.length;
   const over = p.filter(d => d.side === "OVER").length, share = n ? Math.max(over, n - over) / n : 0;
-  const alarm = n >= RULE.alarm_min_plays && share > RULE.alarm_share, keep = alarm ? Math.max(1, Math.ceil(RULE.alarm_top * n)) : n;
-  return {plays: n, over, under: n - over, share, side: over * 2 > n ? "OVER" : over * 2 < n ? "UNDER" : "even", alarm, keep, thr: alarm ? ev[keep - 1] : null};
+  return {plays: n, over, under: n - over, share, side: over * 2 > n ? "OVER" : over * 2 < n ? "UNDER" : "even", alarm: n >= RULE.alarm_min_plays && share > RULE.alarm_share};
 }
-function applyAlarm(d, a){ if (d && a && a.alarm && d.play && d.ev < a.thr - 1e-12){ d.play = false; d.tier = "PASS"; d.alarm = true; } return d; }
 function alarmByDate(items){
   const by = {}; for (const it of items) (by[it.date] = by[it.date] || []).push(it.d);
   return Object.fromEntries(Object.entries(by).map(([k, ds]) => [k, nightAlarm(ds)]));
 }
-function alarmBanner(label, A, dateF){
+function alarmLines(label, A, dateF){
   return Object.entries(A || {}).filter(([d, a]) => a.alarm && (!dateF || d === dateF)).sort().map(([d, a]) =>
-    `<div class="alarm"><b class="hd">⚠ One-sided board: ${label}, ${d}.</b> ${a.side === "UNDER" ? a.under : a.over} of ${a.plays} plays are <b class="${a.side === "OVER" ? "good" : "bad"}">${a.side}</b> (${pct(a.share, 0)}; OVER ${a.over} / UNDER ${a.under}). When the board leans this hard the lean is more likely the model than the slate, so only the top ${pct(RULE.alarm_top, 0)} by EV stay plays: ${a.keep} kept, ${a.plays - a.keep} moved to PASS.</div>`).join("");
+    `⚠ <b>One-sided board: ${label}, ${d}</b>: ${a.side === "UNDER" ? a.under : a.over} of ${a.plays} plays are <b class="${a.side === "OVER" ? "good" : "bad"}">${a.side}</b> (${pct(a.share, 0)}; OVER ${a.over} / UNDER ${a.under}). A lean this hard is more likely the model than the slate. Size down.`);
 }
 const evTxt = d => !d || d.kind === "none" ? "–" : (d.ev > 0 ? "+" : "") + (100 * d.ev).toFixed(1) + "%";
 const priceTxt = d => !d ? "" : d.kind === "book" ? amer(d.price) : d.kind === "dfs" ? d.mult + "x" : "";
@@ -406,13 +455,11 @@ const ctTime = iso => { if (!iso) return ""; const d = new Date(iso); return isN
 const ctStart = g => g && g.start ? ctFmt(new Date(g.start), {hour: "numeric", minute: "2-digit"}) + " CT" : "";
 const builtAt = new Date(String(D.built).replace(" UTC", "Z").replace(" ", "T"));
 const builtCT = isNaN(builtAt) ? D.built : ctFmt(builtAt, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}) + " CT";
-$("#meta").textContent = `${D.season} season · data through ${D.data_through} games · built ${builtCT}`;
-{ // stale build on a game day
-  const todayCT = new Intl.DateTimeFormat("en-CA", {timeZone: "America/Chicago"}).format(new Date());
-  const ageH = (Date.now() - builtAt) / 36e5;
-  if (!isNaN(ageH) && ageH > 6 && (D.slate || []).some(g => g.date === todayCT))
-    $("#staleNote").innerHTML = `<div class="alarm"><b class="hd">⚠ Stale build.</b> This page was built ${ageH.toFixed(1)} hours ago (${builtCT}) and there are games today. Lines, starters and prices may have moved, so wait for the next build (or run the workflow) before betting.</div>`;
-}
+$("#meta").textContent = `${D.season} season`;
+// stale build on a game day (shown in the status bar)
+const TODAY_CT = new Intl.DateTimeFormat("en-CA", {timeZone: "America/Chicago"}).format(new Date());
+const BUILD_AGE_H = (Date.now() - builtAt) / 36e5;
+const STALE = !isNaN(BUILD_AGE_H) && BUILD_AGE_H > 6 && (D.slate || []).some(g => g.date === TODAY_CT);
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
   document.querySelectorAll("main section").forEach(s => s.classList.toggle("on", s.id === b.dataset.t));
@@ -578,11 +625,21 @@ function slateRows(){
                  pWin: wp.p, pWinSrc: wp.src, key, line, lineSrc, pp, dk, bd, df: st.df || DF[g.date + "|" + team], src: st.src, confirmed, edge, po, d});
     }
   }
-  const A = alarmByDate(rows.map(r => ({date: r.g.date, d: r.d})));
-  rows.forEach(r => applyAlarm(r.d, A[r.g.date]));
-  rows.alarm = A;
+  rows.alarm = alarmByDate(rows.map(r => ({date: r.g.date, d: r.d})));
   return rows;
 }
+// ---------- number formatting for the board ----------
+const n1 = x => x == null || isNaN(x) ? "–" : Number(x).toFixed(1);
+const sgn1 = x => x == null || isNaN(x) ? "–" : (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x).toFixed(1);
+const pc0 = x => x == null || isNaN(x) ? "–" : Math.round(100 * x) + "%";
+// diff color: green when it backs the pick side, gray within `neutral` of zero, red when it points the other way
+const diffCls = (diff, side, neutral = 0.15) => diff == null || !side ? "" : Math.abs(diff) < neutral ? "diff-neu"
+  : (side === "OVER" ? diff > 0 : diff < 0) ? "diff-sup" : "diff-con";
+const sidePill = s => s ? `<span class="sp ${s === "OVER" || s === "UNDER" ? s : "TEAM"}">${s}</span>` : "";
+const tierPill = (t, capped) => (t ? `<span class="pill ${t}">${t}</span>` : "") + (capped ? `<span class="capped" title="Saves calls of 65%+ have hit 46%; shown and ranked as 60%">capped</span>` : "");
+let SRC_PILLS = "";
+
+// ---------- starters / lines / sources (the edit table) ----------
 function renderSlate(){
   const nPP = (D.pp || []).length, nDK = (D.dk || []).length;
   const dkMsg = nDK ? `DraftKings: saves lines for ${nDK} goalie${nDK===1?"":"s"}${D.odds_remaining ? ` (${D.odds_remaining} API requests left)` : ""}.`
@@ -594,47 +651,42 @@ function renderSlate(){
     : D.pp_status === "unavailable" ? `PrizePicks: blocked for the build server (it refuses requests from cloud IPs); the board is pulled live in your browser instead.`
     : D.pp_error ? `PrizePicks: unavailable (${D.pp_error}).` : `PrizePicks: no goalie saves props posted yet.`;
   const ppBlocked = ppLive.state === "fail" || (!nPP && ppLive.state !== "ok" && D.pp_status === "unavailable");
-  const pill = (txt, ok) => `<span class="pill ${ok ? "HIGH" : ""}" style="${ok ? "" : "background:var(--under-bg);color:var(--under)"}">${txt}</span>`;
+  const pill = (txt, ok) => `<span class="pill ${ok ? "HIGH" : ok === null ? "LOW" : ""}" style="${ok === false ? "background:var(--under-bg);color:var(--under)" : ""}">${txt}</span>`;
   const nDF = (D.starters || []).filter(r => String(r.status).toLowerCase() === "confirmed").length;
-  $("#srcStatus").innerHTML = [pill(ppBlocked ? "PrizePicks: blocked" : ppLive.state === "ok" || nPP ? "PrizePicks: ok" : "PrizePicks: no props", !ppBlocked),
+  SRC_PILLS = [pill(ppBlocked ? "PrizePicks: blocked" : ppLive.state === "ok" || nPP ? "PrizePicks: ok" : "PrizePicks: no props", !ppBlocked),
     pill(nDK ? `DraftKings: ${nDK} goalies` : "DraftKings: none yet", nDK > 0),
     pill(D.starters_status === "ok" ? `DailyFaceoff: ${nDF} confirmed` : `DailyFaceoff: ${D.starters_status ? String(D.starters_status).split(":")[0] : "not pulled"}`, D.starters_status === "ok"),
-    pill(`Your board: ${(BOARD.rows || []).length} props`, (BOARD.rows || []).length > 0)].join(" ");
-  $("#ppNote").textContent = `As of ${builtCT}. ${dkMsg} ${ppMsg} Starter order: your pick, a DailyFaceoff confirmation, a DraftKings line, a PrizePicks prop, a saves prop on your pasted board, then the roster default (unconfirmed). A posted line isn't an official confirmation, so check warmups on close calls; unconfirmed starters (roster default) are never plays until you pick the goalie. Projected saves = shots against (team defense × opponent offense, home/road, back-to-backs, game script from the win probability) × time in net × save%, with a spread that grows with the workload. A side is a play only when its calibrated probability, blended with the no-vig price when DraftKings posts both sides, beats the price's break-even by 2%; rows are sorted by EV.`;
+    pill(`Your board: ${(BOARD.rows || []).length} props`, (BOARD.rows || []).length > 0 ? true : null)].join(" ");
+  $("#srcStatus").innerHTML = SRC_PILLS;
+  $("#ppNote").textContent = `As of ${builtCT}. ${dkMsg} ${ppMsg} Starter order: your pick, a DailyFaceoff confirmation, a DraftKings line, a PrizePicks prop, a saves prop on your pasted board, then the roster default (unconfirmed). A posted line isn't an official confirmation, so check warmups on close calls; unconfirmed starters (roster default) are never plays until you pick the goalie. Projected saves = shots against (team defense × opponent offense, home/road, back-to-backs, game script from the win probability) × time in net × save%, with a spread that grows with the workload. A side is a play only when its calibrated probability, blended with the no-vig price when DraftKings posts both sides, beats the price's break-even by 2%.`;
   const dates = [...new Set(D.slate.map(g => g.date))];
   const dSel = $("#dateF");
-  if (!dSel.options.length){ dSel.innerHTML = `<option value="">All</option>` + dates.map(d => `<option>${d}</option>`).join(""); }
+  if (!dSel.options.length){ dSel.innerHTML = `<option value="">All</option>` + dates.map(d => `<option ${d === TODAY_CT ? "selected" : ""}>${d}</option>`).join(""); }
   $("#slateEmpty").style.display = D.slate.length ? "none" : "block";
-  if (!D.slate.length){ $("#slateT").innerHTML = ""; return; }
-  const minEV = +$("#minEdge").value / 100, sideF = $("#sideF").value, dateF = dSel.value, onlyPlays = $("#playsOnly").checked;
+  if (!D.slate.length){ $("#slateT").innerHTML = ""; renderBoard(); return; }
+  const dateF = dSel.value;
   const all = slateRows();
-  $("#alarmSaves").innerHTML = alarmBanner("saves", all.alarm, dateF);
   let rows = all.filter(r => !dateF || r.g.date === dateF);
-  rows.sort((a,b) => ((b.d && b.d.play ? b.d.ev : -9) - (a.d && a.d.play ? a.d.ev : -9)) || ((b.d ? b.d.ev : -9) - (a.d ? a.d.ev : -9)) || b.proj - a.proj);
-  let html = `<thead><tr><th class="l">Game</th><th class="l">Goalie</th><th>Exp SA</th><th>SV%</th><th>Proj saves</th><th>Line · price</th><th class="l">Pick</th><th>P (calibrated)</th><th>Break-even</th><th>EV</th><th class="l">Tier</th><th></th></tr></thead><tbody>`;
-  let shown = 0;
+  rows.sort((a,b) => (a.g.start || "").localeCompare(b.g.start || "") || a.g.id - b.g.id || (a.side === "away" ? -1 : 1));
+  let html = `<thead><tr><th class="l">Game</th><th class="l">Goalie</th><th>Proj saves</th><th>Line</th><th>Diff</th><th class="l">Pick</th><th>Prob</th><th class="l">Tier</th><th></th></tr></thead><tbody>`;
   for (const r of rows){
     if (!matchQ((G[r.gid]||{}).name, r.team, r.opp)) continue;
-    const d = r.d, play = d && d.play && d.ev >= minEV;
-    if (d && sideF && d.side !== sideF) continue;
-    if (onlyPlays && !play) continue;
-    shown++;
-    const cls = play ? d.side.toLowerCase() : d ? "dim" : "";
-    html += `<tr class="${cls}"><td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp}<div class="muted" style="font-size:11px">${r.g.date}${ctStart(r.g) ? " · " + ctStart(r.g) : ""}${r.b2b?" · B2B":""}${r.oppB2b?" · opp B2B":""}${r.g.type==="P"?" · Playoffs":""} · win ${pct(r.pWin,0)} (${r.pWinSrc})</div></td>
+    const d = r.d, play = d && d.play;
+    html += `<tr class="${play ? d.side.toLowerCase() : d ? "dim" : ""}"><td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp}<div class="muted" style="font-size:11px">${ctStart(r.g)}${r.b2b?" · B2B":""}${r.oppB2b?" · opp B2B":""}${r.g.type==="P"?" · Playoffs":""} · win ${pc0(r.pWin)} (${r.pWinSrc})</div></td>
       <td class="l"><select data-st="${r.g.date}|${r.team}">${goalieOptions(r.team, r.gid)}</select>
-        <div style="font-size:11px">${r.src==="df"?`<span class="good">✓ confirmed · DailyFaceoff${ctTime(r.df.at) ? " · " + ctTime(r.df.at) : ""}</span>`:r.src==="dk"?'<span class="good">✓ DraftKings line posted</span>':r.src==="pp"?'<span class="good">✓ on PrizePicks board</span>':r.src==="board"?`<span class="good">✓ on your ${r.bd ? r.bd.book : "DFS"} board</span>`:r.src==="manual"?'<span class="good">✓ confirmed by you</span>':'<span class="bad">unconfirmed · excluded from plays</span> <span class="muted">('+(r.src.startsWith("df-")?`DailyFaceoff: ${r.df.status}${ctTime(r.df.at) ? " · " + ctTime(r.df.at) : ""}`:r.src==="b2b"?"back-to-back backup":D.rosters_ok?"roster #1":"depth chart")+'; pick the goalie to confirm)</span>'}${r.src!=="df"&&r.src!=="manual"&&!r.src.startsWith("df-")&&r.df?` <span class="muted">· DailyFaceoff: ${r.df.status}</span>`:""}${(G[r.gid]||{}).new?' <span class="muted">· no NHL history</span>':""}</div></td>
-      <td>${fmt(r.sa)}</td><td>${fmt(r.sv,3)}</td><td><b>${fmt(r.proj)}</b> <span class="muted" style="font-size:11px">±${fmt(r.sd)}</span></td>
-      <td><input type="number" step="0.5" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line">
+        <div style="font-size:11px">${starterTxt(r)}${(G[r.gid]||{}).new?' <span class="muted">· no NHL history</span>':""}</div></td>
+      <td>${n1(r.proj)}</td>
+      <td><input type="number" step="0.5" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line" style="width:72px">
         ${r.lineSrc==="dk"?`<div style="font-size:11px" class="muted">DK o${amer(r.dk.over)||"–"} / u${amer(r.dk.under)||"–"}</div>`:""}
         ${r.lineSrc==="pp"?`<div style="font-size:11px"><a href="${r.pp.url}" target="_blank" rel="noopener" class="muted">PrizePicks · 1x</a></div>`:""}
         ${r.lineSrc==="board"?`<div style="font-size:11px" class="muted">${r.bd.book} · ${multTxt(r.bd.mo, r.bd.mu)}</div>`:""}
-        ${r.lineSrc==="manual"?`<div style="font-size:11px" class="muted">your line · priced as DFS 1x</div>`:""}</td>
-      <td class="l side">${d ? (play ? d.side : "PASS") : ""}${d ? `<div class="muted" style="font-size:11px">${d.side} ${priceTxt(d)}</div>` : ""}</td>
-      <td>${d?pct(d.p,1):"–"}</td><td>${d&&d.be!=null?pct(d.be,1):"–"}</td><td class="${d&&d.ev>0?"good":d?"bad":""}">${evTxt(d)}</td>
-      <td class="l">${d?`<span class="pill ${d.tier}">${d.tier}</span>`:""}</td>
+        ${r.lineSrc==="manual"?`<div style="font-size:11px" class="muted">your line · DFS 1x</div>`:""}</td>
+      <td class="${d ? diffCls(r.edge, d.side) : ""}">${r.line != null ? sgn1(r.edge) : "–"}</td>
+      <td class="l">${d ? sidePill(d.side) + (play ? "" : ' <span class="muted">pass</span>') : ""}</td>
+      <td>${d ? pc0(d.pShow) : "–"}</td>
+      <td class="l">${d ? tierPill(d.tier, d.capped) : ""}</td>
       <td>${play ? `<button class="ghost" data-log="${r.key}">Log</button>` : ""}</td></tr>`;
   }
-  if (!shown) html += `<tr><td colspan="12" class="l muted">No slate goalies match these filters.</td></tr>`;
   $("#slateT").innerHTML = html + "</tbody>";
   $("#slateT").querySelectorAll("input[data-line]").forEach(i => i.onchange = () => {
     if (i.value === "") delete LINES[i.dataset.line]; else LINES[i.dataset.line] = +i.value;
@@ -646,8 +698,109 @@ function renderSlate(){
   $("#slateT").querySelectorAll("button[data-log]").forEach(b => b.onclick = () => {
     const r = slateRows().find(x => x.key === b.dataset.log); logPick(r); b.textContent = "Logged"; b.disabled = true;
   });
+  renderBoard();
 }
-["#minEdge","#sideF","#dateF","#playsOnly"].forEach(s => $(s).onchange = renderSlate);
+function starterTxt(r){
+  if (r.src === "df") return `<span class="good">✓ confirmed · DailyFaceoff${ctTime(r.df.at) ? " · " + ctTime(r.df.at) : ""}</span>`;
+  if (r.src === "dk") return '<span class="good">✓ DraftKings line posted</span>';
+  if (r.src === "pp") return '<span class="good">✓ on PrizePicks board</span>';
+  if (r.src === "board") return `<span class="good">✓ on your ${r.bd ? r.bd.book : "DFS"} board</span>`;
+  if (r.src === "manual") return '<span class="good">✓ confirmed by you</span>';
+  return '<span class="bad">unconfirmed · never a play</span> <span class="muted">(' + (r.src.startsWith("df-") ? `DailyFaceoff: ${r.df.status}` : r.src === "b2b" ? "back-to-back backup" : D.rosters_ok ? "roster #1" : "depth chart") + ")</span>";
+}
+
+// ---------- the board: one table per market ----------
+const SORT = store.get("gm_sort", {saves: ["prob", -1], sog: ["prob", -1], win: ["prob", -1]});
+function boardRowsSaves(){
+  return slateRows().filter(r => r.d && r.line != null).map(r => ({
+    t: r.g.start || "", time: ctStart(r.g), date: r.g.date, game: `${r.g.away} @ ${r.g.home}`,
+    player: (G[r.gid] || {}).name || "?", sub: r.confirmed ? "" : "unconfirmed", line: r.line, proj: r.proj, diff: r.proj - r.line,
+    side: r.d.side, prob: r.d.pShow, tier: r.d.tier, capped: r.d.capped, play: r.d.play, q: [(G[r.gid] || {}).name, r.team, r.opp]}));
+}
+function boardRowsSog(){
+  const out = [];
+  for (const g of D.slate) for (const [team, opp, home] of [[g.away, g.home, false], [g.home, g.away, true]])
+    for (const pl of D.sog.players[team] || []){
+      const x = sogDecision(g, team, opp, home, pl);
+      if (!x.d) continue;
+      out.push({t: g.start || "", time: ctStart(g), date: g.date, game: `${g.away} @ ${g.home}`, player: pl.name, sub: `${team} · ${pl.pos}`,
+                line: x.L.line, proj: x.proj, diff: x.proj - x.L.line, side: x.d.side, prob: x.d.pShow, tier: x.d.tier, capped: false,
+                play: x.d.play, q: [pl.name, team, opp]});
+    }
+  return out;
+}
+function boardRowsWin(){
+  const out = [], minE = 0.03;
+  for (const g of D.slate){
+    const {lh, la} = gameLambdas(g), ph = winProb(lh, la), pa = 1 - ph;
+    const k = g.date + "|" + g.id, mh = ML[k + "|h"] ?? (MLD[g.date + "|" + g.home] || {}).ml, ma = ML[k + "|a"] ?? (MLD[g.date + "|" + g.away] || {}).ml;
+    let ih = implied(mh), ia = implied(ma);
+    if (ih != null && ia != null){ const s = ih + ia; ih /= s; ia /= s; }
+    const evh = hasVal(mh) ? ph * profitU(mh) - pa : null, eva = hasVal(ma) ? pa * profitU(ma) - ph : null;
+    // pick: the better EV side when prices are posted, else the model favourite
+    const home = evh != null || eva != null ? (evh ?? -9) >= (eva ?? -9) : ph >= .5;
+    const p = home ? ph : pa, ml = home ? mh : ma, mkt = home ? ih : ia, ev = home ? evh : eva;
+    const t = ev == null ? "" : evTier(ev, null);
+    out.push({t: g.start || "", time: ctStart(g), date: g.date, game: `${g.away} @ ${g.home}`, player: home ? g.home : g.away,
+              sub: (G[starterFor(home ? g.home : g.away, g.date).gid] || {}).name || "", line: hasVal(ml) ? +ml : null, lineTxt: amer(ml) || "–",
+              proj: null, projTxt: toAmerican(p), diff: mkt != null ? 100 * (p - mkt) : null, side: home ? "HOME" : "AWAY",
+              prob: p, tier: t, capped: false, play: ev != null && ev >= minE, q: [g.home, g.away]});
+  }
+  return out;
+}
+function boardTable(id, mk, rows, opts = {}){
+  const [key, dir] = SORT[mk] || ["prob", -1];
+  const val = r => key === "time" ? r.t : key === "line" ? (r.line ?? -1e9) : key === "diff" ? (r.diff ?? -1e9) : r.prob;
+  rows.sort((a, b) => (val(a) < val(b) ? -1 : val(a) > val(b) ? 1 : 0) * dir || b.prob - a.prob);
+  const th = (k, label, cls = "num") => `<th class="${cls} sortable" data-sort="${k}">${label}${key === k ? `<span class="arr">${dir < 0 ? "▼" : "▲"}</span>` : ""}</th>`;
+  const neutral = opts.neutral ?? 0.15;
+  const body = rows.map(r => `<tr class="${r.play ? "" : "pass"}">
+      <td class="num">${r.time || "–"}</td>
+      <td class="l">${r.game}</td>
+      <td class="l pin"><b>${r.player}</b>${r.sub ? ` <span class="muted" style="font-size:11px">${r.sub}</span>` : ""}</td>
+      <td class="num">${r.lineTxt ?? n1(r.line)}</td>
+      <td class="num">${r.projTxt ?? n1(r.proj)}</td>
+      <td class="num ${r.diff == null ? "" : opts.win ? (Math.abs(r.diff) < 1 ? "diff-neu" : r.diff > 0 ? "diff-sup" : "diff-con") : diffCls(r.diff, r.side, neutral)}">${r.diff == null ? "–" : sgn1(r.diff) + (opts.win ? " pts" : "")}</td>
+      <td class="l">${sidePill(opts.win ? r.player : r.side)}</td>
+      <td class="num"><b>${pc0(r.prob)}</b></td>
+      <td class="l">${r.play ? tierPill(r.tier, r.capped) : `<span class="pill PASS">PASS</span>${r.capped ? tierPill("", true) : ""}`}</td></tr>`).join("");
+  $(id).innerHTML = `<thead><tr>${th("time", "Time (CT)")}<th class="l">Game</th><th class="l pin">${opts.win ? "Pick" : "Player"}</th>${th("line", "Line")}<th class="num">Proj</th>${th("diff", "Diff")}<th class="l">Side</th>${th("prob", "Prob")}<th class="l">Tier</th></tr></thead><tbody>` +
+    (body || `<tr class="empty"><td colspan="9">No ${opts.label || "lines"} match these filters${D.slate.length ? "" : " (no games in this build yet)"}.</td></tr>`) + "</tbody>";
+  $(id).querySelectorAll("th[data-sort]").forEach(h => h.onclick = () => {
+    const k = h.dataset.sort; SORT[mk] = [k, SORT[mk] && SORT[mk][0] === k ? -SORT[mk][1] : (k === "time" ? 1 : -1)];
+    store.set("gm_sort", SORT); renderBoard();
+  });
+}
+function renderBoard(){
+  const mkF = $("#fMk").value, sideF = $("#fSide").value, dateF = $("#dateF").value, plays = $("#fPlays").checked;
+  const minP = $("#f60").checked ? 0.60 : (+$("#fMinP").value || 0) / 100;
+  const keep = (r, sides = true) => (!dateF || r.date === dateF) && r.prob >= minP - 1e-9 && (!plays || r.play) && (!sides || !sideF || r.side === sideF) && matchQ(...r.q);
+  const S = boardRowsSaves().filter(r => keep(r)), K = boardRowsSog().filter(r => keep(r)), Wn = boardRowsWin().filter(r => keep(r, false));
+  $("#cardSaves").style.display = !mkF || mkF === "saves" ? "" : "none";
+  $("#cardSog").style.display = !mkF || mkF === "sog" ? "" : "none";
+  $("#cardWin").style.display = (!mkF || mkF === "win") && !sideF ? "" : "none";
+  boardTable("#bSaves", "saves", S, {label: "saves lines"});
+  boardTable("#bSog", "sog", K, {label: "SOG lines"});
+  boardTable("#bWin", "win", Wn, {win: true, label: "games"});
+  const cnt = (rows) => `${rows.length} shown · ${rows.filter(r => r.play).length} plays`;
+  $("#nSaves").textContent = cnt(S); $("#nSog").textContent = cnt(K); $("#nWin").textContent = cnt(Wn);
+  renderStatus();
+}
+function renderStatus(){
+  const dateF = $("#dateF").value || TODAY_CT;
+  const rows = slateRows(), night = rows.filter(r => r.g.date === dateF);
+  const conf = night.filter(r => r.confirmed).length;
+  const sogA = alarmByDate(boardRowsSog().map(r => ({date: r.date, d: {play: r.play, side: r.side}})));
+  const alarms = [...alarmLines("saves", rows.alarm, dateF), ...alarmLines("SOG", sogA, dateF)];
+  $("#statusBar").innerHTML = [
+    `Built <b>${builtCT}</b>`, `Data through <b>${D.data_through}</b>`,
+    `Starters confirmed <b>${conf}/${night.length}</b>${dateF ? ` <span class="muted">(${dateF})</span>` : ""}`,
+    STALE ? `<span class="warn">⚠ Stale: built ${BUILD_AGE_H.toFixed(1)} h ago on a game day. Wait for the next build before betting.</span>` : "",
+    `<span>${SRC_PILLS}</span>`,
+    alarms.length ? `<div class="alarms">${alarms.map(a => `<div>${a}</div>`).join("")}</div>` : ""].filter(Boolean).join(" ");
+}
+["#fMk","#fSide","#fMinP","#f60","#fPlays"].forEach(s => $(s).oninput = renderBoard);
+$("#dateF").onchange = renderSlate;
 
 // ---------- matchup builder ----------
 function initBuilder(){
@@ -896,6 +1049,16 @@ function renderResults(){
   const un = r => r && r.priced ? `<span class="${r.units > 0 ? "good" : r.units < 0 ? "bad" : ""}">${r.units > 0 ? "+" : ""}${fmt(r.units,2)}u</span>` : "–";
   const roi = r => r && r.roi != null ? `<span class="${r.roi > 0 ? "good" : "bad"}">${r.roi > 0 ? "+" : ""}${pct(r.roi,1)}</span>` : "–";
   const M = T.model || {}, S = T.markets.saves, K = T.markets.sog, Wn = T.markets.winner;
+  const wl = r => r && (r.hit + r.miss) ? `${r.hit}-${r.miss}` : "0-0";
+  const hp = r => r && r.pct != null ? pc0(r.pct) : "–";
+  const mkCard = (name, X, rec0) => { if (!X) return "";
+    const B = X.prob_buckets || {}, F = X.forward;
+    return `<div class="mk"><h3>${name}</h3><div class="big">${wl(rec0)} <span class="${rec0 && rec0.pct >= .577 ? "good" : rec0 && rec0.pct != null ? "bad" : ""}">${hp(rec0)}</span></div>
+      <div class="tbl"><table><thead><tr><th class="l">Probability</th><th>W-L</th><th>Hit</th><th>Units</th></tr></thead><tbody>` +
+      [["55–60%", "55-60"], ["60–65%", "60-65"], ["65%+", "65+"], ["under 55%", "<55"]].map(([lab, k]) => { const r = B[k];
+        return `<tr><td class="l">${lab}</td><td>${wl(r)}</td><td class="${r && r.pct != null ? (r.pct >= .577 ? "good" : "bad") : ""}">${hp(r)}</td><td>${un(r)}</td></tr>`; }).join("") + `</tbody></table></div>` +
+      (F ? `<div style="margin-top:8px;font-size:12.5px"><b>${F.hit + F.miss}</b> / ${F.goal} forward plays toward the tier goal${F.hit + F.miss ? ` · ${wl(F)} ${hp(F)}` : ""}</div><div class="goal"><i style="width:${Math.min(100, 100 * (F.hit + F.miss) / F.goal)}%"></i></div>` : "") + `</div>`; };
+  $("#resProb").innerHTML = mkCard("Saves plays", S, S.plays) + mkCard("SOG plays", K, K.plays) + mkCard("Winner picks", Wn, Wn.all);
   $("#resNote").innerHTML = `Graded automatically from box scores on every build (last ${T.updated}), at the line and price each prop had <b>at pick time</b>. Units and ROI use the sportsbook price (DraftKings). DFS legs (Pick6 / PrizePicks) are priced at the per-leg break-even of a 2-pick 3x entry: at 1x on a 2-pick 3x a win pays +0.73u and a loss costs 1u. Book and DFS units are also shown separately. <b>Plays</b> from 10/23 on are price-aware: the calibrated probability (blended with the no-vig price from the 10/24 audit on) beats break-even by the margin. Earlier plays keep the rule they were picked under (saves 1.5+ edge, SOG 55%+). When a prop is on more than one book it counts once, and every table below uses that same set, so tiers, sides, books and nights all add up to each market's total.`;
   $("#resStats").innerHTML = `
     <div class="stat hero"><div class="k">Plays, real lines</div><div class="v">${rp(T.plays)}</div><div class="s">${rec(T.plays)} · ${un(T.plays)} · ROI ${roi(T.plays)}${T.plays.units_book != null ? `<br>book ${T.plays.units_book > 0 ? "+" : ""}${fmt(T.plays.units_book,2)}u · DFS legs ${T.plays.units_dfs > 0 ? "+" : ""}${fmt(T.plays.units_dfs,2)}u` : ""}</div></div>
@@ -907,8 +1070,8 @@ function renderResults(){
     T.days.map(d => `<tr><td class="l">${d.date}</td><td><b>${rec(d.plays)}</b> ${rp(d.plays)}</td><td>${un(d.plays)}</td><td>${rec(d.saves)} ${rp(d.saves)}</td><td>${rec(d.sog)} ${rp(d.sog)}</td><td>${rec(d.winner)}</td></tr>`).join("") +
     `<tr><td class="l"><b>Total</b></td><td><b>${rec(T.plays)}</b> ${rp(T.plays)}</td><td>${un(T.plays)}</td><td>${rec(S.all)} ${rp(S.all)}</td><td>${rec(K.all)} ${rp(K.all)}</td><td>${rec(Wn.all)}</td></tr></tbody>`;
   const SP_ = T.board_split || [];
-  $("#resSplit").innerHTML = SP_.length ? `<thead><tr><th class="l">Date</th><th class="l">Market</th><th>Plays</th><th>OVER</th><th>UNDER</th><th>One side</th><th class="l">Alarm at pick time</th><th>Record</th><th>Units</th></tr></thead><tbody>` +
-    SP_.map(s => `<tr><td class="l">${s.date}</td><td class="l">${s.market}</td><td>${s.plays}</td><td class="good">${s.over}</td><td class="bad">${s.under}</td><td class="${s.one_sided ? "bad" : ""}">${pct(s.share, 0)} ${s.over > s.under ? "OVER" : s.under > s.over ? "UNDER" : ""}</td><td class="l">${s.alarm == null ? '<span class="muted">not logged</span>' : s.alarm ? `<span class="bad">fired</span> <span class="muted">(${s.pre_alarm.over}/${s.pre_alarm.under} before)</span>` : "no"}</td><td>${rec(s.rec)}</td><td>${un(s.rec)}</td></tr>`).join("") + "</tbody>"
+  $("#resSplit").innerHTML = SP_.length ? `<thead><tr><th class="l">Date</th><th class="l">Market</th><th>Plays</th><th>OVER</th><th>UNDER</th><th>One side</th><th class="l">Warning at pick time</th><th>Record</th><th>Units</th></tr></thead><tbody>` +
+    SP_.map(s => `<tr><td class="l">${s.date}</td><td class="l">${s.market}</td><td>${s.plays}</td><td class="good">${s.over}</td><td class="bad">${s.under}</td><td class="${s.one_sided ? "bad" : ""}">${pct(s.share, 0)} ${s.over > s.under ? "OVER" : s.under > s.over ? "UNDER" : ""}</td><td class="l">${s.alarm == null ? '<span class="muted">not logged</span>' : s.alarm ? `<span class="bad">fired</span>` : "no"}</td><td>${rec(s.rec)}</td><td>${un(s.rec)}</td></tr>`).join("") + "</tbody>"
     : `<tbody><tr><td class="muted">No graded plays yet.</td></tr></tbody>`;
   const row = (lab, r, cls = "") => `<tr class="${cls}"><td class="l">${lab}</td><td>${rec(r)}</td><td>${rp(r)}</td><td>${un(r)}</td><td>${roi(r)}</td><td class="muted">${r && r.priced ? r.priced : "–"}</td></tr>`;
   const head = `<thead><tr><th class="l"></th><th>Record</th><th>Hit %</th><th>Units</th><th>ROI</th><th>Priced</th></tr></thead><tbody>`;
@@ -996,7 +1159,7 @@ function renderWinners(){
   $("#winT").innerHTML = html + "</tbody>";
   $("#winT").querySelectorAll("input[data-ml]").forEach(i => i.onchange = () => {
     if (i.value === "") delete ML[i.dataset.ml]; else ML[i.dataset.ml] = +i.value;
-    store.set("gm_ml", ML); renderWinners();
+    store.set("gm_ml", ML); renderWinners(); renderBoard();
   });
 }
 function renderWinBacktest(){
@@ -1050,21 +1213,13 @@ function sogDecision(g, team, opp, home, pl){
   }
   return {proj, L, mk, po, d};
 }
-// the night's SOG board split counts every line on the slate, not just the rows the filters show
-function sogAlarm(){
-  const items = [];
-  for (const g of D.slate) for (const [team, opp, home] of [[g.away, g.home, false], [g.home, g.away, true]])
-    for (const pl of D.sog.players[team] || []){ const x = sogDecision(g, team, opp, home, pl); if (x.d) items.push({date: g.date, d: x.d}); }
-  return alarmByDate(items);
-}
 function renderSOG(){
   const sel = $("#sGame");
   if (sel.options.length === 1) sel.innerHTML += D.slate.map(g => `<option value="${g.date}|${g.id}">${g.date.slice(5)} ${ctStart(g)} ${g.away} @ ${g.home}</option>`).join("");
   const nDK = (D.dk_sog || []).length, c = CAL.sog || {};
   $("#sogNote").innerHTML = `Projection = shots/60 × expected TOI × opponent shots-allowed factor × home/road. P(over) uses a negative binomial (it fits real shot counts better than a Poisson in every season tested). That probability is then <b>calibrated</b> on every graded real line${c.cal ? ` (${c.cal.n} so far)` : ""}, and a side is a play only when it beats the price's break-even by ${pct(RULE.margin_sog, 0)}. The projection must also sit at least ${RULE.sog_gap} shots past the line in the play direction (under only if projection ≤ line − ${RULE.sog_gap}) unless EV is ${pct(RULE.sog_gap_ev, 0)}+, because on a 1.5 or 2.5 line a count model already leans under when the projection equals the line. DraftKings lines carry their real price; PrizePicks and your own lines are priced as DFS legs at the multiplier you set (1x by default, and sub-1x sides never qualify unless you allow them above). Sorted by EV. ${c.tier_cap === "LOW" ? `<b>Tiers are capped at LOW</b> until 150 forward-graded SOG plays hit above 57.7% with positive ROI${c.gate ? ` (${c.gate.plays} so far)` : ""}.` : ""} Lines: your entry, then DraftKings (${nDK} this build), then the PrizePicks board pulled live in your browser${PP_SOG.length ? ` (${PP_SOG.length} SOG props)` : ""}.`;
   const gSel = sel.value, pos = $("#sPos").value, minEV = +$("#sMinP").value / 100, top = +$("#sTop").value, onlyPlays = $("#sPlays").checked;
-  const rows = [], A = sogAlarm();
-  $("#alarmSog").innerHTML = alarmBanner("SOG", A, gSel ? gSel.split("|")[0] : "");
+  const rows = [];
   for (const g of D.slate){
     if (gSel && gSel !== g.date + "|" + g.id) continue;
     for (const [team, opp, home] of [[g.away, g.home, false], [g.home, g.away, true]]){
@@ -1072,7 +1227,6 @@ function renderSOG(){
       for (const pl of list){
         if (!matchQ(pl.name, team, opp)) continue;
         const {proj, L, mk, po, d} = sogDecision(g, team, opp, home, pl);
-        applyAlarm(d, A[g.date]);
         if (onlyPlays && !(d && d.play && d.ev >= minEV)) continue;
         rows.push({g, team, opp, home, pl, proj, L, po, d, mk});
       }
@@ -1080,7 +1234,7 @@ function renderSOG(){
   }
   const key = r => r.d ? (r.d.play ? 10 + r.d.ev : r.d.ev) : -9;
   rows.sort((a, b) => key(b) - key(a) || b.proj - a.proj);
-  $("#sogT").innerHTML = `<thead><tr><th class="l">Player</th><th class="l">Game</th><th>Shots/60</th><th>TOI</th><th>Last 10</th><th>Proj</th><th>Line · source</th><th>DFS mult (over / under)</th><th class="l">Pick</th><th>P (calibrated)</th><th>Break-even</th><th>EV</th><th class="l">Tier</th></tr></thead><tbody>` +
+  $("#sogT").innerHTML = `<thead><tr><th class="l">Player</th><th class="l">Game</th><th>Shots/60</th><th>TOI</th><th>Last 10</th><th>Proj</th><th>Line · source</th><th>Diff</th><th>DFS mult (over / under)</th><th class="l">Pick</th><th>P (calibrated)</th><th>Break-even</th><th>EV</th><th class="l">Tier</th></tr></thead><tbody>` +
     (rows.length ? rows.map(r => { const d = r.d, play = d && d.play && d.ev >= minEV, m = SOGM[r.mk] || {};
       const lowVal = d && r.L.line >= 3.5 && d.side === "UNDER" && d.kind === "dfs" && (d.mult ?? 1) < 1;
       return `<tr class="${play ? d.side.toLowerCase() : d ? "dim" : ""}">
@@ -1089,18 +1243,19 @@ function renderSOG(){
       <td>${fmt(r.pl.r60,1)}</td><td>${fmt(r.pl.toi,1)}</td>
       <td style="font-size:11.5px">${(r.pl.l10||[]).join(" ") || "–"}</td><td><b>${fmt(r.proj,2)}</b></td>
       <td><input type="number" step="0.5" style="width:64px" data-sl="${r.mk}" value="${r.L.line ?? ""}" placeholder="line">${r.L.src && r.L.src !== "manual" ? `<div class="muted" style="font-size:11px">${r.L.src}${hasVal(r.L.over) ? ` o${amer(r.L.over)}/u${amer(r.L.under) || "–"}` : ""}</div>` : ""}</td>
+      <td class="${r.d ? diffCls(r.proj - r.L.line, r.d.side) : ""}">${r.L.line != null ? sgn1(r.proj - r.L.line) : "–"}</td>
       <td>${r.L.line != null && r.L.src !== "DK" ? `<select data-mo="${r.mk}">${[...new Set([1.2,1.1,1,0.9,0.85,0.8,0.75, m.o ?? r.L.mo ?? 1])].sort((a,b)=>b-a).map(x => `<option ${(m.o ?? r.L.mo ?? 1) == x ? "selected" : ""}>${x}</option>`).join("")}</select> <select data-mu="${r.mk}">${[...new Set([1.2,1.1,1,0.9,0.85,0.8,0.75, m.u ?? r.L.mu ?? 1])].sort((a,b)=>b-a).map(x => `<option ${(m.u ?? r.L.mu ?? 1) == x ? "selected" : ""}>${x}</option>`).join("")}</select>` : "–"}</td>
       <td class="l side">${d ? (play ? d.side : "PASS") : ""}${d ? `<div class="muted" style="font-size:11px">${d.side} ${priceTxt(d)}</div>` : ""}${lowVal ? `<div class="bad" style="font-size:11px">3.5+ under below 1x: low value</div>` : ""}</td>
-      <td>${d ? pct(d.p,1) : "–"}</td><td>${d && d.be != null ? pct(d.be,1) : "–"}</td><td class="${d && d.ev > 0 ? "good" : d ? "bad" : ""}">${evTxt(d)}</td>
+      <td>${d ? pc0(d.p) : "–"}</td><td>${d && d.be != null ? pc0(d.be) : "–"}</td><td class="${d && d.ev > 0 ? "good" : d ? "bad" : ""}">${evTxt(d)}</td>
       <td class="l">${d ? `<span class="pill ${d.tier}">${d.tier}</span>` : ""}</td></tr>`; }).join("")
-    : `<tr><td colspan="13" class="l muted">No players match.</td></tr>`) + "</tbody>";
+    : `<tr><td colspan="14" class="l muted">No players match.</td></tr>`) + "</tbody>";
   $("#sogT").querySelectorAll("input[data-sl]").forEach(i => i.onchange = () => {
     if (i.value === "") delete SOGL[i.dataset.sl]; else SOGL[i.dataset.sl] = +i.value;
-    store.set("gm_sogl", SOGL); renderSOG();
+    store.set("gm_sogl", SOGL); renderSOG(); renderBoard();
   });
   $("#sogT").querySelectorAll("select[data-mo],select[data-mu]").forEach(x => x.onchange = () => {
     const k = x.dataset.mo || x.dataset.mu; SOGM[k] = SOGM[k] || {}; SOGM[k][x.dataset.mo ? "o" : "u"] = +x.value;
-    store.set("gm_sogm", SOGM); renderSOG();
+    store.set("gm_sogm", SOGM); renderSOG(); renderBoard();
   });
 }
 function renderSogBacktest(){

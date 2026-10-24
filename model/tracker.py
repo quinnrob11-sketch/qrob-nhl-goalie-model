@@ -569,11 +569,12 @@ def summarize(log, model_rows, alarms=None):
                               "sides": {k: _rec(v) for k, v in sides.items()},
                               "plays_by_side": {k: _rec([r for r in v if is_play(r)]) for k, v in sides.items()},
                               "books": {b or "unknown": _rec([r for r in rows if (r.get("book") or "") == b]) for b in books}}
+        # plays by the probability they had when picked, graded at the line they were picked at
+        # (every winner pick counts; props count their plays)
+        pl = rows if mk == "winner" else [r for r in rows if is_play(r)]
+        out["markets"][mk]["prob_buckets"] = {k: _rec([r for r in pl if lo <= _p_side(r) < hi])
+                                              for k, lo, hi in PROB_BUCKETS}
         if mk != "winner":
-            # plays by the probability they had when picked, graded at the line they were picked at
-            pl = [r for r in rows if is_play(r)]
-            out["markets"][mk]["prob_buckets"] = {k: _rec([r for r in pl if lo <= _p_side(r) < hi])
-                                                  for k, lo, hi in PROB_BUCKETS}
             fwd = [r for r in pl if r.get("ev") not in (None, "")]
             out["markets"][mk]["forward"] = {**_rec(fwd), "goal": FORWARD_GOAL}
     # DFS market-basis record: graded at the board's line and multiplier, against the per-leg break-even
