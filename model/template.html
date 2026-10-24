@@ -200,8 +200,8 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
     <div class="card"><h2>Real lines: SOG (DraftKings, this season)</h2><div class="tbl"><table id="btRealSog"></table></div></div>
   </div>
   <div class="grid2">
-    <div class="card"><h2>Calibration buckets: saves</h2><p class="sub">Does a 60% call hit 60%? Raw model vs calibrated (walk-forward).</p><div class="tbl"><table id="btCalSaves"></table></div></div>
-    <div class="card"><h2>Calibration buckets: SOG</h2><p class="sub">Does a 60% call hit 60%? Raw model vs calibrated (walk-forward).</p><div class="tbl"><table id="btCalSog"></table></div></div>
+    <div class="card"><h2>Calibration buckets: saves</h2><p class="sub">Does a 60% call hit 60%? By side: raw model, calibrated, and final (blended with the market), walk-forward.</p><div class="tbl"><table id="btCalSaves"></table></div></div>
+    <div class="card"><h2>Calibration buckets: SOG</h2><p class="sub">Does a 60% call hit 60%? By side: raw model, calibrated, and final (blended with the market), walk-forward.</p><div class="tbl"><table id="btCalSog"></table></div></div>
   </div>
   <div class="card"><h2>Proxy-line backtest: fit on 2024-25, tested on 2025-26</h2>
     <p class="sub"><b>Proxy lines, not real ones.</b> No public dataset has historical saves lines, so these seasons are graded against floor(last-10 average) + 0.5. Real lines are much sharper, so <b>tier hit rates against the proxy are hidden</b>; only projection accuracy is shown.</p>
@@ -243,7 +243,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 <section id="logic">
   <div class="card"><h2>Formula</h2>
     <p><code>exp_SA = LG × (TeamSA/LG)<sup>a</sup> × (OppSF/LG)<sup>b</sup> × home × playoff × b2b × opponent b2b × exp(−gs × logit(win prob))</code>, the game-script multiplier capped at ±12%.</p>
-    <p><code>saves ~ Normal(mean = exp_SA × share × sv, var = sv²(μ + μ²/K) + μ·sv(1−sv)), μ = exp_SA × share</code>: shots against vary like a negative binomial and each shot is saved with probability sv, so heavier workloads (underdogs) get a wider spread. P(hit) is then calibrated on graded real lines, and a play needs calibrated P above the price's break-even + 2%.</p>
+    <p><code>saves ~ Normal(mean = exp_SA × share × sv, var = sv²(μ + μ²/K) + μ·sv(1−sv)), μ = exp_SA × share</code>: shots against vary like a negative binomial and each shot is saved with probability sv, so heavier workloads (underdogs) get a wider spread. P(hit) is then calibrated on graded real lines (side-split, no intercept), blended 60/40 with the no-vig DraftKings price when both sides are posted, and a play needs that probability above the price's break-even + 2%.</p>
     <p><code>Projected saves = exp_SA × time-in-net share × save%</code> &nbsp; <code>Edge = Projected − Line</code></p>
     <div class="tbl"><table id="parT"></table></div>
     <h3>What each piece does</h3>
@@ -312,16 +312,21 @@ function tier(e){ e = Math.abs(e); return e >= 2.5 ? "HIGH" : e >= 1.5 ? "MED" :
 const MARGIN = 0.02;
 const DIST = Object.assign({nb_k: 30, gs: 0.01, gs_cap: 0.12, sd_floor: 6}, D.dist || {});
 const CAL = (D.calib && D.calib.markets) || {};
+const RULE = Object.assign({blend_w: 0.6}, D.pricing || {});
 const DFS = Object.assign({legs: 2, payout: 3, sub1x: false}, store.get("gm_dfs", {}));
 const hasVal = v => v !== undefined && v !== null && v !== "" && !isNaN(+v);
 const impliedP = o => !hasVal(o) ? null : (+o < 0 ? -o / (-o + 100) : 100 / (+o + 100));
 const profitU = o => +o < 0 ? 100 / -o : +o / 100;
 const dfsBE = (mult = 1) => Math.pow(DFS.payout, -1 / DFS.legs) / (mult || 1);
 const amer = o => !hasVal(o) ? "" : (+o > 0 ? "+" + o : "" + o);
-function platt(p, cal){ if (!cal) return p; p = Math.min(Math.max(p, 1e-4), 1 - 1e-4); return 1 / (1 + Math.exp(-(cal.a + cal.b * Math.log(p / (1 - p))))); }
+// side-split calibration: lines the raw model leans UNDER use b_under (no intercept, 50% stays 50%)
+function platt(p, cal){ if (!cal) return p; p = Math.min(Math.max(p, 1e-4), 1 - 1e-4); const b = cal.b_under !== undefined && p < .5 ? cal.b_under : cal.b; return 1 / (1 + Math.exp(-((cal.a || 0) + b * Math.log(p / (1 - p))))); }
+// final P(over) = blend_w x calibrated model + (1 - blend_w) x no-vig market, when both prices are posted
+const novig = (o, u) => hasVal(o) && hasVal(u) ? impliedP(o) / (impliedP(o) + impliedP(u)) : null;
 function evTier(ev, cap){ const t = ev >= .08 ? "HIGH" : ev >= .05 ? "MED" : ev >= MARGIN ? "LOW" : "PASS"; return cap === "LOW" && (t === "HIGH" || t === "MED") ? "LOW" : t; }
 function decide(market, pOverRaw, o = {}){
-  const c = CAL[market] || {}, po = platt(pOverRaw, c.cal);
+  const c = CAL[market] || {}, pm = platt(pOverRaw, c.cal), mk = o.noBlend ? null : novig(o.over, o.under);
+  const po = mk === null ? pm : RULE.blend_w * pm + (1 - RULE.blend_w) * mk;
   let best = null;
   for (const [side, p, price, mult] of [["OVER", po, o.over, o.multOver], ["UNDER", 1 - po, o.under, o.multUnder]]){
     let be, ev, kind;
@@ -332,6 +337,7 @@ function decide(market, pOverRaw, o = {}){
   }
   best.play = best.kind !== "none" && best.p > best.be + MARGIN && best.ev >= MARGIN;
   best.tier = best.play ? evTier(best.ev, c.tier_cap) : "PASS";
+  best.pModel = pm; best.pMkt = mk;
   return best;
 }
 const evTxt = d => !d || d.kind === "none" ? "–" : (d.ev > 0 ? "+" : "") + (100 * d.ev).toFixed(1) + "%";
@@ -562,7 +568,7 @@ function renderBuilder(){
   const gid = +$("#mbG").value, r = project(gid, $("#mbT").value, $("#mbO").value, $("#mbH").value==="1", $("#mbB").value==="1", $("#mbP").value==="1", $("#mbOB").value==="1");
   const dist = savesDist(r.sa, r.share, r.sv, null);
   const line = +$("#mbL").value, po = pOverSaves(dist.proj, dist.sd, line);
-  const d = decide("saves", po, {over: -110, under: -110});
+  const d = decide("saves", po, {over: -110, under: -110, noBlend: true});
   $("#mbOut").innerHTML = `
     <div class="stat hero"><div class="k">Projected saves</div><div class="v">${fmt(dist.proj)}</div><div class="s">${fmt(dist.saGs)} exp SA × ${fmt(r.share,3)} share × ${fmt(r.sv,3)} SV% · spread ±${fmt(dist.sd)}</div></div>
     <div class="stat"><div class="k">Calibrated P(${d.side.toLowerCase()} ${line})</div><div class="v">${pct(d.p,1)}</div><div class="s">raw model ${pct(d.side==="OVER"?po:1-po,1)}</div></div>
@@ -570,13 +576,17 @@ function renderBuilder(){
 }
 
 // ---------- backtest ----------
+const calTxt = m => { const c = m && m.cal; if (!c) return "–";
+  if (c.b_under === undefined) return `Calibration on ${c.n} lines: ${fmt(c.a,3)} + ${fmt(c.b,3)} × logit(p).`;
+  return `Calibration on ${c.n} lines, side-split with no intercept: leans OVER slope ${fmt(c.b,3)} (${c.n_over} lines), leans UNDER slope ${fmt(c.b_under,3)} (${c.n_under} lines); ${c.mode}. ` +
+    (m.platt_ref ? `A single Platt fit would be ${fmt(m.platt_ref.a,3)} + ${fmt(m.platt_ref.b,3)} × logit(p); its intercept is what used to tilt every line to one side. ` : "") + "A slope under 1 means the raw model was overconfident."; };
 function renderBacktest(){
   const B = D.backtest, T = B["2026"], F = B["2025"], C = (D.calib && D.calib.markets) || {};
   const rec = r => r && (r.hit + r.miss) ? `${r.hit}-${r.miss}` : "–";
   const u = r => r && r.n ? `<span class="${r.units > 0 ? "good" : "bad"}">${r.units > 0 ? "+" : ""}${fmt(r.units,2)}u</span>` : "–";
   const roi = r => r && r.roi != null ? `<span class="${r.roi > 0 ? "good" : "bad"}">${r.roi > 0 ? "+" : ""}${pct(r.roi,1)}</span>` : "–";
   const S = C.saves, K = C.sog;
-  $("#btNote").innerHTML = `<b>How to read this.</b> The top tables grade every <b>real DraftKings line</b> this season at the price it had before puck drop${S ? ` (saves ${S.lines} lines, SOG ${K ? K.lines : 0} lines, ${S.from} to ${S.to})` : ""}. <b>Old rule</b>: tiers by edge or probability, no price. <b>New rule</b>: calibrated probability must beat the price's break-even by 2%, with calibration refit week by week using only earlier weeks, so there is no lookahead. Tiers are shown only when HIGH beats MED beats LOW on both hit % and ROI with 30+ plays each; otherwise they're capped at LOW. This refits on every build as more lines are graded.`;
+  $("#btNote").innerHTML = `<b>How to read this.</b> The top tables grade every <b>real DraftKings line</b> this season at the price it had before puck drop${S ? ` (saves ${S.lines} lines, SOG ${K ? K.lines : 0} lines, ${S.from} to ${S.to})` : ""}. <b>Old rule</b>: tiers by edge or probability, no price. <b>New rule</b>: the model's probability is calibrated (side-split, no intercept, shrunk toward identity until ${RULE.min_cal_n || 500} graded lines), blended ${Math.round(100 * RULE.blend_w)}/${Math.round(100 * (1 - RULE.blend_w))} with the no-vig DraftKings price, and must beat the price's break-even by the margin. Calibration is refit week by week using only earlier weeks, so there is no lookahead. Tiers are shown only when HIGH beats MED beats LOW on both hit % and ROI with 30+ plays each; otherwise they're capped at LOW. This refits on every build as more lines are graded.`;
   const card = (lab, m) => m ? `<div class="stat"><div class="k">${lab}</div><div class="v">${roi(m.new.plays)}</div><div class="s">new rule: ${rec(m.new.plays)} (${pct(m.new.plays.pct,1)}) · ${u(m.new.plays)}<br>old rule: ${rec(m.old.plays)} (${pct(m.old.plays.pct,1)}) · ${u(m.old.plays)} · ROI ${roi(m.old.plays)}</div></div>` : "";
   $("#btStats").innerHTML = card("Saves ROI, new vs old", S) + card("SOG ROI, new vs old", K) +
     `<div class="stat"><div class="k">Tier status</div><div class="v" style="font-size:20px">${S && S.tier_cap ? "capped at LOW" : "tiers on"}</div><div class="s">saves ${S ? (S.tiers_ok ? "HIGH > MED > LOW holds" : "not ordered yet") : "–"} · SOG ${K ? (K.tiers_ok ? "ordered" : "not ordered yet") : "–"}</div></div>`;
@@ -586,11 +596,15 @@ function renderBacktest(){
      ["New · overs", m.new.overs], ["New · unders", m.new.unders], ["<b>Old: plays</b>", m.old.plays], ["Old · HIGH", m.old.HIGH], ["Old · MED", m.old.MED], ["Old · LOW", m.old.LOW], ["Old · PASS", m.old.PASS],
      ["Every line, old side", m.old.all], ["Blind unders", m.blind_under]]
       .map(([k, r]) => `<tr><td class="l">${k}</td><td>${r ? r.n : "–"}</td><td>${rec(r)}</td><td>${r && r.pct != null ? pct(r.pct,1) : "–"}</td><td>${u(r)}</td><td>${roi(r)}</td></tr>`).join("") +
-    `<tr><td class="l muted" colspan="6">Calibration fit on all ${m.cal.n} lines: logit(p) → ${fmt(m.cal.a,3)} + ${fmt(m.cal.b,3)} × logit(p). A slope under 1 means the raw model was overconfident.</td></tr></tbody>`;
+    `<tr><td class="l muted" colspan="6">${calTxt(m)}</td></tr></tbody>`;
   $("#btRealSaves").innerHTML = realT(S); $("#btRealSog").innerHTML = realT(K);
-  const calT = m => !m ? "" : `<thead><tr><th>P(side)</th><th>Raw n</th><th>Raw predicted</th><th>Raw actual</th><th>Calibrated n</th><th>Cal. predicted</th><th>Cal. actual</th></tr></thead><tbody>` +
-    ["(0.5, 0.55]","(0.55, 0.6]","(0.6, 0.65]","(0.65, 0.7]","(0.7, 1.0]"].map(bk => { const r = m.buckets_raw.find(x => x.bucket === bk), c = m.buckets_cal.find(x => x.bucket === bk);
-      return `<tr><td>${bk}</td><td>${r ? r.n : 0}</td><td>${r ? pct(r.pred,1) : "–"}</td><td>${r ? pct(r.actual,1) : "–"}</td><td>${c ? c.n : 0}</td><td>${c ? pct(c.pred,1) : "–"}</td><td>${c ? pct(c.actual,1) : "–"}</td></tr>`; }).join("") + "</tbody>";
+  // predicted vs actual for the side each probability leans to: raw model, calibrated, final (blended with the market)
+  const calT = m => { if (!m) return ""; const B = m.buckets_side;
+    if (!B) return "";
+    const cell = (arr, bk) => { const r = (arr || []).find(x => x.bucket === bk); return r ? `<td>${r.n}</td><td>${pct(r.pred,1)}</td><td class="${r.actual >= r.pred ? "good" : "bad"}">${pct(r.actual,1)}</td>` : `<td>0</td><td>–</td><td>–</td>`; };
+    return `<thead><tr><th class="l">Side</th><th>P(side)</th><th>Raw n</th><th>Raw pred.</th><th>Raw actual</th><th>Cal. n</th><th>Cal. pred.</th><th>Cal. actual</th><th>Final n</th><th>Final pred.</th><th>Final actual</th></tr></thead><tbody>` +
+      ["OVER", "UNDER"].map(sd => ["(0.5, 0.55]","(0.55, 0.6]","(0.6, 0.65]","(0.65, 0.7]","(0.7, 1.0]"].map(bk =>
+        `<tr><td class="l"><span class="${sd === "OVER" ? "good" : "bad"}">${sd}</span></td><td>${bk}</td>${cell(B.raw[sd], bk)}${cell(B.calibrated[sd], bk)}${cell(B.final[sd], bk)}</tr>`).join("")).join("") + "</tbody>"; };
   $("#btCalSaves").innerHTML = calT(S); $("#btCalSog").innerHTML = calT(K);
   $("#btProxy").innerHTML = `
     <div class="stat"><div class="k">Avg miss per start (MAE), 2025-26</div><div class="v">${fmt(T.mae_model,2)}</div><div class="s">vs ${fmt(T.mae_l10,2)} for last-10 avg · ${T.starts} starts</div></div>
@@ -756,8 +770,10 @@ function renderLogic(){
     ["Save% prior (shots)", P.k_sv], ["Save% half-life (starts)", P.sv_half_life], ["Home multiplier", P.home], ["Playoff multiplier", P.playoff],
     ["Back-to-back multiplier", P.b2b], ["Opponent back-to-back multiplier", P.opp_b2b ?? 1], ["League time-in-net share", pct(D.lg_share)],
     ["Game script: shots × exp(−gs × logit(win prob)), gs", DIST.gs], ["Shots dispersion (NegBin size K)", DIST.nb_k], ["Minimum saves spread (sd floor)", DIST.sd_floor],
-    ["Saves calibration (a, b)", CAL.saves ? `${CAL.saves.cal.a}, ${CAL.saves.cal.b} (n=${CAL.saves.cal.n})` : "–"], ["SOG calibration (a, b)", CAL.sog ? `${CAL.sog.cal.a}, ${CAL.sog.cal.b} (n=${CAL.sog.cal.n})` : "–"],
-    ["Play rule", "calibrated P > break-even + 2%"], ["DFS per-leg break-even", `${pct(dfsBE(1),1)} at 1x (${DFS.legs} legs at ${DFS.payout}x)`]];
+    ["Game-script cap", `±${pct(DIST.gs_cap ?? .12, 0)}`], ["League average half-life (team-games)", P.lg_half_life ?? 693],
+    ["Saves calibration", calTxt(CAL.saves)], ["SOG calibration", calTxt(CAL.sog)],
+    ["Market blend", `final = ${RULE.blend_w} × model + ${fmt(1 - RULE.blend_w, 1)} × no-vig price (both prices posted)`],
+    ["Play rule", `final P > break-even + ${pct(RULE.margin ?? MARGIN, 0)}, EV ≥ ${pct(RULE.margin ?? MARGIN, 0)}`], ["DFS per-leg break-even", `${pct(dfsBE(1),1)} at 1x (${DFS.legs} legs at ${DFS.payout}x)`]];
   $("#parT").innerHTML = `<tbody>${rows.map(r => `<tr><td class="l">${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</tbody>`;
   document.querySelectorAll(".k_sv").forEach(e => e.textContent = P.k_sv);
   document.querySelectorAll(".carry").forEach(e => e.textContent = Math.round(P.carry*100) + "%");

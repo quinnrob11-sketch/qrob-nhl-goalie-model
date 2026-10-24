@@ -21,6 +21,7 @@ import data
 import calibrate
 import engine
 import odds
+import pricing
 import prizepicks
 import saves_dist
 import sog
@@ -355,6 +356,7 @@ def main():
                     "over": r.get("over"), "under": r.get("under")} for r in odds.sog_rows],
         "ml": odds.ml_rows,
         "dist": DIST,
+        "pricing": pricing.config(),
         "dk_error": odds.last_error,
         "odds_remaining": odds.remaining,
         "depth": depth_charts(st_df[st_df.season == display_season], rosters,

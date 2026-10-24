@@ -7,13 +7,16 @@ price, plus the model's raw P(over) for it:
   * SOG: the P(over) logged at pick time.
 
 Outputs (model/output/calibration.json, shown on the Backtest tab):
-  * Platt calibration per market, fitted on all graded history (used for tonight's picks);
-  * a walk-forward replay: each week is calibrated only on earlier weeks, then the price-aware
-    rule (calibrated p > break-even + 2%) is graded at the real price -> hit %, units, ROI by EV
-    tier. If HIGH > MED > LOW doesn't hold on both hit % and ROI, the market's tiers are capped
-    at LOW;
+  * calibration per market, fitted on all graded history (used for tonight's picks). It is
+    side-split with no intercept: lines the raw model leans OVER and lines it leans UNDER each get
+    their own slope on logit(p), so 50% stays 50% and no intercept can push every line to one side.
+    Below MIN_CAL_N (500) graded lines the slopes are shrunk toward identity by n / 500;
+  * a walk-forward replay: each week is calibrated only on earlier weeks, blended with the no-vig
+    market (pricing.BLEND_W), and decided by the live rule (pricing.decide), then graded at the
+    real price -> hit %, units, ROI by side and EV tier. If HIGH > MED > LOW doesn't hold on both
+    hit % and ROI, the market's tiers are capped at LOW;
   * the old rule (edge / probability tiers, no price) on the same lines, for comparison;
-  * calibration buckets (predicted vs actual).
+  * calibration buckets (predicted vs actual), overall and by side for raw / calibrated / final.
 """
 from __future__ import annotations
 
@@ -47,8 +50,35 @@ def platt_fit(p, y, l2=1.0):
     return {"a": round(float(w[0]), 4), "b": round(float(w[1]), 4), "n": int(len(p))}
 
 
-def _apply(p, cal):
-    return 1 / (1 + np.exp(-(cal["a"] + cal["b"] * _lg(np.asarray(p, float)))))
+def _slope_fit(x, y, l2=1.0):
+    """P(y) = sigmoid(b x), no intercept, regularised toward b = 1."""
+    b = 1.0
+    for _ in range(50):
+        q = 1 / (1 + np.exp(-b * x))
+        g = np.sum(x * (q - y)) + l2 * (b - 1)
+        h = np.sum(x * x * q * (1 - q)) + l2
+        b -= g / h
+    return float(b)
+
+
+def side_fit(p_over, went_over, push=None, min_n=None):
+    """Side-split calibration with no intercept: lines the raw model leans OVER get slope b, lines it
+    leans UNDER get b_under, both fitted on P(that side wins) = sigmoid(b x logit(p_side)). With fewer
+    than MIN_CAL_N graded lines the slopes are shrunk toward 1 by n / MIN_CAL_N."""
+    min_n = min_n or pricing.MIN_CAL_N
+    p = np.asarray(p_over, float); y = np.asarray(went_over, bool)
+    keep = ~np.asarray(push, bool) if push is not None else np.ones(len(p), bool)
+    p, y = p[keep], y[keep]
+    lean_over = p >= 0.5
+    out = {"a": 0.0, "n": int(len(p)), "n_over": int(lean_over.sum()), "n_under": int((~lean_over).sum())}
+    lam = min(1.0, len(p) / min_n)
+    for key, m, win in (("b", lean_over, y), ("b_under", ~lean_over, ~y)):
+        raw = _slope_fit(np.abs(_lg(p[m])), win[m].astype(float)) if m.sum() >= 20 else 1.0
+        out[key + "_fit"] = round(raw, 4)
+        out[key] = round(1 + lam * (raw - 1), 4)
+    out["shrink"] = round(lam, 3)
+    out["mode"] = "full" if lam >= 1 else f"shrunk {lam:.2f} toward identity (n < {min_n})"
+    return out
 
 
 def _profit(price, win, push):
@@ -103,12 +133,50 @@ def _sp(r, prm):
     return {"proj": x["proj"], "sd": x["sd"], "line": r.line}
 
 
+def _side_buckets(p_over, went_over, push):
+    """Predicted vs actual for the side each probability leans to, split OVER / UNDER."""
+    p_over = np.asarray(p_over, float); keep = ~np.asarray(push, bool)
+    so = p_over >= 0.5
+    p_side = np.where(so, p_over, 1 - p_over)
+    win = np.where(so, went_over, ~np.asarray(went_over, bool))
+    return {"OVER": _buckets(p_side[keep & so], win[keep & so]), "UNDER": _buckets(p_side[keep & ~so], win[keep & ~so])}
+
+
+def replay(x: pd.DataFrame, mk: str) -> pd.DataFrame:
+    """Walk-forward: each week's lines are calibrated on earlier weeks only, then decided with the live
+    rule (pricing.decide). Returns one row per line with the decision and its result."""
+    y = x.went_over.values; push = x.push.values
+    rows = []
+    for wk in sorted(x.wk.unique()):
+        te, tr = (x.wk == wk).values, (x.wk < wk).values
+        cal = side_fit(x.p_over.values[tr], y[tr], push[tr]) if tr.sum() >= 50 else None
+        for r in x[te].itertuples():
+            d = pricing.decide(r.p_over, cal, r.over, r.under, market=mk, proj=r.model_proj, line=r.line)
+            rows.append({"idx": r.Index, "date": r.date, "side": d["side"], "p": d["p"], "ev": d["ev"], "play": d["play"],
+                         "tier": pricing.tier(d["ev"]) if d["play"] else "PASS", "price": r.over if d["side"] == "OVER" else r.under,
+                         "p_cal_over": d["p_model"], "p_final_over": d["p"] if d["side"] == "OVER" else 1 - d["p"]})
+    out = pd.DataFrame(rows).set_index("idx").loc[x.index]
+    out["win"] = np.where(out.side == "OVER", x.went_over, ~x.went_over)
+    out["push"] = push
+    out["prof"] = _profit(out.price.values, out.win.values, push)
+    return out
+
+
+def _by_side(r: pd.DataFrame, m) -> dict:
+    m = np.asarray(m, bool)
+    o, u = m & (r.side == "OVER").values, m & (r.side == "UNDER").values
+    return {"plays": _rec(r.win.values[m], r.prof.values[m], r.push.values[m]),
+            "overs": _rec(r.win.values[o], r.prof.values[o], r.push.values[o]),
+            "unders": _rec(r.win.values[u], r.prof.values[u], r.push.values[u])}
+
+
 def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices: pd.DataFrame | None = None) -> dict:
     df = lines_frame(log, saves_rows, dist_prm)
-    out = {"updated": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "markets": {}}
+    out = {"updated": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "markets": {},
+           "rule": {"blend_w": pricing.BLEND_W, "min_cal_n": pricing.MIN_CAL_N}}
     if df.empty:
         return out
-    # both sides' prices from the DraftKings snapshots (needed to price the side the NEW rule picks)
+    # both sides' prices from the DraftKings snapshots (needed to price the side the rule picks)
     if prices is not None and len(prices):
         pr = prices.copy(); pr["key"] = pr.name.map(prizepicks.name_key)
         pr = pr.sort_values("snap").drop_duplicates(["market", "date", "key", "line"], keep="last")
@@ -121,26 +189,13 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
         x = df[df.market == mk].dropna(subset=["over", "under"]).reset_index(drop=True)
         if len(x) < 40:
             continue
-        y = x.went_over.astype(float).values
-        cal = platt_fit(x.p_over.values, y)
-        # walk-forward: calibrate each week on earlier weeks only
-        pc = np.full(len(x), np.nan)
-        for wk in sorted(x.wk.unique()):
-            te, tr = (x.wk == wk).values, (x.wk < wk).values
-            pc[te] = _apply(x.p_over.values[te], platt_fit(x.p_over.values[tr], y[tr])) if tr.sum() >= 50 else x.p_over.values[te]
-        so = pc >= 0.5
-        p_side = np.where(so, pc, 1 - pc)
-        price = np.where(so, x.over, x.under)
-        be = np.array([pricing.implied(v) for v in price])
-        ev = p_side * np.where(price < 0, 100 / -price, price / 100) - (1 - p_side)
-        win = np.where(so, x.went_over, ~x.went_over)
-        push = x.push.values
-        prof = _profit(price, win, push)
-        play = (p_side > be + pricing.MARGIN) & (ev >= pricing.MARGIN)
+        cal = side_fit(x.p_over.values, x.went_over.values, x.push.values)
+        r = replay(x, mk)
+        play, push = r.play.values, x.push.values
         tiers = {}
-        for name, lo, hi in (("HIGH", 0.08, 9), ("MED", 0.05, 0.08), ("LOW", pricing.MARGIN, 0.05)):
-            m = play & (ev >= lo) & (ev < hi)
-            tiers[name] = _rec(win[m], prof[m], push[m])
+        for name in ("HIGH", "MED", "LOW"):
+            m = play & (r.tier == name).values
+            tiers[name] = _rec(r.win.values[m], r.prof.values[m], push[m])
         ok = all(tiers[t]["n"] >= MIN_TIER_N for t in tiers) and \
             tiers["HIGH"]["pct"] > tiers["MED"]["pct"] > tiers["LOW"]["pct"] and \
             tiers["HIGH"]["roi"] > tiers["MED"]["roi"] > tiers["LOW"]["roi"]
@@ -163,14 +218,16 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
         old["all"] = _rec(owin, oprof, push)
         blind_under = _rec(~x.went_over.values, _profit(x.under.values, ~x.went_over.values, push), push)
         raw_so = x.p_over.values >= 0.5
+        new = _by_side(r, play)
+        new["tiers"] = tiers
         out["markets"][mk] = {
-            "cal": cal, "tier_cap": None if ok else "LOW", "tiers_ok": bool(ok),
-            "new": {"plays": _rec(win[play], prof[play], push[play]), "tiers": tiers,
-                    "overs": _rec(win[play & so], prof[play & so], push[play & so]),
-                    "unders": _rec(win[play & ~so], prof[play & ~so], push[play & ~so])},
-            "old": old, "blind_under": blind_under,
+            "cal": cal, "platt_ref": platt_fit(x.p_over.values, x.went_over.values), "tier_cap": None if ok else "LOW", "tiers_ok": bool(ok),
+            "new": new, "old": old, "blind_under": blind_under,
             "buckets_raw": _buckets(np.maximum(x.p_over.values, 1 - x.p_over.values),
                                     np.where(raw_so, x.went_over, ~x.went_over)),
-            "buckets_cal": _buckets(p_side, win),
+            "buckets_cal": _buckets(r.p.values[~push], r.win.values[~push]),
+            "buckets_side": {"raw": _side_buckets(x.p_over.values, x.went_over.values, push),
+                             "calibrated": _side_buckets(r.p_cal_over.values, x.went_over.values, push),
+                             "final": _side_buckets(r.p_final_over.values, x.went_over.values, push)},
             "lines": int(len(x)), "from": str(x.date.min()), "to": str(x.date.max())}
     return out
