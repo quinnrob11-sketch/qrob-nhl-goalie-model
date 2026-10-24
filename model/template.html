@@ -114,6 +114,13 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 .capped{display:inline-block;margin-left:4px;font-size:9.5px;color:var(--muted);border:1px dashed var(--border);border-radius:4px;padding:0 3px;vertical-align:1px}
 .board .empty td{color:var(--muted);text-align:left}
 .warn-inline{color:var(--warn);font-weight:600}
+.board input.lin{width:74px;text-align:right;font-variant-numeric:tabular-nums;padding:5px 7px;font-weight:600}
+.board input.lin:placeholder-shown{border-color:var(--accent);background:var(--accent-soft)}
+.board select.gsel{max-width:170px;padding:4px 6px;font-weight:600}
+.board .cell2{font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap}
+.board a.clr{color:var(--under);text-decoration:none;margin-left:2px}
+.m-only{display:none}
+@media (max-width:760px){ .board .c-time,.board .c-game{display:none} .board .m-only{display:block} .board select.gsel{max-width:140px} }
 .goal{height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;margin-top:6px}
 .goal i{display:block;height:100%;background:var(--accent)}
 @media (max-width:760px){
@@ -164,7 +171,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   <div class="card" id="cardSog"><h2>SOG <span class="muted" id="nSog" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSog"></table></div></div>
   <div class="card" id="cardWin"><h2>Winners <span class="muted" id="nWin" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bWin"></table></div>
     <p class="sub" style="margin:8px 0 0">Line = the DraftKings moneyline for the pick, Proj = the model's fair price, Diff = model win % − no-vig market % (points).</p></div>
-  <p class="sub" id="boardKey" style="margin:-4px 0 14px">Diff = projection − line. <span class="diff-sup">Green</span>: the projection backs the pick side by 0.15+. <span class="diff-neu">Gray</span>: within 0.15 of the line. <span class="diff-con">Red</span>: the projection points the other way. Probability is the calibrated chance the pick side hits (saves calls of 65%+ are shown as 60%, <span class="capped">capped</span>, because they've hit 46%). Click Time, Line, Diff or Prob to sort.</p>
+  <p class="sub" id="boardKey" style="margin:-4px 0 14px"><b>Saves: every starter is listed. Type the line your book has in the Line box</b> (or pick a different goalie) and the Diff, side and probability update instantly; DraftKings lines fill in on their own, and yours override them (✕ removes yours). A line you type counts as confirming that goalie. Diff = projection − line. <span class="diff-sup">Green</span>: the projection backs the pick side by 0.15+. <span class="diff-neu">Gray</span>: within 0.15 of the line. <span class="diff-con">Red</span>: the projection points the other way. Probability is the calibrated chance the pick side hits (saves calls of 65%+ are shown as 60%, <span class="capped">capped</span>, because they've hit 46%). Click Time, Line, Diff or Prob to sort.</p>
   <details class="card" id="editBox">
     <summary><b>Starters, lines and sources</b> <span class="muted">· change a goalie, type your own line, paste a DFS board</span></summary>
     <p class="sub" id="ppNote" style="margin:8px 0 6px"></p>
@@ -613,7 +620,8 @@ function slateRows(){
       const bd = gid != null && G[gid] ? boardFor("saves", G[gid].name) : null;
       const line = LINES[key] ?? (bd ? bd.line : null) ?? dkLine ?? ppLine;
       const lineSrc = LINES[key] != null ? "manual" : bd ? "board" : dkLine != null ? "dk" : ppLine != null ? "pp" : "";
-      const confirmed = ["dk", "pp", "manual", "df", "board"].includes(st.src);
+      // a line you type yourself counts as confirming that goalie
+      const confirmed = ["dk", "pp", "manual", "df", "board"].includes(st.src) || LINES[key] != null;
       let d = null, po = null;
       if (line != null){
         po = pOverSaves(dist.proj, dist.sd, line);
@@ -712,11 +720,25 @@ function starterTxt(r){
 
 // ---------- the board: one table per market ----------
 const SORT = store.get("gm_sort", {saves: ["prob", -1], sog: ["prob", -1], win: ["prob", -1]});
+// every starter on the slate, with or without a line: the line is typed right in the row
+function lineSrcTxt(r){
+  if (r.lineSrc === "manual") return `yours <a href="#" class="clr" data-clear="${r.key}" title="Remove your line">✕</a>`;
+  if (r.lineSrc === "dk") return `DK ${amer(r.dk.over) || "–"}/${amer(r.dk.under) || "–"}`;
+  if (r.lineSrc === "pp") return "PrizePicks 1x";
+  if (r.lineSrc === "board") return `${r.bd.book} ${r.bd.mo}x/${r.bd.mu}x`;
+  return "type the line";
+}
 function boardRowsSaves(){
-  return slateRows().filter(r => r.d && r.line != null).map(r => ({
-    t: r.g.start || "", time: ctStart(r.g), date: r.g.date, game: `${r.g.away} @ ${r.g.home}`,
-    player: (G[r.gid] || {}).name || "?", sub: r.confirmed ? "" : "unconfirmed", line: r.line, proj: r.proj, diff: r.proj - r.line,
-    side: r.d.side, prob: r.d.pShow, tier: r.d.tier, capped: r.d.capped, play: r.d.play, q: [(G[r.gid] || {}).name, r.team, r.opp]}));
+  return slateRows().map(r => {
+    const name = (G[r.gid] || {}).name || "?";
+    return {t: r.g.start || "", time: ctStart(r.g), date: r.g.date, game: `${r.g.away} @ ${r.g.home}`,
+      player: name, playerEdit: `<select class="gsel" data-st="${r.g.date}|${r.team}" title="Change the starter">${goalieOptions(r.team, r.gid)}</select>` +
+        `<div class="cell2">${r.team} · ${r.confirmed ? '<span class="good">confirmed</span>' : '<span class="bad">unconfirmed</span>'}</div>`,
+      line: r.line, lineEdit: `<input class="lin" type="number" step="0.5" min="0" inputmode="decimal" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line"><div class="cell2">${lineSrcTxt(r)}</div>`,
+      proj: r.proj, diff: r.line != null ? r.proj - r.line : null,
+      side: r.d ? r.d.side : null, prob: r.d ? r.d.pShow : null, tier: r.d ? r.d.tier : null, capped: r.d ? r.d.capped : false,
+      play: !!(r.d && r.d.play), noLine: r.line == null, unconf: !r.confirmed, q: [name, r.team, r.opp]};
+  });
 }
 function boardRowsSog(){
   const out = [];
@@ -751,21 +773,21 @@ function boardRowsWin(){
 }
 function boardTable(id, mk, rows, opts = {}){
   const [key, dir] = SORT[mk] || ["prob", -1];
-  const val = r => key === "time" ? r.t : key === "line" ? (r.line ?? -1e9) : key === "diff" ? (r.diff ?? -1e9) : r.prob;
-  rows.sort((a, b) => (val(a) < val(b) ? -1 : val(a) > val(b) ? 1 : 0) * dir || b.prob - a.prob);
+  const val = r => key === "time" ? r.t : key === "line" ? (r.line ?? -1e9) : key === "diff" ? (r.diff ?? -1e9) : (r.prob ?? -1);
+  rows.sort((a, b) => (val(a) < val(b) ? -1 : val(a) > val(b) ? 1 : 0) * dir || (b.prob ?? -1) - (a.prob ?? -1) || (a.t < b.t ? -1 : 1));
   const th = (k, label, cls = "num") => `<th class="${cls} sortable" data-sort="${k}">${label}${key === k ? `<span class="arr">${dir < 0 ? "▼" : "▲"}</span>` : ""}</th>`;
   const neutral = opts.neutral ?? 0.15;
   const body = rows.map(r => `<tr class="${r.play ? "" : "pass"}">
-      <td class="num">${r.time || "–"}</td>
-      <td class="l">${r.game}</td>
-      <td class="l pin"><b>${r.player}</b>${r.sub ? ` <span class="muted" style="font-size:11px">${r.sub}</span>` : ""}</td>
-      <td class="num">${r.lineTxt ?? n1(r.line)}</td>
+      <td class="num c-time">${r.time || "–"}</td>
+      <td class="l c-game">${r.game}</td>
+      <td class="l pin">${r.playerEdit ?? `<b>${r.player}</b>${r.sub ? ` <span class="muted" style="font-size:11px">${r.sub}</span>` : ""}`}<div class="cell2 m-only">${r.time || ""} · ${r.game}</div></td>
+      <td class="num">${r.lineEdit ?? r.lineTxt ?? n1(r.line)}</td>
       <td class="num">${r.projTxt ?? n1(r.proj)}</td>
       <td class="num ${r.diff == null ? "" : opts.win ? (Math.abs(r.diff) < 1 ? "diff-neu" : r.diff > 0 ? "diff-sup" : "diff-con") : diffCls(r.diff, r.side, neutral)}">${r.diff == null ? "–" : sgn1(r.diff) + (opts.win ? " pts" : "")}</td>
       <td class="l">${sidePill(opts.win ? r.player : r.side)}</td>
       <td class="num"><b>${pc0(r.prob)}</b></td>
-      <td class="l">${r.play ? tierPill(r.tier, r.capped) : `<span class="pill PASS">PASS</span>${r.capped ? tierPill("", true) : ""}`}</td></tr>`).join("");
-  $(id).innerHTML = `<thead><tr>${th("time", "Time (CT)")}<th class="l">Game</th><th class="l pin">${opts.win ? "Pick" : "Player"}</th>${th("line", "Line")}<th class="num">Proj</th>${th("diff", "Diff")}<th class="l">Side</th>${th("prob", "Prob")}<th class="l">Tier</th></tr></thead><tbody>` +
+      <td class="l">${r.noLine ? '<span class="muted">needs a line</span>' : r.play ? tierPill(r.tier, r.capped) : `<span class="pill PASS">PASS</span>${r.unconf ? ' <span class="muted" style="font-size:11px">unconfirmed</span>' : ""}${r.capped ? tierPill("", true) : ""}`}</td></tr>`).join("");
+  $(id).innerHTML = `<thead><tr>${th("time", "Time (CT)").replace('<th class="', '<th class="c-time ')}<th class="l c-game">Game</th><th class="l pin">${opts.win ? "Pick" : "Player"}</th>${th("line", "Line")}<th class="num">Proj</th>${th("diff", "Diff")}<th class="l">Side</th>${th("prob", "Prob")}<th class="l">Tier</th></tr></thead><tbody>` +
     (body || `<tr class="empty"><td colspan="9">No ${opts.label || "lines"} match these filters${D.slate.length ? "" : " (no games in this build yet)"}.</td></tr>`) + "</tbody>";
   $(id).querySelectorAll("th[data-sort]").forEach(h => h.onclick = () => {
     const k = h.dataset.sort; SORT[mk] = [k, SORT[mk] && SORT[mk][0] === k ? -SORT[mk][1] : (k === "time" ? 1 : -1)];
@@ -777,18 +799,32 @@ function renderBoard(){
   const minP = $("#f60").checked ? 0.60 : (+$("#fMinP").value || 0) / 100;
   const keep = (r, sides = true) => (!dateF || r.date === dateF) && r.prob >= minP - 1e-9 && (!plays || r.play) && (!sides || !sideF || r.side === sideF) && matchQ(...r.q);
   const allS = boardRowsSaves(), allK = boardRowsSog(), allW = boardRowsWin();
-  const S = allS.filter(r => keep(r)), K = allK.filter(r => keep(r)), Wn = allW.filter(r => keep(r, false));
+  // saves lists every starter (so you can type lines); only the explicit toggles narrow it
+  const minS = $("#f60").checked ? 0.60 : 0;
+  const S = allS.filter(r => (!dateF || r.date === dateF) && (!plays || r.play) && (!sideF || r.side === sideF) && (!minS || (r.prob ?? 0) >= minS) && matchQ(...r.q));
+  const K = allK.filter(r => keep(r)), Wn = allW.filter(r => keep(r, false));
   // plays the probability filter hides are counted, never hidden silently
   const hid = (all, sides = true) => all.filter(r => r.play && r.prob < minP - 1e-9 && (!dateF || r.date === dateF) && (!sides || !sideF || r.side === sideF) && matchQ(...r.q)).length;
   $("#cardSaves").style.display = !mkF || mkF === "saves" ? "" : "none";
   $("#cardSog").style.display = !mkF || mkF === "sog" ? "" : "none";
   $("#cardWin").style.display = (!mkF || mkF === "win") && !sideF ? "" : "none";
-  boardTable("#bSaves", "saves", S, {label: "saves lines"});
+  boardTable("#bSaves", "saves", S, {label: "goalies"});
+  $("#bSaves").querySelectorAll("input[data-line]").forEach(i => i.onchange = () => {
+    const v = i.value.trim();
+    if (v === "" || isNaN(+v)) delete LINES[i.dataset.line]; else LINES[i.dataset.line] = +v;
+    store.set("gm_lines", LINES); renderSlate(); renderSlip(); renderGoalies();
+  });
+  $("#bSaves").querySelectorAll("a[data-clear]").forEach(a => a.onclick = e => {
+    e.preventDefault(); delete LINES[a.dataset.clear]; store.set("gm_lines", LINES); renderSlate(); renderSlip(); renderGoalies();
+  });
+  $("#bSaves").querySelectorAll("select[data-st]").forEach(s => s.onchange = () => {
+    STARTER[s.dataset.st] = +s.value; store.set("gm_starter", STARTER); renderSlate(); renderSlip(); renderWinners(); renderGoalies();
+  });
   boardTable("#bSog", "sog", K, {label: "SOG lines"});
   boardTable("#bWin", "win", Wn, {win: true, label: "games"});
   const cnt = (rows, h) => `${rows.length} shown · ${rows.filter(r => r.play).length} plays` +
     (h ? ` · <span class="warn-inline">${h} play${h === 1 ? "" : "s"} below ${Math.round(100 * minP)}% hidden (lower the minimum to see ${h === 1 ? "it" : "them"})</span>` : "");
-  $("#nSaves").innerHTML = cnt(S, hid(allS)); $("#nSog").innerHTML = cnt(K, hid(allK)); $("#nWin").innerHTML = cnt(Wn, hid(allW, false));
+  $("#nSaves").innerHTML = `${S.length} goalies · ${S.filter(r => !r.noLine).length} with lines · ${S.filter(r => r.play).length} plays`; $("#nSog").innerHTML = cnt(K, hid(allK)); $("#nWin").innerHTML = cnt(Wn, hid(allW, false));
   renderStatus();
 }
 function renderStatus(){
