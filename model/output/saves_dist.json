@@ -1,7 +1,7 @@
 {
  "nb_k": 30.0,
  "gs": 0.025,
- "sd_floor": 6.0,
- "fit": "nb_k: max likelihood on 2024-25 starts; gs, half_life, lg_half_life: walk-forward shots-against squared error on 2025-26 + 2026-27 (fit_sa.py); gs_cap: max game-script move; sd_floor: minimum spread",
+ "sd_floor": 5.5,
+ "fit": "nb_k: max likelihood on 2024-25 starts | gs, half_life, lg_half_life: walk-forward shots-against squared error on 2025-26 + 2026-27 (fit_sa.py); gs_cap: max game-script move; sd_floor: walk-forward max likelihood",
  "gs_cap": 0.12
 }

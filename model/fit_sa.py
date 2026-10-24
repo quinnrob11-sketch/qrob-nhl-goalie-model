@@ -6,12 +6,13 @@
 What it tunes (on 2025-26 + 2026-27, every start, no lookahead):
   * half_life     recency of team shots-for / shots-against (games)
   * lg_half_life  recency of the league shots-per-game average (team-games)
+  * sd_floor      minimum saves spread, max likelihood of the actual saves (step 3)
   * gs            game script: exp_SA x exp(-gs x logit(p_win)), gs >= 0 (underdogs face more shots),
                   the multiplier capped at 1 +/- gs_cap (12%)
 
 Walk-forward: each week is scored with the setting that had the lowest shots-against squared
 error on every earlier start (from 2025-26 on). The final setting is the one that wins on all
-of it. Report: model/reports/shots_against.md.
+of it. Reports: model/reports/shots_against.md, model/reports/spread.md.
 """
 from __future__ import annotations
 
@@ -35,6 +36,19 @@ FROM = 2026                                   # 2025-26
 HALF_LIFE = (10, 14, 20, 30)
 LG_HALF_LIFE = (120, 350, 693)
 GS_GRID = np.round(np.arange(0.0, 0.0801, 0.005), 3)
+FLOOR_GRID = (0.0, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0)
+
+
+def saves_loglik(d: pd.DataFrame, gs: float, cap: float, k: float, floor: float) -> np.ndarray:
+    """Per-start log-likelihood of the actual saves under the saves_dist normal (integer bins)."""
+    from math import erfc, sqrt
+    cdf = np.vectorize(lambda z: 0.5 * erfc(-z / sqrt(2)))
+    mu = d.exp_sa.values * gs_mult(d.lo.values, gs, cap) * d.share.values
+    sv = d.sv.values
+    proj = mu * sv
+    sd = np.maximum(np.sqrt(sv ** 2 * (mu + mu ** 2 / k) + mu * sv * (1 - sv)), floor)
+    s = d.saves.values
+    return np.log(np.maximum(cdf((s + .5 - proj) / sd) - cdf((s - .5 - proj) / sd), 1e-12))
 
 
 def with_pwin(df: pd.DataFrame) -> pd.DataFrame:
@@ -161,6 +175,35 @@ def main():
     lines += ["| home | %d | %+.2f | %+.2f |" % ((m27 & d.is_home.values).sum(), (cur.actual_team_sa.values - old.values)[m27 & cur.is_home.values].mean(), (d.actual_team_sa - e_new).values[m27 & d.is_home.values].mean()),
               "| away | %d | %+.2f | %+.2f |" % ((m27 & ~d.is_home.values).sum(), (cur.actual_team_sa.values - old.values)[m27 & ~cur.is_home.values].mean(), (d.actual_team_sa - e_new).values[m27 & ~d.is_home.values].mean())]
 
+    # ---- 3) spread floor: walk-forward max likelihood (step 3) ----
+    k = D0.get("nb_k", 30.0)
+    ll = {f: saves_loglik(d, gs_all, cap, k, f) for f in FLOOR_GRID}
+    fpick, fpicks, fkeys = walk_forward({f: -v for f, v in ll.items()}, wk)
+    # floors below the model's own spread tie; take the largest within 1e-4 of the best (a guard for short workloads)
+    top = max(ll[f].mean() for f in fkeys)
+    floor_all = float(max(f for f in fkeys if ll[f].mean() >= top - 1e-4))
+    okf = fpick >= 0
+    wf_ll = np.array([ll[fkeys[j]][i] if j >= 0 else np.nan for i, j in enumerate(fpick)])
+    flines = ["# Saves spread floor (step 3)", "",
+              "The spread is sd = max(sqrt(sv²(μ + μ²/K) + μ·sv(1−sv)), sd_floor). The floor was a hard 6.0. It is now fitted by "
+              "maximum likelihood of the actual saves (integer bins of the normal), walk-forward by week on 2025-26 + 2026-27 "
+              f"(`model/fit_sa.py`), with the step-2 shots model (gs {gs_all:.3f}) and K = {k:g}. It stays a config value: `sd_floor` in `model/output/saves_dist.json`.", "",
+              "| sd_floor | mean log-lik 2025-26 | 2026-27 | all | share of starts at the floor |", "|---|---|---|---|---|"]
+    mu_ = d.exp_sa.values * gs_mult(d.lo.values, gs_all, cap) * d.share.values
+    raw_sd = np.sqrt(d.sv.values ** 2 * (mu_ + mu_ ** 2 / k) + mu_ * d.sv.values * (1 - d.sv.values))
+    for f in FLOOR_GRID:
+        tag = " **(fitted)**" if f == floor_all else (" (current)" if f == D0.get("sd_floor", 6.0) else "")
+        flines.append(f"| {f:g}{tag} | {ll[f][(d.season == 2026).values].mean():.4f} | {ll[f][m27].mean():.4f} | {ll[f].mean():.4f} | {(raw_sd < f).mean():.0%} |")
+    cur_ll = ll[D0.get("sd_floor", 6.0)] if D0.get("sd_floor", 6.0) in ll else saves_loglik(d, gs_all, cap, k, D0.get("sd_floor", 6.0))
+    flines += ["", "Walk-forward (each week scored with the floor chosen on earlier weeks): " + ", ".join(f"{w}: {f:g}" for w, f in fpicks[-8:]), "",
+               "| | starts | walk-forward log-lik | current floor 6.0 log-lik | difference (total) |", "|---|---|---|---|---|"]
+    for name, m in (("2025-26 (after the first 300 starts)", okf & (d.season == 2026).values), ("2026-27", okf & m27)):
+        flines.append(f"| {name} | {m.sum()} | {wf_ll[m].mean():.4f} | {cur_ll[m].mean():.4f} | {(wf_ll[m] - cur_ll[m]).sum():+.1f} |")
+    flines += ["", f"Fitted on all of it: **sd_floor = {floor_all:g}** (was {D0.get('sd_floor', 6.0):g}). Floors from 0 to 5.5 tie (the model's own spread is almost never below them), so the fit takes the largest floor within 0.0001 of the best mean log-likelihood. "
+               f"Typical spread at the median workload: {np.median(raw_sd):.2f} saves before the floor.", ""]
+    open(os.path.join(REPORTS, "spread.md"), "w").write("\n".join(flines) + "\n")
+    print("\n".join(flines))
+
     lg = d[m27]
     act_lg = tg[tg.season == 2027].shots_on_goal.mean()
     lines += ["", "## League mean check", "",
@@ -173,9 +216,9 @@ def main():
     if not args.dry_run:
         p = replace(P0, half_life=float(best_rec[0]), lg_half_life=float(best_rec[1]))
         json.dump(p.to_dict(), open(os.path.join(OUT, "params.json"), "w"), indent=2)
-        D0.update(gs=round(gs_all, 3), gs_cap=cap,
-                  fit=(D0.get("fit", "").split(" | ")[0] + " | gs, half_life, lg_half_life: walk-forward shots-against "
-                       "squared error on 2025-26 + 2026-27 (fit_sa.py); gs_cap: max game-script move"))
+        D0.update(gs=round(gs_all, 3), gs_cap=cap, sd_floor=floor_all,
+                  fit=("nb_k: max likelihood on 2024-25 starts | gs, half_life, lg_half_life: walk-forward shots-against "
+                       "squared error on 2025-26 + 2026-27 (fit_sa.py); gs_cap: max game-script move; sd_floor: walk-forward max likelihood"))
         json.dump(D0, open(os.path.join(OUT, "saves_dist.json"), "w"), indent=1)
 
 

@@ -1,5 +1,5 @@
 {
-  "half_life": 30.0,
+  "half_life": 20.0,
   "k_team": 3,
   "carry": 0.35,
   "a": 0.85,
@@ -10,6 +10,5 @@
   "home": 0.9817,
   "playoff": 1.007,
   "b2b": 1.0129,
-  "opp_b2b": 0.9678,
-  "lg_half_life": 693.0
+  "opp_b2b": 0.9678
 }
