@@ -111,12 +111,12 @@ def sog_export(teams, sst: sog.State, sp: sog.SogParams, skater_df: pd.DataFrame
             pid, pos = pl["id"], pl["pos"]
             h = list(sst.hist.get(pid, []))
             row = {"id": pid, "name": sst.name.get(pid, pl["name"]), "pos": pos,
-                   "r60": round(sst.rate60(pid, pos), 3), "toi": round(sst.exp_toi(pid, pos), 2),
+                   "r60": round(float(sst.rate60(pid, pos)), 3), "toi": round(float(sst.exp_toi(pid, pos)), 2),
                    "gp": len(h), "l10": h, "new": pid not in sst.shots}
             if pst is not None:
-                row["p60"] = round(pst.rate60(pid, pos), 3)
-                row["ptoi"] = round(pst.exp_toi(pid, pos), 2)
-                row["pl10"] = list(pst.hist.get(pid, []))
+                row["p60"] = round(float(pst.rate60(pid, pos)), 3)
+                row["ptoi"] = round(float(pst.exp_toi(pid, pos)), 2)
+                row["pl10"] = [int(v) for v in pst.hist.get(pid, [])]
             rows.append(row)
         # recent slot from expected TOI rank within the team (forwards 3 per line, defence 2 per pair)
         for pos in ("F", "D"):
@@ -400,12 +400,12 @@ def main():
         "starters": starter_rows,
         "starters_status": starters.status,
         "sog": {"params": sp.to_dict(), "players": sog_export(teams, sst, sp, skater_df, pst, combos, slots),
-                "opp": {t: round(sst.opp_factor(t), 4) for t in sst.team_sa if t not in DEFUNCT},
-                "team": {t: round(sst.team_factor(t), 4) for t in sst.team_for if t not in DEFUNCT},
+                "opp": {t: round(float(sst.opp_factor(t)), 4) for t in sst.team_sa if t not in DEFUNCT},
+                "team": {t: round(float(sst.team_factor(t)), 4) for t in sst.team_for if t not in DEFUNCT},
                 "backtest": json.load(open(os.path.join(OUT, "sog_backtest.json")))},
         "points": {"params": pp_.to_dict(),
-                   "opp": {t: round(pst.opp_factor(t), 4) for t in pst.team_sa if t not in DEFUNCT},
-                   "team": {t: round(pst.team_factor(t), 4) for t in pst.team_for if t not in DEFUNCT}},
+                   "opp": {t: round(float(pst.opp_factor(t)), 4) for t in pst.team_sa if t not in DEFUNCT},
+                   "team": {t: round(float(pst.team_factor(t)), 4) for t in pst.team_for if t not in DEFUNCT}},
         "lines_status": linecombos.status, "slot_toi": slots,
         "win": {"params": json.load(open(os.path.join(OUT, "winners_params.json"))),
                 "lg_goals": round(state.lg_goals.s / state.lg_goals.w, 4),

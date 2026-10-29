@@ -200,8 +200,8 @@ def calls_for_game(payload, g):
             for pl in players:
                 if rate not in pl:
                     continue
-                mean = sog.live_proj(pl[rate], pl[toi_k], blk.get("opp", {}).get(x["opp"], 1), blk.get("team", {}).get(team, 1),
-                                     x["home"], x["b2b"], ob2b, prm)
+                mean = float(sog.live_proj(pl[rate], pl[toi_k], blk.get("opp", {}).get(x["opp"], 1), blk.get("team", {}).get(team, 1),
+                                     x["home"], x["b2b"], ob2b, prm))
                 key = prizepicks.name_key(pl["name"])
                 dk = next((q for q in payload.get(dk_key) or [] if q["date"] == date and team in q["teams"]
                            and prizepicks.name_key(q["name"]) == key), None)
@@ -239,7 +239,7 @@ def snapshot(payload, now: dt.datetime | None = None):
         cur["sd"] = payload["sd"]
         cur["sog_disp"] = payload["sog"]["params"]["disp"]
         with open(path, "w") as f:
-            json.dump(cur, f, separators=(",", ":"))
+            json.dump(cur, f, separators=(",", ":"), default=lambda o: o.item() if hasattr(o, "item") else str(o))
     return sorted(by_date)
 
 
