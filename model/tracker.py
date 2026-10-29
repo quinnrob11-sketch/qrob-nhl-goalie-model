@@ -29,6 +29,7 @@ import data
 import pricing
 import prizepicks
 import saves_dist
+import sog
 import winners
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -143,7 +144,7 @@ def calls_for_game(payload, g):
     dist = payload.get("dist") or saves_dist.DEFAULTS
     calib = (payload.get("calib") or {}).get("markets", {})
     out = {"id": g["id"], "date": date, "start": g.get("start"), "home": g["home"], "away": g["away"],
-           "saves": [], "sog": []}
+           "saves": [], "sog": [], "points": []}
     side = {}
     for team, opp, home in ((g["away"], g["home"], False), (g["home"], g["away"], True)):
         gid, src, line, lsrc = starter(payload, team, date)
@@ -190,21 +191,31 @@ def calls_for_game(payload, g):
             row.update(p_over=round(po, 4), over=over, under=under, **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in d.items()})
         out["saves"].append(row)
         players = payload["sog"]["players"].get(team, [])
-        sp = payload["sog"]["params"]
-        for pl in players:
-            mean = pl["r60"] / 60 * pl["toi"] * payload["sog"]["opp"].get(x["opp"], 1) * (sp["home"] if x["home"] else 1 / sp["home"])
-            key = prizepicks.name_key(pl["name"])
-            dk = next((q for q in payload.get("dk_sog") or [] if q["date"] == date and team in q["teams"]
-                       and prizepicks.name_key(q["name"]) == key), None)
-            srow = {"id": pl["id"], "name": pl["name"], "team": team, "opp": x["opp"], "proj": round(mean, 3), "toi": pl["toi"],
-                    "line": dk["line"] if dk else None, "book": "DraftKings" if dk else None}
-            if dk:
-                po = sog_p_over(mean, dk["line"], sp["disp"])
-                d = pricing.decide(po, calib.get("sog", {}).get("cal"), dk.get("over"), dk.get("under"), cap=calib.get("sog", {}).get("tier_cap"),
-                                   market="sog", proj=mean, line=dk["line"])
-                srow.update(p_over=round(po, 4), over=dk.get("over"), under=dk.get("under"),
-                            **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in d.items()})
-            out["sog"].append(srow)
+        ob2b = side[x["opp"]]["b2b"]
+        for market, sec, rate, toi_k, dk_key in (("sog", "sog", "r60", "toi", "dk_sog"), ("points", "points", "p60", "ptoi", "dk_points")):
+            blk = payload.get(sec) or {}
+            if "params" not in blk:
+                continue
+            prm = sog.SogParams(**{k: v for k, v in blk["params"].items() if k in sog.SogParams.__dataclass_fields__})
+            for pl in players:
+                if rate not in pl:
+                    continue
+                mean = float(sog.live_proj(pl[rate], pl[toi_k], blk.get("opp", {}).get(x["opp"], 1), blk.get("team", {}).get(team, 1),
+                                     x["home"], x["b2b"], ob2b, prm))
+                key = prizepicks.name_key(pl["name"])
+                dk = next((q for q in payload.get(dk_key) or [] if q["date"] == date and team in q["teams"]
+                           and prizepicks.name_key(q["name"]) == key), None)
+                srow = {"id": pl["id"], "name": pl["name"], "team": team, "opp": x["opp"], "proj": round(mean, 3), "toi": pl[toi_k],
+                        "line": dk["line"] if dk else None, "book": "DraftKings" if dk else None}
+                if pl.get("line") or pl.get("pp"):
+                    srow["role"] = " · ".join(v for v in (pl.get("line"), pl.get("pp")) if v)
+                if dk:
+                    po = sog_p_over(mean, dk["line"], sog.size_for(mean, prm))
+                    d = pricing.decide(po, calib.get(market, {}).get("cal"), dk.get("over"), dk.get("under"),
+                                       cap=calib.get(market, {}).get("tier_cap"), market=market, proj=mean, line=dk["line"])
+                    srow.update(p_over=round(po, 4), over=dk.get("over"), under=dk.get("under"),
+                                **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in d.items()})
+                out.setdefault(market, []).append(srow)
     return out
 
 
@@ -228,7 +239,7 @@ def snapshot(payload, now: dt.datetime | None = None):
         cur["sd"] = payload["sd"]
         cur["sog_disp"] = payload["sog"]["params"]["disp"]
         with open(path, "w") as f:
-            json.dump(cur, f, separators=(",", ":"))
+            json.dump(cur, f, separators=(",", ":"), default=lambda o: o.item() if hasattr(o, "item") else str(o))
     return sorted(by_date)
 
 
@@ -236,7 +247,7 @@ def night_board(day: dict, fresh: set | None = None) -> dict:
     """One-sided board warning per market for one night (pricing.night_alarm), counting every game on
     the night. Display only: it never changes a play. (`fresh` is kept for callers; unused.)"""
     out = {}
-    for mk in ("saves", "sog"):
+    for mk in ("saves", "sog", "points"):
         rows = [r for g in day["games"].values() for r in g.get(mk, []) if r.get("side")]
         out[mk] = pricing.night_alarm([{"side": r["side"], "play": r.get("play", False)} for r in rows])
     return out
@@ -287,8 +298,8 @@ def dedup(rows):
 
 def _write_log(rows):
     rows[:] = dedup(rows)
-    rows.sort(key=lambda r: (r["date"], ["saves", "sog", "winner"].index(r["market"])
-                             if r["market"] in ("saves", "sog", "winner") else 9))
+    rows.sort(key=lambda r: (r["date"], ["saves", "sog", "points", "winner"].index(r["market"])
+                             if r["market"] in ("saves", "sog", "points", "winner") else 9))
     with open(LOG, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=FIELDS, extrasaction="ignore")
         w.writeheader()
@@ -405,6 +416,14 @@ def grade(years, today: dt.date | None = None):
                     if k not in have:
                         log.append(_auto_row(c["date"], "sog", p["name"], p, None, disp))
                         have.add(k)
+            # points (price-aware rows only: the market started after price-aware picks)
+            for p in c.get("points", []):
+                if p.get("line") is None or not p.get("side") or gs[gs.player_id == p["id"]].empty:
+                    continue
+                k = (c["date"], "points", p["name"], p["team"], p["book"])
+                if k not in have:
+                    log.append(_auto_row(c["date"], "points", p["name"], p, None, disp))
+                    have.add(k)
 
     # DraftKings rows logged without a price (calls frozen before prices were stored): take the
     # last pre-game price for that exact line from the price history
@@ -414,16 +433,16 @@ def grade(years, today: dt.date | None = None):
             for q in csv.DictReader(f):
                 pr[(q["market"], q["date"], prizepicks.name_key(q["name"]), float(q["line"]))] = q
         for r in log:
-            if r.get("book") == "DraftKings" and r["market"] in ("saves", "sog") and r.get("price") in (None, "") and r.get("line"):
+            if r.get("book") == "DraftKings" and r["market"] in ("saves", "sog", "points") and r.get("price") in (None, "") and r.get("line"):
                 q = pr.get((r["market"], r["date"], prizepicks.name_key(r["player"]), float(r["line"])))
                 if q:
                     r["price"] = q["over"] if r["side"].upper() in ("OVER", "MORE") else q["under"]
     # fill actuals for any logged line still waiting on a result
     for r in log:
-        if r.get("result") or r["market"] not in ("saves", "sog"):
+        if r.get("result") or r["market"] not in ("saves", "sog", "points"):
             continue
         box = gb if r["market"] == "saves" else sb
-        stat = "saves" if r["market"] == "saves" else "shots_on_goal"
+        stat = {"saves": "saves", "sog": "shots_on_goal", "points": "points"}[r["market"]]
         m = box[(box.game_date == r["date"]) & (box.team_abbrev == r["team"])
                 & (box.player_name.map(prizepicks.name_key) == prizepicks.name_key(r["player"]))]
         if r["market"] == "saves":
@@ -526,7 +545,7 @@ def board_split(plays, alarms=None):
     """Per night and market: graded plays by side, and whether the one-sided alarm fired at pick time."""
     out = []
     for d in sorted({r["date"] for r in plays}, reverse=True):
-        for mk in ("saves", "sog"):
+        for mk in ("saves", "sog", "points"):
             x = [r for r in plays if r["date"] == d and r["market"] == mk]
             if not x:
                 continue
@@ -554,7 +573,7 @@ def summarize(log, model_rows, alarms=None):
     plays = [r for r in graded if is_play(r)]
     out = {"updated": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
            "plays": _rec(plays), "markets": {}, "days": [], "misses": [], "model": {}, "dfs": {}}
-    for mk in ("saves", "sog", "winner"):
+    for mk in ("saves", "sog", "points", "winner"):
         rows = [r for r in graded if r["market"] == mk]
         if mk == "winner":
             by = {"65%+ calls": [r for r in rows if r.get("tier") == "65%+"],
@@ -579,7 +598,7 @@ def summarize(log, model_rows, alarms=None):
             out["markets"][mk]["forward"] = {**_rec(fwd), "goal": FORWARD_GOAL}
     # DFS market-basis record: graded at the board's line and multiplier, against the per-leg break-even
     for b in DFS_BOOKS:
-        rows = [r for r in graded if r.get("book") == b and r["market"] in ("saves", "sog")]
+        rows = [r for r in graded if r.get("book") == b and r["market"] in ("saves", "sog", "points")]
         if rows:
             be = [pricing.dfs_break_even(float(r.get("mult") or 1)) for r in rows]
             rec = _rec(rows)
@@ -588,7 +607,7 @@ def summarize(log, model_rows, alarms=None):
     for d in sorted({r["date"] for r in graded}, reverse=True):
         rows = [r for r in graded if r["date"] == d]
         out["days"].append({"date": d, "plays": _rec([r for r in plays if r["date"] == d]),
-                            **{mk: _rec([r for r in rows if r["market"] == mk]) for mk in ("saves", "sog", "winner")}})
+                            **{mk: _rec([r for r in rows if r["market"] == mk]) for mk in ("saves", "sog", "points", "winner")}})
     out["board_split"] = board_split(plays, alarms)
     play_ids = {id(r) for r in plays}
     out["misses"] = [{k: r.get(k) for k in ("date", "market", "player", "team", "opp", "line", "side",

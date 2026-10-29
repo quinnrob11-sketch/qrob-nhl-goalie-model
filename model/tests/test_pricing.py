@@ -107,6 +107,16 @@ class OneSidedAlarm(unittest.TestCase):
         self.assertEqual(list(on.tier), list(off.tier))
 
 
+class DfsBlend(unittest.TestCase):
+    def test_dfs_leg_blends_with_dk_same_line(self):
+        d = pricing.decide(0.65, None, mult_over=1, mult_under=1, market_p=0.5)
+        self.assertAlmostEqual(d["p"], pricing.BLEND_W * 0.65 + (1 - pricing.BLEND_W) * 0.5)
+        self.assertEqual(d["kind"] if "kind" in d else "dfs", "dfs")
+        # a line with its own two prices ignores market_p
+        a = pricing.decide(0.65, None, -110, -110, market_p=0.9)
+        self.assertAlmostEqual(a["p"], pricing.BLEND_W * 0.65 + (1 - pricing.BLEND_W) * 0.5)
+
+
 class SavesCap(unittest.TestCase):
     def test_cap_is_display_only(self):
         d = pricing.decide(0.80, None, 105, -125, market="saves")

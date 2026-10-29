@@ -1,13 +1,17 @@
-"""Skater shots-on-goal props.
+"""Skater shots-on-goal props (and, with stat="points", the points model in points.py).
 
-    proj = shots/60 x expected TOI x (opponent SA allowed / league)^c x home
+    raw  = rate/60 x expected TOI x (opponent allowed / league)^c_opp x (team for / league)^c_team
+           x home x back-to-back x opponent back-to-back
+    proj = cal_a + cal_b x raw      (linear recalibration fitted on the previous season, fit_props.py)
 
     shots/60  player's recency-weighted rate, shrunk to his position's average
     TOI       player's recency-weighted ice time, shrunk to his position's average
     opponent  how many shots the opponent allows per game vs league (team rate,
               same idea as the saves model), with fitted strength c
-Probability of the OVER comes from a negative binomial with mean = proj and
-fitted dispersion (shots are over-dispersed vs Poisson).
+Probability of the OVER comes from a negative binomial with mean = proj. Dispersion scales with
+the mean (size = disp_k x proj, so variance = proj x (1 + 1/disp_k)): measured shot counts vary about
+1.05-1.1x their mean at every volume, while a fixed size over-spread high-volume shooters and made
+unders on stars look better than they are. disp_k = 0 keeps the old fixed size `disp`.
 
     python model/sog.py     # fit on 2024-25, test on 2025-26 + real PrizePicks lines
 
@@ -36,13 +40,19 @@ TRAIN, TEST = 2025, 2026
 class SogParams:
     """Defaults are the fitted values in model/output/sog_params.json (a test keeps them equal)."""
     rate_hl: float = 60.0     # games; half-life of shots/60
-    toi_hl: float = 16.0      # games; half-life of TOI
+    toi_hl: float = 8.0       # games; half-life of TOI (short, so a role change shows up fast)
     k_min: float = 100.0      # prior strength for shots/60, in minutes at position average
     k_toi: float = 1.0        # prior strength for TOI, in games
-    carry: float = 0.5        # share of last season's evidence kept at a new season
+    carry: float = 0.7        # share of last season's evidence kept at a new season
     c_opp: float = 1.0        # weight of the opponent's shots-allowed factor
     home: float = 1.0195      # home multiplier (fitted from residuals)
-    disp: float = 12.0        # negative-binomial size (larger = closer to Poisson)
+    disp: float = 12.0        # negative-binomial size when disp_k = 0 (larger = closer to Poisson)
+    disp_k: float = 10.0      # size = disp_k x mean when > 0 (variance = mean x (1 + 1/disp_k))
+    b2b: float = 0.9738       # multiplier when the player's team played yesterday
+    opp_b2b: float = 1.0201   # multiplier when the opponent played yesterday
+    c_team: float = 0.0       # weight of the player's own team rate (points: team scoring)
+    cal_a: float = -0.1132    # linear recalibration of the mean: proj = cal_a + cal_b x raw
+    cal_b: float = 1.047
 
     def to_dict(self):
         return asdict(self)
@@ -77,7 +87,7 @@ def load(years):
         if not p:
             continue
         s = pd.read_parquet(p, columns=["game_id", "game_date", "team_abbrev", "home_away", "player_id",
-                                        "player_name", "position", "shots_on_goal", "toi"])
+                                        "player_name", "position", "shots_on_goal", "points", "goals", "assists", "toi"])
         s["season"] = y
         frames.append(s)
     s = pd.concat(frames, ignore_index=True)
@@ -95,7 +105,7 @@ def load(years):
 
 
 class State:
-    def __init__(self, p: SogParams):
+    def __init__(self, p: SogParams, stat: str = "shots_on_goal"):
         self.p = p
         self.rdec = 0.5 ** (1 / p.rate_hl)
         self.tdec = 0.5 ** (1 / p.toi_hl)
@@ -104,18 +114,21 @@ class State:
         self.hist = defaultdict(lambda: deque(maxlen=10))
         self.pos_rate = {"F": D(), "D": D()}
         self.pos_toi = {"F": D(), "D": D()}
-        self.team_sa = defaultdict(D)  # shots allowed per game
+        self.team_sa = defaultdict(D)  # stat allowed per game (shots or points against)
+        self.team_for = defaultdict(D)  # stat for per game
         self.lg_sa = D()
-        for pos, r, t in (("F", 7.0, 15.5), ("D", 4.5, 20.5)):
+        self.last_played = {}
+        r0, lg0 = (dict(F=1.9, D=1.0), 6.9) if stat == "points" else (dict(F=7.0, D=4.5), 28.5)
+        for pos, r, t in (("F", r0["F"], 15.5), ("D", r0["D"], 20.5)):
             self.pos_rate[pos].add(r / 60 * 1000, 1, 1000)
             self.pos_toi[pos].add(t * 20, 1, 20)
-        self.lg_sa.add(28.5 * 20, 1, 20)
+        self.lg_sa.add(lg0 * 20, 1, 20)
         self.season = None
         self.name, self.team, self.posn = {}, {}, {}
 
     def new_season(self, season):
         if self.season is not None and season != self.season:
-            for tbl in (self.shots, self.toi, self.team_sa):
+            for tbl in (self.shots, self.toi, self.team_sa, self.team_for):
                 for v in tbl.values():
                     v.s *= self.p.carry
                     v.w *= self.p.carry
@@ -139,38 +152,72 @@ class State:
         rate = lg if d is None else (d.s + 10 * lg) / (d.w + 10)
         return (rate / lg) ** self.p.c_opp
 
-    def project(self, pid, pos, opp, is_home):
+    def team_factor(self, team):
+        if not self.p.c_team:
+            return 1.0
+        lg = self.lg_sa.s / self.lg_sa.w
+        d = self.team_for.get(team)
+        rate = lg if d is None else (d.s + 10 * lg) / (d.w + 10)
+        return (rate / lg) ** self.p.c_team
+
+    def raw(self, pid, pos, opp, is_home, team=None, b2b=False, opp_b2b=False):
         mult = self.p.home if is_home else 1 / self.p.home
-        return self.rate60(pid, pos) / 60 * self.exp_toi(pid, pos) * self.opp_factor(opp) * mult
+        mult *= (self.p.b2b if b2b else 1.0) * (self.p.opp_b2b if opp_b2b else 1.0)
+        return self.rate60(pid, pos) / 60 * self.exp_toi(pid, pos) * self.opp_factor(opp) * self.team_factor(team) * mult
+
+    def project(self, pid, pos, opp, is_home, team=None, b2b=False, opp_b2b=False):
+        return calibrated(self.raw(pid, pos, opp, is_home, team, b2b, opp_b2b), self.p)
 
 
-def run(s: pd.DataFrame, p: SogParams, record_from=None):
-    st = State(p)
+def calibrated(raw: float, p: SogParams) -> float:
+    """The linear mean recalibration (fit_props.py), floored so a projection stays positive."""
+    return max(0.02, p.cal_a + p.cal_b * raw)
+
+
+def size_for(mean: float, p: SogParams) -> float:
+    """Negative-binomial size for this mean: disp_k x mean when fitted, else the fixed size."""
+    return max(p.disp_k * max(mean, 0.02), 0.5) if p.disp_k else p.disp
+
+
+def _yesterday(st, team, date) -> bool:
+    last = st.last_played.get(team)
+    return last is not None and (pd.Timestamp(date) - pd.Timestamp(last)).days == 1
+
+
+def run(s: pd.DataFrame, p: SogParams, record_from=None, stat: str = "shots_on_goal"):
+    """Walk forward through every skater-game. `stat` is the box-score column projected
+    (shots_on_goal for SOG, points for the points model); the `shots` output column holds it."""
+    st = State(p, stat)
     rows = []
     for date, day in s.groupby("game_date", sort=True):
         st.new_season(int(day.season.iloc[0]))
         pid, pos, opp, home = day.player_id.values, day.pos.values, day.opp.values, (day.home_away == "home").values
+        team, val = day.team_abbrev.values, day[stat].values
         if record_from is None or day.season.iloc[0] >= record_from:
+            b2b = {t: _yesterday(st, t, date) for t in set(team) | set(opp)}
             for i in range(len(day)):
                 h = st.hist.get(pid[i])
+                raw = st.raw(pid[i], pos[i], opp[i], home[i], team[i], b2b[team[i]], b2b[opp[i]])
                 rows.append((date, int(day.season.iloc[0]), day.game_type.iloc[i], int(pid[i]), day.player_name.iloc[i],
-                             day.team_abbrev.iloc[i], opp[i], bool(home[i]), pos[i],
-                             st.project(pid[i], pos[i], opp[i], home[i]),
-                             float(np.mean(h)) if h and len(h) >= 10 else np.nan,
-                             int(day.shots_on_goal.iloc[i])))
+                             team[i], opp[i], bool(home[i]), pos[i], calibrated(raw, p), raw,
+                             bool(b2b[team[i]]), bool(b2b[opp[i]]),
+                             float(np.mean(h)) if h and len(h) >= 10 else np.nan, int(val[i])))
         # updates
-        for r in day.itertuples(index=False):
-            st.shots[r.player_id].add(r.shots_on_goal, st.rdec, r.toi_min)
+        for r, v in zip(day.itertuples(index=False), val):
+            st.shots[r.player_id].add(v, st.rdec, r.toi_min)
             st.toi[r.player_id].add(r.toi_min, st.tdec)
-            st.pos_rate[r.pos].add(r.shots_on_goal, 0.9999, r.toi_min)
+            st.pos_rate[r.pos].add(v, 0.9999, r.toi_min)
             st.pos_toi[r.pos].add(r.toi_min, 0.9999)
-            st.hist[r.player_id].append(r.shots_on_goal)
+            st.hist[r.player_id].append(v)
             st.name[r.player_id], st.team[r.player_id], st.posn[r.player_id] = r.player_name, r.team_abbrev, r.pos
-        team_shots = day.groupby(["game_id", "team_abbrev", "opp"]).shots_on_goal.sum()
-        for (gid, team, o), n in team_shots.items():
+        team_tot = day.groupby(["game_id", "team_abbrev", "opp"])[stat].sum()
+        for (gid, t, o), n in team_tot.items():
             st.team_sa[o].add(n, 0.5 ** (1 / 20))
+            st.team_for[t].add(n, 0.5 ** (1 / 20))
             st.lg_sa.add(n, 0.999)
-    cols = ["date", "season", "game_type", "player_id", "player", "team", "opp", "is_home", "pos", "proj", "l10", "shots"]
+            st.last_played[t] = date
+    cols = ["date", "season", "game_type", "player_id", "player", "team", "opp", "is_home", "pos", "proj", "raw",
+            "b2b", "opp_b2b", "l10", "shots"]
     return pd.DataFrame(rows, columns=cols), st
 
 
@@ -338,3 +385,10 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def live_proj(rate60: float, toi: float, opp_f: float, team_f: float, is_home: bool, b2b: bool, opp_b2b: bool,
+              p: SogParams) -> float:
+    """Tonight's projection from exported per-player rates (mirrors State.project; the page has a JS copy)."""
+    mult = (p.home if is_home else 1 / p.home) * (p.b2b if b2b else 1.0) * (p.opp_b2b if opp_b2b else 1.0)
+    return calibrated(rate60 / 60 * toi * opp_f * team_f * mult, p)

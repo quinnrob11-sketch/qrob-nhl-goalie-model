@@ -51,7 +51,7 @@ def forward_gate(log: list[dict]) -> dict:
         if k not in best or tracker.BOOK_PREF.get(r.get("book"), 9) < tracker.BOOK_PREF.get(best[k].get("book"), 9):
             best[k] = r
     out = {}
-    for mk in ("saves", "sog"):
+    for mk in MARKETS:
         plays = [r for r in best.values() if r["market"] == mk and tracker.is_play(r)]
         rec = tracker._rec(plays)
         n = rec["hit"] + rec["miss"]
@@ -130,12 +130,25 @@ def _buckets(p_side, win):
     return [{"bucket": str(i), "pred": round(r.pred, 3), "actual": round(r.act, 3), "n": int(r.n)} for i, r in b.iterrows()]
 
 
+MARKETS = ("saves", "sog", "points")
+
+
+def _prop_params(prm):
+    """SogParams for a skater market; a bare number is the old fixed negative-binomial size."""
+    import sog
+    if prm is None or isinstance(prm, (int, float)):
+        return sog.SogParams(disp=float(prm or 12.0), disp_k=0.0)
+    return prm
+
+
 def lines_frame(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict,
-                sog_rows: pd.DataFrame | None = None, sog_disp: float | None = None) -> pd.DataFrame:
-    """Graded, priced DraftKings lines with the model's raw P(over), recomputed with the CURRENT models
-    (walk-forward rows) where they match; otherwise the P(over) logged at pick time."""
-    rows = [r for r in log if r.get("book") == "DraftKings" and r.get("result") in ("HIT", "MISS", "PUSH")
-            and r.get("price") not in (None, "") and r["market"] in ("saves", "sog")]
+                sog_rows: pd.DataFrame | None = None, sog_prm=None,
+                points_rows: pd.DataFrame | None = None, points_prm=None, all_books: bool = False) -> pd.DataFrame:
+    """Graded lines with the model's raw P(over), recomputed with the CURRENT models (walk-forward rows)
+    where they match; otherwise the P(over) logged at pick time. Priced DraftKings lines only, unless
+    all_books (every book, for calibration checks that don't need a price)."""
+    rows = [r for r in log if r.get("result") in ("HIT", "MISS", "PUSH") and r["market"] in MARKETS
+            and (all_books or (r.get("book") == "DraftKings" and r.get("price") not in (None, "")))]
     df = pd.DataFrame(rows)
     if df.empty:
         return df
@@ -156,18 +169,21 @@ def lines_frame(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict
                                                          on=["date", "key", "team"], how="left").set_index("index")
         newp = [saves_dist.p_over(**_sp(r, dist_prm)) if r.exp_sa == r.exp_sa else np.nan for r in m.itertuples()]
         df.loc[m.index, "p_over"] = newp
-    if sog_rows is not None and len(sog_rows):
-        import tracker
-        s = sog_rows.copy()
+    import sog
+    for mk, prop_rows, prm in (("sog", sog_rows, sog_prm), ("points", points_rows, points_prm)):
+        if prop_rows is None or not len(prop_rows):
+            continue
+        prm = _prop_params(prm)
+        s = prop_rows.copy()
         s["date"] = pd.to_datetime(s.date).dt.strftime("%Y-%m-%d")
         s["key"] = s.player.map(prizepicks.name_key)
         s = s.drop_duplicates(["date", "key", "team"])
         df["key"] = df.player.map(prizepicks.name_key)
-        m = df[df.market == "sog"].reset_index().merge(s[["date", "key", "team", "proj"]], on=["date", "key", "team"],
-                                                     how="inner").set_index("index")
-        df.loc[m.index, "p_over"] = [tracker.sog_p_over(pj, ln, sog_disp or 12.0) for pj, ln in zip(m.proj, m.line)]
+        m = df[df.market == mk].reset_index().merge(s[["date", "key", "team", "proj"]], on=["date", "key", "team"],
+                                                  how="inner").set_index("index")
+        df.loc[m.index, "p_over"] = [sog.p_over(pj, ln, sog.size_for(pj, prm)) for pj, ln in zip(m.proj, m.line)]
         df.loc[m.index, "model_proj"] = m.proj.values
-    return df.dropna(subset=["p_over", "price", "actual"])
+    return df.dropna(subset=["p_over", "actual"] if all_books else ["p_over", "price", "actual"])
 
 
 def _sp(r, prm):
@@ -220,8 +236,9 @@ def _by_side(r: pd.DataFrame, m) -> dict:
 
 
 def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices: pd.DataFrame | None = None,
-        sog_rows: pd.DataFrame | None = None, sog_disp: float | None = None) -> dict:
-    df = lines_frame(log, saves_rows, dist_prm, sog_rows, sog_disp)
+        sog_rows: pd.DataFrame | None = None, sog_prm=None, points_rows: pd.DataFrame | None = None,
+        points_prm=None) -> dict:
+    df = lines_frame(log, saves_rows, dist_prm, sog_rows, sog_prm, points_rows, points_prm)
     out = {"updated": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "markets": {},
            "rule": {"blend_w": pricing.BLEND_W, "min_cal_n": pricing.MIN_CAL_N}}
     if df.empty:
@@ -237,7 +254,7 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
     df["wk"] = pd.to_datetime(df.date).dt.isocalendar().week.astype(int)
     gate = forward_gate(log)
     out["gate"] = gate
-    for mk in ("saves", "sog"):
+    for mk in MARKETS:
         x = df[df.market == mk].dropna(subset=["over", "under"]).reset_index(drop=True)
         if len(x) < 40:
             continue
