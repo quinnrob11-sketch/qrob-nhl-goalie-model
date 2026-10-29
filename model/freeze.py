@@ -1,5 +1,5 @@
 """Model freeze: params.json carries `frozen_at` and `frozen_hash`, a hash of every fitted model
-setting (params.json, saves_dist.json, sog_params.json, winners_params.json) plus the decision /
+setting (params.json, saves_dist.json, sog_params.json, points_params.json, winners_params.json) plus the decision /
 calibration settings in pricing.config(). calibration.json itself is not hashed: it is refit from
 graded lines on every build by design.
 
@@ -22,7 +22,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "output")
-FILES = ("params.json", "saves_dist.json", "sog_params.json", "winners_params.json")
+FILES = ("params.json", "saves_dist.json", "sog_params.json", "points_params.json", "winners_params.json")
 SKIP = {"frozen_at", "frozen_hash", "fit"}       # bookkeeping, not model settings
 TOKEN = "--unfreeze"
 
@@ -50,7 +50,11 @@ def _git(*args) -> str:
 def base_settings(base: str) -> dict | None:
     """Model settings at another commit (pricing.config read from that commit's pricing.py)."""
     try:
-        read = lambda name: json.loads(_git("show", f"{base}:model/output/{name}"))
+        def read(name):
+            try:
+                return json.loads(_git("show", f"{base}:model/output/{name}"))
+            except subprocess.CalledProcessError:   # a file the base didn't have yet counts as a change
+                return {}
         files = {name: {k: v for k, v in read(name).items() if k not in SKIP} for name in FILES}
         ns = {}
         exec(_git("show", f"{base}:model/pricing.py"), ns)

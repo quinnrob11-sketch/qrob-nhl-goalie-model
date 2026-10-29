@@ -26,6 +26,7 @@ import prizepicks
 import saves_dist
 import sog
 import starters
+import linecombos
 import tracker
 import winners
 
@@ -87,10 +88,13 @@ def goal_rates(st: engine.State, team):
             (("gf", st.gf), ("ga", st.ga), ("xgf", st.xgf), ("xga", st.xga))}
 
 
-def sog_export(teams, sst: sog.State, sp: sog.SogParams, skater_df: pd.DataFrame):
-    """Per-team skater list for the SOG tab: current roster when we have it,
+def sog_export(teams, sst: sog.State, sp: sog.SogParams, skater_df: pd.DataFrame, pst: sog.State | None = None,
+               combos: dict | None = None, slots: dict | None = None):
+    """Per-team skater list for the SOG and points props: current roster when we have it,
     otherwise players who played for the team in its last 25 games (wide enough
-    to keep regulars who were hurt at the end of the season)."""
+    to keep regulars who were hurt at the end of the season). Each player carries his shot rate
+    (r60) and points rate (p60) per 60 and expected TOI; when DailyFaceoff line combos are in,
+    his listed line / PP unit and, on a role change, the adjusted TOI (linecombos.role_toi)."""
     out = {}
     recent = skater_df.sort_values("game_date")
     for team in sorted(teams):
@@ -106,9 +110,32 @@ def sog_export(teams, sst: sog.State, sp: sog.SogParams, skater_df: pd.DataFrame
         for pl in players:
             pid, pos = pl["id"], pl["pos"]
             h = list(sst.hist.get(pid, []))
-            rows.append({"id": pid, "name": sst.name.get(pid, pl["name"]), "pos": pos,
-                         "r60": round(sst.rate60(pid, pos), 3), "toi": round(sst.exp_toi(pid, pos), 2),
-                         "gp": len(h), "l10": h, "new": pid not in sst.shots})
+            row = {"id": pid, "name": sst.name.get(pid, pl["name"]), "pos": pos,
+                   "r60": round(sst.rate60(pid, pos), 3), "toi": round(sst.exp_toi(pid, pos), 2),
+                   "gp": len(h), "l10": h, "new": pid not in sst.shots}
+            if pst is not None:
+                row["p60"] = round(pst.rate60(pid, pos), 3)
+                row["ptoi"] = round(pst.exp_toi(pid, pos), 2)
+                row["pl10"] = list(pst.hist.get(pid, []))
+            rows.append(row)
+        # recent slot from expected TOI rank within the team (forwards 3 per line, defence 2 per pair)
+        for pos in ("F", "D"):
+            ranked = sorted((r for r in rows if r["pos"] == pos), key=lambda r: -r["toi"])
+            for i, r in enumerate(ranked):
+                r["slot"] = linecombos.recent_slot(i + 1, pos)
+        listed = (combos or {}).get(team, {})
+        for r in rows:
+            c = listed.get(prizepicks.name_key(r["name"]))
+            if not c:
+                continue
+            r["line"], r["pp"] = c.get("line"), c.get("pp")
+            toi, changed = linecombos.role_toi(r["toi"], r["line"], r.get("slot"), slots or {})
+            if changed:
+                f = toi / r["toi"] if r["toi"] else 1.0
+                r["role_change"] = f"{r['slot']}→{r['line']}"
+                r["toi"] = round(toi, 2)
+                if "ptoi" in r:
+                    r["ptoi"] = round(r["ptoi"] * f, 2)
         rows.sort(key=lambda r: -r["r60"] * r["toi"])
         out[team] = rows
     return out
@@ -259,7 +286,7 @@ DIST = saves_dist.load(os.path.join(OUT, "saves_dist.json"))
 PRICES = os.path.join(HERE, "data", "dk_prices.csv")
 
 
-def save_prices(dk_saves, dk_sog):
+def save_prices(dk_saves, dk_sog, dk_points=None):
     """Append this build's DraftKings prices (both sides) to the price history used for grading
     and calibration. Later snapshots of the same line replace earlier ones when read."""
     snap = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
@@ -268,6 +295,8 @@ def save_prices(dk_saves, dk_sog):
              "under": r.get("under"), "snap": snap} for r in dk_saves or []]
     rows += [{"market": "sog", "date": r["date"], "name": r["name"], "team": "", "teams": "/".join(r.get("teams", [])),
               "line": r["line"], "over": r.get("over"), "under": r.get("under"), "snap": snap} for r in dk_sog or []]
+    rows += [{"market": "points", "date": r["date"], "name": r["name"], "team": "", "teams": "/".join(r.get("teams", [])),
+              "line": r["line"], "over": r.get("over"), "under": r.get("under"), "snap": snap} for r in dk_points or []]
     if rows:
         new = pd.DataFrame(rows)
         old = pd.read_csv(PRICES) if os.path.exists(PRICES) else new.iloc[0:0]
@@ -311,8 +340,11 @@ def main():
     sp = sog.SogParams.load(os.path.join(OUT, "sog_params.json"))
     skater_df = sog.load(years)
     sog_rows, sst = sog.run(skater_df, sp, record_from=cur)   # this season's walk-forward SOG projections (calibration replay)
+    pp_ = sog.SogParams.load(os.path.join(OUT, "points_params.json"))
+    points_rows, pst = sog.run(skater_df, pp_, record_from=cur, stat="points")
     if latest < cur:
         sst.new_season(cur)
+        pst.new_season(cur)
     bt = pd.read_csv(os.path.join(OUT, "backtest_games.csv"))
     bt = bt[(bt.season == 2026) & (bt.edge.abs() >= 1.0)]
 
@@ -336,6 +368,8 @@ def main():
     dk = odds.fetch(goalies)
     pp = prizepicks.fetch(goalies)
     starter_rows = starters.fetch(goalies, sorted({g["date"] for g in slate}))
+    combos = linecombos.fetch({g[k] for g in slate for k in ("home", "away")} - DEFUNCT)
+    slots = linecombos.slot_toi(skater_df, latest)
     # Goalies on the board we have no NHL history for get the same treatment.
     for r in pp:
         if r["goalie_id"] is None:
@@ -365,15 +399,22 @@ def main():
         "pp_status": prizepicks.status,
         "starters": starter_rows,
         "starters_status": starters.status,
-        "sog": {"params": sp.to_dict(), "players": sog_export(teams, sst, sp, skater_df),
+        "sog": {"params": sp.to_dict(), "players": sog_export(teams, sst, sp, skater_df, pst, combos, slots),
                 "opp": {t: round(sst.opp_factor(t), 4) for t in sst.team_sa if t not in DEFUNCT},
+                "team": {t: round(sst.team_factor(t), 4) for t in sst.team_for if t not in DEFUNCT},
                 "backtest": json.load(open(os.path.join(OUT, "sog_backtest.json")))},
+        "points": {"params": pp_.to_dict(),
+                   "opp": {t: round(pst.opp_factor(t), 4) for t in pst.team_sa if t not in DEFUNCT},
+                   "team": {t: round(pst.team_factor(t), 4) for t in pst.team_for if t not in DEFUNCT}},
+        "lines_status": linecombos.status, "slot_toi": slots,
         "win": {"params": json.load(open(os.path.join(OUT, "winners_params.json"))),
                 "lg_goals": round(state.lg_goals.s / state.lg_goals.w, 4),
                 "backtest": json.load(open(os.path.join(OUT, "winners_backtest.json")))},
         "dk": dk,
         "dk_sog": [{"name": r["name"], "teams": r["teams"], "date": r["date"], "line": r["line"],
                     "over": r.get("over"), "under": r.get("under")} for r in odds.sog_rows],
+        "dk_points": [{"name": r["name"], "teams": r["teams"], "date": r["date"], "line": r["line"],
+                       "over": r.get("over"), "under": r.get("under")} for r in odds.points_rows],
         "ml": odds.ml_rows,
         "dist": DIST,
         "pricing": pricing.config(),
@@ -393,7 +434,7 @@ def main():
         "backtest": {k: v for k, v in report.items() if k != "params"},
         "bt_games": json.loads(bt.to_json(orient="records")),
     }
-    save_prices(dk, odds.sog_rows)
+    save_prices(dk, odds.sog_rows, odds.points_rows)
     # grade finished games, refit calibration on everything graded, then freeze tonight's calls
     try:
         payload["tracking"] = tracker.grade([cur], today)
@@ -403,7 +444,7 @@ def main():
     try:
         payload["calib"] = calibrate.fit(tracker._read_log(), saves_rows(df, cur), DIST,
                                          pd.read_csv(PRICES) if os.path.exists(PRICES) else None,
-                                         sog_rows=sog_rows, sog_disp=sp.disp)
+                                         sog_rows=sog_rows, sog_prm=sp, points_rows=points_rows, points_prm=pp_)
         with open(os.path.join(OUT, "calibration.json"), "w") as f:
             json.dump(payload["calib"], f, indent=1, default=_np)
     except Exception as e:

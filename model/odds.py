@@ -10,8 +10,10 @@ variable `sog_rows`) for the SOG props tab.
 Also pulls DraftKings moneylines for every game in one request (module variable
 `ml_rows`) for game-winner pricing and the saves model's game script.
 
+Also pulls DraftKings player points lines (module variable `points_rows`).
+
 Quota: listing events is free on The Odds API; each game costs one credit per
-market (2: saves + shots), and only games starting in the next 18 hours are pulled.
+market (3: saves + shots + points), and only games starting in the next 18 hours are pulled.
 The moneyline request costs 1 credit for the whole slate.
 """
 from __future__ import annotations
@@ -28,6 +30,7 @@ import prizepicks  # name matching helpers
 BASE = "https://api.the-odds-api.com/v4/sports/icehockey_nhl"
 MARKET = "player_total_saves"
 SOG_MARKET = "player_shots_on_goal"
+POINTS_MARKET = "player_points"
 BOOK = "draftkings"
 ET = ZoneInfo("America/New_York")
 WINDOW_H = 18
@@ -49,6 +52,7 @@ TEAM_ABBR = {
 last_error: str | None = None
 remaining: str | None = None
 sog_rows: list[dict] = []
+points_rows: list[dict] = []
 ml_rows: list[dict] = []
 
 
@@ -127,9 +131,10 @@ def fetch_moneylines(key: str) -> list[dict]:
 
 
 def fetch(goalies: list[dict], now: dt.datetime | None = None) -> list[dict]:
-    global last_error, sog_rows, ml_rows
+    global last_error, sog_rows, points_rows, ml_rows
     last_error = None
     sog_rows = []
+    points_rows = []
     ml_rows = []
     key = os.environ.get("ODDS_API_KEY")
     if not key:
@@ -151,7 +156,7 @@ def fetch(goalies: list[dict], now: dt.datetime | None = None) -> list[dict]:
             continue
         try:
             js = _get(f"{BASE}/events/{ev['id']}/odds", {"apiKey": key, "regions": "us",
-                                                        "markets": f"{MARKET},{SOG_MARKET}",
+                                                        "markets": f"{MARKET},{SOG_MARKET},{POINTS_MARKET}",
                                                         "bookmakers": BOOK, "oddsFormat": "american"})
         except Exception as e:
             last_error = str(e)
@@ -159,7 +164,9 @@ def fetch(goalies: list[dict], now: dt.datetime | None = None) -> list[dict]:
             continue
         rows += parse_event(ev, js)
         sog_rows += parse_event(ev, js, SOG_MARKET)
+        points_rows += parse_event(ev, js, POINTS_MARKET)
     rows = match(rows, goalies)
-    print(f"  [odds] {len(rows)} DraftKings saves lines, {len(sog_rows)} SOG lines, {len(ml_rows)} moneylines "
+    print(f"  [odds] {len(rows)} DraftKings saves lines, {len(sog_rows)} SOG lines, {len(points_rows)} points lines, "
+          f"{len(ml_rows)} moneylines "
           f"(requests remaining: {remaining})")
     return rows
