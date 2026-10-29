@@ -70,10 +70,14 @@ def novig(over_price, under_price) -> float | None:
     return o / (o + u) if o is not None and u is not None else None
 
 
-def final_p_over(p_over_raw: float, cal: dict | None, over_price=None, under_price=None, w: float = BLEND_W) -> tuple:
-    """(final P(over), calibrated model P(over), no-vig market P(over) or None)."""
+def final_p_over(p_over_raw: float, cal: dict | None, over_price=None, under_price=None, w: float = BLEND_W,
+                 market_p=None) -> tuple:
+    """(final P(over), calibrated model P(over), no-vig market P(over) or None). market_p is a no-vig
+    P(over) from another book on the same line (e.g. DraftKings for a DFS leg), used when this line has no prices."""
     pm = platt(p_over_raw, cal)
     mk = novig(over_price, under_price)
+    if mk is None and market_p is not None:
+        mk = market_p
     return (pm if mk is None else w * pm + (1 - w) * mk), pm, mk
 
 
@@ -88,11 +92,11 @@ def tier(ev: float | None, cap: str | None = None) -> str:
 
 def decide(p_over_raw: float, cal: dict | None, over_price=None, under_price=None, mult_over=None,
            mult_under=None, dfs: dict | None = None, allow_sub1x: bool = False, cap: str | None = None,
-           market: str | None = None, proj: float | None = None, line: float | None = None) -> dict:
+           market: str | None = None, proj: float | None = None, line: float | None = None, market_p=None) -> dict:
     """Pick the better side by EV. Prices are American odds (sportsbook) or None; multipliers are
     DFS per-side multipliers (1, 0.9, 0.8 ...). Returns side, p (final, that side), be, ev, tier, play,
     plus p_model / p_mkt (P(over) from the calibrated model and the no-vig market)."""
-    p_over, p_model, p_mkt = final_p_over(p_over_raw, cal, over_price, under_price)
+    p_over, p_model, p_mkt = final_p_over(p_over_raw, cal, over_price, under_price, market_p=market_p)
     best = None
     for side, p, price, mult in (("OVER", p_over, over_price, mult_over), ("UNDER", 1 - p_over, under_price, mult_under)):
         if price not in (None, ""):

@@ -3,8 +3,8 @@
 For each team on the slate: which forward line (F1-F4) / defence pair (D1-D3) and which power-play
 unit (PP1 / PP2) every skater is on. Used to:
   * tag rows with the player's role (e.g. "F2 · PP1");
-  * react to role changes the box scores haven't caught up with yet: when a player's listed line
-    differs from where his recent ice time puts him (e.g. a top-six forward moved to the fourth line),
+  * react to role changes the box scores haven't caught up with yet: when a player's listed line is
+    two or more slots from where his recent ice time puts him (e.g. a top-six forward moved to the fourth line),
     his expected TOI is blended halfway toward the league-average TOI of the new slot (role_toi()).
     This overlay is new and not backtested (there is no history of pre-game line combos), so it is
     deliberately half-weight and shown on the row so you can see when it moved a projection.
@@ -102,8 +102,12 @@ def recent_slot(rank: float, pos: str) -> str:
 
 
 def role_toi(exp_toi: float, listed: str | None, recent: str | None, slots: dict) -> tuple[float, bool]:
-    """Blend expected TOI halfway to the new slot's average when the listed line differs from the
-    recent one. Returns (toi, changed)."""
-    if not listed or not recent or listed == recent or listed not in slots:
+    """Blend expected TOI halfway to the new slot's average when the listed line is two or more slots
+    from the recent one. Returns (toi, changed)."""
+    if not listed or not recent or listed[0] != recent[0] or listed not in slots:
+        return exp_toi, False
+    # only a real role change moves TOI: two or more slots (top-six <-> bottom-six, top pair <-> third pair);
+    # one-line shuffles happen all the time and are left to the recency-weighted TOI
+    if abs(int(listed[1:]) - int(recent[1:])) < 2:
         return exp_toi, False
     return 0.5 * exp_toi + 0.5 * slots[listed], True

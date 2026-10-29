@@ -59,6 +59,7 @@ class LineCombos(unittest.TestCase):
         self.assertEqual(linecombos.role_toi(17.0, "F1", "F1", slots), (17.0, False))
         toi, changed = linecombos.role_toi(17.0, "F4", "F2", slots)
         self.assertTrue(changed); self.assertAlmostEqual(toi, 13.5)
+        self.assertEqual(linecombos.role_toi(17.0, "F2", "F1", {"F2": 16.0}), (17.0, False))   # one-line shuffle
         self.assertEqual(linecombos.recent_slot(4, "F"), "F2"); self.assertEqual(linecombos.recent_slot(14, "F"), "F4")
         self.assertEqual(linecombos.recent_slot(3, "D"), "D2")
 
