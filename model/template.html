@@ -169,6 +169,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   </div>
   <div class="card" id="cardRank"><h2>Ranked slate <span class="muted" id="nRank" style="font-weight:400;font-size:13px"></span></h2>
     <p class="sub" style="margin:-4px 0 8px">Every prop with a line at 55%+ hit chance, highest first: <b>Lock</b> 62%+, <b>Strong</b> 58–62%, <b>Near miss</b> 55–58%. Edge = projection − line in the pick's direction. "Your rule": SOG / points legs at 58%+, saves at a 1.5+ edge, DFS legs at 1x or better, and the hit chance must beat the price's break-even (a −320 under needs 76%). ⚠ flags teammates on opposite sides of the same prop, and a goalie's saves against the opposing skaters' shots the other way.</p>
+    <label class="chk" style="flex-direction:row;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="fRule"> Only props that pass my rule</label>
     <div class="board"><table id="bRank"></table></div></div>
   <div class="card" id="cardSaves"><h2>Saves <span class="muted" id="nSaves" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSaves"></table></div></div>
   <div class="card" id="cardSog"><h2>SOG <span class="muted" id="nSog" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSog"></table></div></div>
@@ -803,7 +804,9 @@ function rankedRows(S, K, Pt){
   }
   return rows.sort((a, b) => b.prob - a.prob);
 }
-function renderRanked(rows){
+function renderRanked(all){
+  const onlyRule = $("#fRule").checked;
+  const rows = onlyRule ? all.filter(r => yourRule(r)[0]) : all;
   const body = rows.map(r => { const [ok, why] = yourRule(r), t = rankTier(r.prob);
     const edge = r.side === "OVER" ? r.diff : -r.diff;
     return `<tr class="${t === "Near miss" ? "pass" : ""}">
@@ -817,7 +820,7 @@ function renderRanked(rows){
   $("#bRank").innerHTML = `<thead><tr><th class="l pin">Player</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Side</th><th class="num">Hit %</th><th class="num">Proj</th><th class="num">Edge</th><th class="num c-time">Time (CT)</th><th class="l">Tier</th><th class="l">Your rule</th></tr></thead><tbody>` +
     (body || `<tr class="empty"><td colspan="10">No props at 55%+ for this date yet. Lines fill in from DraftKings; paste your Pick6 / PrizePicks board below to add yours.</td></tr>`) + "</tbody>";
   const n = k => rows.filter(r => rankTier(r.prob) === k).length;
-  $("#nRank").textContent = `${n("Lock")} Lock · ${n("Strong")} Strong · ${n("Near miss")} near miss · ${rows.filter(r => yourRule(r)[0]).length} pass your rule · ${rows.filter(r => r.conflicts.length).length} with conflicts`;
+  $("#nRank").textContent = `${n("Lock")} Lock · ${n("Strong")} Strong · ${n("Near miss")} near miss · ${all.filter(r => yourRule(r)[0]).length} of ${all.length} pass your rule · ${rows.filter(r => r.conflicts.length).length} with conflicts`;
 }
 function boardRowsWin(){
   const out = [], minE = 0.03;
@@ -912,6 +915,8 @@ function renderStatus(){
     alarms.length ? `<div class="alarms">${alarms.map(a => `<div>${a}</div>`).join("")}</div>` : ""].filter(Boolean).join(" ");
 }
 ["#fMk","#fSide","#fMinP","#f60","#fPlays"].forEach(s => $(s).oninput = renderBoard);
+$("#fRule").checked = !!store.get("gm_rule_only", false);
+$("#fRule").oninput = () => { store.set("gm_rule_only", $("#fRule").checked); renderBoard(); };
 $("#dateF").onchange = renderSlate;
 
 // ---------- matchup builder ----------
