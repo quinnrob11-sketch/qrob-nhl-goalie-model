@@ -41,15 +41,23 @@ def _fresh(name: str) -> bool:
     return os.path.exists(p) and (time.time() - os.path.getmtime(p)) < MAX_AGE_H * 3600
 
 
-def _get(url: str, timeout: int = 60) -> bytes:
+def _get(url: str, timeout: int = 20) -> bytes:
     req = urllib.request.Request(url, headers=HEADERS)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read()
 
 
+_fails = 0
+MAX_FAILS = 3          # stop after this many failures in a row (blocked or down): the build must not stall
+
+
 def _save(name: str, url: str, force: bool = False):
+    global _fails
     if not force and _fresh(name):
         status[name] = "cached"
+        return
+    if _fails >= MAX_FAILS:
+        status[name] = "skipped (source failing)"
         return
     try:
         body = _get(url)
@@ -60,8 +68,10 @@ def _save(name: str, url: str, force: bool = False):
             f.write(body)
         os.replace(path(name) + ".tmp", path(name))
         status[name] = f"ok ({len(body) // 1024} KB)"
+        _fails = 0
     except Exception as e:  # blocked, renamed, network
         status[name] = f"failed: {e}"[:120]
+        _fails += 1
     time.sleep(0.5)          # be gentle
 
 
