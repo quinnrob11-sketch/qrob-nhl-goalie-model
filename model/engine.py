@@ -2,7 +2,8 @@
 
 Projection for a starting goalie G on team T facing opponent O:
 
-    exp_SA   = LG * (T_def / LG)^a * (O_off / LG)^b * home * playoff * b2b * opp_b2b
+    exp_SA   = LG * (T_def / LG)^a * (O_off / LG)^b * (T_CA / LCF)^c_ca * (O_CF / LCF)^c_cf
+               * home * playoff * b2b * opp_b2b
     proj_sv  = exp_SA * share(G) * sv%(G)
 
     LG     league shots-on-goal per team-game (recency weighted)
@@ -10,6 +11,10 @@ Projection for a starting goalie G on team T facing opponent O:
     O_off  shots on goal O generates per game (recency weighted, shrunk to LG)
     a, b   how much the defence vs the opponent's offence drives the count
            (the old sheet used a fixed 60/40 blend; here it's fitted)
+    T_CA, O_CF  shot attempts (Corsi) T allows / O generates per game, shrunk to the league
+           average LCF: attempts are a steadier read of shot volume than shots on goal alone, and
+           adding them cut shots-against error out of sample in both 2025-26 and 2026-27
+           (fit_sa.fit_corsi, Poisson GLM on the previous season)
     share  fraction of the game G is expected to stay in net (pull risk)
     sv%    G's save% shrunk toward league average
 
@@ -34,8 +39,8 @@ class Params:
     half_life: float = 30.0     # games; recency weighting of team shot rates
     k_team: float = 3.0         # prior strength (games at league average)
     carry: float = 0.35         # share of last season's evidence kept at a new season
-    a: float = 0.85             # weight of own team's shots-against
-    b: float = 0.9              # weight of opponent's shots-for
+    a: float = 0.83             # weight of own team's shots-against
+    b: float = 0.59             # weight of opponent's shots-for
     k_sv: float = 4000.0        # save% prior strength, in shots
     sv_half_life: float = 120.0  # starts; recency weighting of save%
     k_share: float = 15.0       # prior strength for time-in-net share, in starts
@@ -44,6 +49,8 @@ class Params:
     b2b: float = 1.0129         # multiplier when goalie's team played yesterday (fitted)
     opp_b2b: float = 0.9678     # multiplier when the OPPONENT played yesterday (tired teams shoot less)
     lg_half_life: float = 693.0  # team-games; recency weighting of the league shots-per-game average
+    c_ca: float = 0.13          # weight of own team's shot attempts against (Corsi); 0 = shots on goal only
+    c_cf: float = 0.38          # weight of the opponent's shot attempts for
 
     def to_dict(self):
         return asdict(self)
@@ -96,6 +103,9 @@ class State:
         self.xga = defaultdict(Decayed)
         self.lg_goals = Decayed()
         self.lg = Decayed()                # league SOG per team-game
+        self.cf = defaultdict(Decayed)     # team -> shot attempts for (Corsi, play-by-play)
+        self.ca = defaultdict(Decayed)     # team -> shot attempts against
+        self.lg_cf = Decayed()             # league shot attempts per team-game
         self.lg_share = Decayed()
         self.g_sv = defaultdict(Decayed)   # goalie -> saves / shots
         self.g_share = defaultdict(Decayed)
@@ -108,6 +118,7 @@ class State:
         self.lg.add(30.0 * 50, 1.0, 50.0)
         self.lg_share.add(0.975 * 50, 1.0, 50.0)
         self.lg_goals.add(3.0 * 50, 1.0, 50.0)
+        self.lg_cf.add(55.0 * 50, 1.0, 50.0)
 
     # --- rates -------------------------------------------------------
     def league(self):
@@ -120,6 +131,13 @@ class State:
         if d is None:
             return lg
         return (d.s + k * lg) / (d.w + k)
+
+    def corsi_rate(self, table, team):
+        """Shot attempts per game, shrunk to the league average like team_rate; (rate, league)."""
+        lg = self.lg_cf.s / self.lg_cf.w
+        d = table.get(team)
+        k = self.p.k_team
+        return (lg if d is None else (d.s + k * lg) / (d.w + k)), lg
 
     def goalie_sv(self, gid):
         d = self.g_sv.get(gid)
@@ -143,6 +161,10 @@ class State:
         d = self.team_rate(self.dfn, team)
         o = self.team_rate(self.off, opp)
         exp_sa = lg * (d / lg) ** p.a * (o / lg) ** p.b
+        if p.c_ca or p.c_cf:
+            ca, lcf = self.corsi_rate(self.ca, team)
+            cf, _ = self.corsi_rate(self.cf, opp)
+            exp_sa *= (ca / lcf) ** p.c_ca * (cf / lcf) ** p.c_cf
         exp_sa *= p.home if is_home else 1.0 / p.home
         if playoff:
             exp_sa *= p.playoff
@@ -158,7 +180,7 @@ class State:
     def new_season(self, season):
         if self.season is not None and season != self.season:
             c = self.p.carry
-            for tbl in (self.off, self.dfn, self.gf, self.ga, self.xgf, self.xga):
+            for tbl in (self.off, self.dfn, self.gf, self.ga, self.xgf, self.xga, self.cf, self.ca):
                 for v in tbl.values():
                     v.scale(c)
             # goalies keep more of their history than teams do (rosters change more)
@@ -173,7 +195,7 @@ class State:
         return lg if d is None else (d.s + k * lg) / (d.w + k)
 
     def update_team(self, team, sog_for, sog_against, date, goals_for=None, goals_against=None,
-                    xg_for=None, xg_against=None):
+                    xg_for=None, xg_against=None, cf_for=None, cf_against=None):
         self.off[team].add(sog_for, self.dec)
         self.dfn[team].add(sog_against, self.dec)
         if goals_for is not None:
@@ -183,6 +205,10 @@ class State:
         if xg_for is not None and xg_for == xg_for:  # skip NaN
             self.xgf[team].add(xg_for, self.dec)
             self.xga[team].add(xg_against, self.dec)
+        if cf_for is not None and cf_for == cf_for and cf_against == cf_against:  # skip NaN
+            self.cf[team].add(cf_for, self.dec)
+            self.ca[team].add(cf_against, self.dec)
+            self.lg_cf.add(cf_for, self.lg_dec)
         self.lg.add(sog_for, self.lg_dec)
         self.last_played[team] = date
 
@@ -227,6 +253,8 @@ def run(tg: pd.DataFrame, starts: pd.DataFrame, p: Params, record_from_season=No
                     "b2b": bool(b2b), "opp_b2b": bool(opp_b2b), "goalie_id": gid, "goalie": s.player_name,
                     "exp_sa": exp_sa, "sv": sv, "share": share, "proj": proj,
                     "team_def": d, "opp_off": o, "league": st.league(),
+                    "team_ca": st.corsi_rate(st.ca, r.team_abbrev)[0], "opp_cf": st.corsi_rate(st.cf, r.opp_team_abbrev)[0],
+                    "lg_cf": st.lg_cf.s / st.lg_cf.w,
                     "l10": float(np.mean(hist)) if hist and len(hist) >= 5 else np.nan,
                     "saves": int(s.saves), "shots": int(s.shots_against), "toi": float(s.toi_min),
                     "actual_team_sa": int(r.opp_shots_on_goal),
@@ -238,7 +266,8 @@ def run(tg: pd.DataFrame, starts: pd.DataFrame, p: Params, record_from_season=No
         # 2) update with this date's results
         for r in day.itertuples(index=False):
             st.update_team(r.team_abbrev, r.shots_on_goal, r.opp_shots_on_goal, date,
-                           r.goals, r.opp_goals, getattr(r, "xgf", None), getattr(r, "opp_xgf", None))
+                           r.goals, r.opp_goals, getattr(r, "xgf", None), getattr(r, "opp_xgf", None),
+                           getattr(r, "cf", None), getattr(r, "opp_cf", None))
             key = (r.game_id, r.team_abbrev)
             if key in starts.index:
                 s = starts.loc[key]

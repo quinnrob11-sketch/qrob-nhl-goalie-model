@@ -2,8 +2,8 @@
   "half_life": 30.0,
   "k_team": 3,
   "carry": 0.35,
-  "a": 0.85,
-  "b": 0.9,
+  "a": 0.83,
+  "b": 0.59,
   "k_sv": 4000,
   "sv_half_life": 120,
   "k_share": 15.0,
@@ -13,5 +13,7 @@
   "opp_b2b": 0.9678,
   "lg_half_life": 693.0,
   "frozen_at": "2026-11-03",
-  "frozen_hash": "52440ad16abf94e9"
+  "frozen_hash": "456a91d5e120a0fa",
+  "c_ca": 0.13,
+  "c_cf": 0.38
 }

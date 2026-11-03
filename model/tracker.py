@@ -80,6 +80,9 @@ def project_saves(payload, gid, team, opp, home, b2b, playoff, opp_b2b=False):
     P, lg = payload["params"], payload["league"]
     t, o = payload["teams"].get(team, {}), payload["teams"].get(opp, {})
     sa = lg * (t.get("rate_def", lg) / lg) ** P["a"] * (o.get("rate_off", lg) / lg) ** P["b"]
+    lcf = payload.get("lg_cf")
+    if lcf and (P.get("c_ca") or P.get("c_cf")):   # shot attempts (Corsi), engine.State.project
+        sa *= (t.get("rate_ca", lcf) / lcf) ** P.get("c_ca", 0) * (o.get("rate_cf", lcf) / lcf) ** P.get("c_cf", 0)
     sa *= P["home"] if home else 1 / P["home"]
     if playoff:
         sa *= P["playoff"]

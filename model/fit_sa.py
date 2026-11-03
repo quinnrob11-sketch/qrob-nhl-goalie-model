@@ -9,6 +9,8 @@ What it tunes (on 2025-26 + 2026-27, every start, no lookahead):
   * sd_floor      minimum saves spread, max likelihood of the actual saves (step 3)
   * gs            game script: exp_SA x exp(-gs x logit(p_win)), gs >= 0 (underdogs face more shots),
                   the multiplier capped at 1 +/- gs_cap (12%)
+  * a, b, c_ca, c_cf  shots-against weights on team shots / shot attempts (fit_corsi, `--corsi`):
+                  Poisson GLM on the previous season
 
 Walk-forward: each week is scored with the setting that had the lowest shots-against squared
 error on every earlier start (from 2025-26 on). The final setting is the one that wins on all
@@ -85,6 +87,23 @@ def walk_forward(err: dict, wk: pd.Series, min_prior: int = 300):
         pick[te] = j
         picks.append((w, keys[j]))
     return pick, picks, keys
+
+
+def fit_corsi(df: pd.DataFrame, season: int) -> dict:
+    """Shots-against weights (a, b, c_ca, c_cf) by Poisson GLM on one season's regular-season team-games:
+    log E[SA] = const + a log(T_def / LG) + b log(O_off / LG) + c_ca log(T_CA / LCF) + c_cf log(O_CF / LCF)
+    + h x home, with every rate the engine's walk-forward pre-game value. Fit on the season before the
+    one it is used for."""
+    x = df[(df.season == season) & (df.game_type == "R")].dropna(subset=["team_ca", "opp_cf"])
+    X = np.c_[np.ones(len(x)), np.log(x.team_def / x.league), np.log(x.opp_off / x.league),
+              np.log(x.team_ca / x.lg_cf), np.log(x.opp_cf / x.lg_cf), np.where(x.is_home, 1.0, -1.0)]
+    y = x.actual_team_sa.values.astype(float)
+    w = np.zeros(X.shape[1]); w[0] = np.log(y.mean())
+    for _ in range(30):
+        mu = np.exp(X @ w)
+        w += np.linalg.solve((X.T * mu) @ X, X.T @ (y - mu))
+    return {"a": round(float(w[1]), 2), "b": round(float(w[2]), 2), "c_ca": round(float(w[3]), 2),
+            "c_cf": round(float(w[4]), 2), "n": int(len(x)), "season": int(season)}
 
 
 def main():
@@ -222,5 +241,11 @@ def main():
         json.dump(D0, open(os.path.join(OUT, "saves_dist.json"), "w"), indent=1)
 
 
+if __name__ == "__main__" and "--corsi" in __import__("sys").argv:
+    tg, st = data.load_all([2024, 2025, 2026, 2027], refresh=False)
+    d, _ = engine.run(tg, st, engine.Params.load(os.path.join(OUT, "params.json")))
+    for s_ in sorted(d.season.unique())[:-1]:
+        print(f"fit on {s_ - 1}-{str(s_)[2:]} -> use for {s_}-{str(s_ + 1)[2:]}:", fit_corsi(d, s_))
+    raise SystemExit
 if __name__ == "__main__":
     main()
