@@ -44,10 +44,17 @@ Your betting rules (shots and points at 58%+ at 1x or better) are unchanged. The
 - Saves rows show bias-corrected edge, calibrated p and the call.
 - New Calibration tab: walk-forward Brier and log loss vs DK no-vig and the old blend, reliability by side and line, the blend weight and the disagreement record.
 
-## What could not be verified from here
+## Live check (GitHub Actions build, 2026-11-03 16:19 UTC)
 
-- The session that built this could not reach api-web.nhle.com, pick6.draftkings.com, DailyFaceoff or the Odds API. GitHub Actions can, and its first build will be the real test.
-- The Pick6 parser was tested against a synthetic page shaped like a Remix / React Router page, not a captured one. If the banner says "parse failed: 0 rows", save the page as `model/tests/fixtures/pick6.html` and the parser can be fixed against it (`test_real_saved_page` then runs).
-- Your audit's numbers (1,116 Pick6 legs, 55-57 at 1x) came from your own records. The repo has 139 graded Pick6 rows, so the backtest uses the 3,528 graded DraftKings SOG lines instead.
+- Rosters: 32 teams live. DraftKings: 175 SOG lines (174 matched; Yegor Chinakhov isn't on VGK's or PIT's roster), all 162 points lines and 6 saves lines matched.
+- Pick6: the old parser found nothing in the real page. It is now parsed from its pick cards: 716 SOG lines (market 208 = main line, More and Less; 581 = alt lines, More only), all matched to a player, 0 dropped. The captured page is the test fixture (`model/tests/fixtures/pick6.html`).
+- Board: 918 lines, 100% with a model p; 14 TAKE, 904 PASS, every PASS with a reason (442 "LESS not offered" on More-only alt lines, 254 sub-1x legs, the rest below 58% or market-driven).
+- Every TAKE on that build was a DraftKings **points** line, where the model still has weight 0.75, fitted in-sample on 4 days of lines. Shots TAKEs are rare because the shots weight is 0: DK and the model must agree at 58%+.
+- Not solved: Pick6 points, assists and saves. The page only serves Shots on Goal, and `?category=` (by key, name or id) returned Shots on Goal again, so those markets come from DraftKings or your pasted board for now.
+- Fixed on the way: DraftKings fallback lines were scored as free 1x legs (88 juiced "TAKEs" on the first build); they are now priced at DK's own odds. A leg-log type error blanked the board on one build; logging can no longer touch the board.
+
+## Still open
+
 - The role-change subset can't be backtested: there is no history of pre-game line combinations. The leg log records it from now on.
-- Points have 4 days of graded lines (Oct 29 to Nov 1), so their blend weight is still in-sample and there is no walk-forward score yet.
+- Your audit's 1,116 Pick6 legs came from your own records (the repo has 139 graded Pick6 rows); the backtest uses the 3,528 graded DraftKings SOG lines.
+- Points have 4 days of graded lines, so their blend weight is in-sample and there is no walk-forward score yet.

@@ -421,24 +421,10 @@ def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30):
         status, stats = f"unavailable ({e})", {}
         print(f"  [pick6] {status}")
         return [], stats
-    # the page serves one category (Shots on Goal by default); the others (Points, Assists, Saves when posted,
-    # ...) are ?category=<filterKey>. A category page counts only if it really returned that category.
-    pages, got = [page], {}
-    extract(page)
-    info = dict(last_info)
-    got[str(info.get("category"))] = True
-    tried = []
-    for cid, keys in (info.get("categories") or {}).items():
-        for key in keys if cid not in got else []:
-            try:
-                pg = get(f"{URL}&category={urllib.parse.quote(key)}")
-            except Exception:
-                continue
-            extract(pg)
-            tried.append(f"{key}->{last_info.get('category')}")
-            if str(last_info.get("category")) == cid:
-                pages.append(pg); got[cid] = True
-                break
+    # The page serves one category (Shots on Goal). Its other categories (Points, Assists, ...) load client-side:
+    # ?category=<filterKey | name | id> all returned Shots on Goal again on 2026-11-03, so only this page is
+    # pulled; points and saves come from DraftKings (or your pasted board) until a working source is found.
+    pages = [page]
     rows, stats, seen = [], {"raw": 0, "kept": 0, "dropped": {}}, set()
     for pg in pages:
         r_, st = build_rows(pg, slate, R, fetched_at)
@@ -450,8 +436,7 @@ def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30):
         for k, v in st["dropped"].items():
             stats["dropped"][k] = stats["dropped"].get(k, 0) + v
     stats["kept"] = len(rows)
-    stats["categories"] = sorted(got)
-    stats["category_tries"] = tried[:20]
+    stats["category"] = last_info.get("category")
     stats["bytes"] = len(page)
     status = "ok" if rows else ("parse failed: 0 rows" if not stats["raw"] else "0 usable rows")
     if not stats["raw"]:
