@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import re
 import urllib.request
 
@@ -320,6 +321,21 @@ def build_rows(page: str, slate: list[dict], R: players.Rosters, fetched_at: str
     return rows, {"raw": n_raw, "kept": len(rows), "dropped": drops}
 
 
+FAILED = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "pick6_failed.html")
+
+
+def save_failed(page: str, limit: int = 3_000_000):
+    """Keep the page that parsed to 0 rows (its scripts, where the loader data lives) so the parser can be
+    fixed against the real format. Overwritten each time; removed once a parse succeeds."""
+    scripts = re.findall(r"<script[^>]*>.*?</script>", page, re.S)
+    body = "\n".join(scripts) if scripts else page
+    try:
+        with open(FAILED, "w", encoding="utf-8") as f:
+            f.write(body[:limit])
+    except OSError:
+        pass
+
+
 def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30):
     """(rows, stats). Never raises; `status` is "ok", "parse failed: 0 rows", "blocked (HTTP 403)", etc."""
     global status, stats
@@ -339,6 +355,10 @@ def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30):
     rows, stats = build_rows(page, slate, R, fetched_at)
     stats["bytes"] = len(page)
     status = "ok" if rows else ("parse failed: 0 rows" if not stats["raw"] else "0 usable rows")
+    if not stats["raw"]:
+        save_failed(page)
+    if rows and os.path.exists(FAILED):
+        os.remove(FAILED)
     print(f"  [pick6] {status}: {stats}")
     return rows, stats
 

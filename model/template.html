@@ -908,7 +908,8 @@ function finishRow(r){
   if (r.p_raw == null && r.p_blend == null) return r;
   const c = (CAL[r.market] || {}).cal, pm = r.p_raw != null ? platt(r.p_raw, c, r.line) : r.p_model;
   const w = blendW(c), pb = r.p_mkt == null ? pm : w * pm + (1 - w) * r.p_mkt;
-  const v = verdictFor(r.market, pb, pm, r.line, r.proj, r.mo, r.mu, r.matched !== false, r.confirmed !== false);
+  // DraftKings fallback lines carry DK's own odds (dk_over / dk_under) instead of DFS multipliers
+  const v = verdictFor(r.market, pb, pm, r.line, r.proj, r.mo, r.mu, r.matched !== false, r.confirmed !== false, {over: r.dk_over, under: r.dk_under});
   return {...r, p_model: pm, p_blend: pb, w, ...v};
 }
 function clientLines(){
@@ -982,7 +983,7 @@ function propCells(r, alt){
     <td class="num">${r.p_mkt != null && r.side ? pc0(r.side === "OVER" ? r.p_mkt : 1 - r.p_mkt) : "–"}</td>
     <td class="num">${n1(r.proj)}</td><td class="num ${r.edge != null ? diffCls(r.side === "OVER" ? r.edge : -r.edge, r.side, r.market === "saves" ? 0.5 : 0.15) : ""}">${sgn1(r.edge)}</td>
     <td class="num ${edgeBE == null ? "" : edgeBE > 0 ? "diff-sup" : "diff-con"}">${edgeBE == null ? "–" : (edgeBE > 0 ? "+" : "−") + (100 * Math.abs(edgeBE)).toFixed(1)}</td>
-    <td class="num">${r.mult != null ? r.mult + "x" : `${r.mo ?? "–"}x/${r.mu ?? "–"}x`}</td>
+    <td class="num">${r.mult != null ? r.mult + "x" : r.dk_over != null && r.side ? amer(r.side === "OVER" ? r.dk_over : r.dk_under) : `${r.mo ?? "–"}x/${r.mu ?? "–"}x`}</td>
     <td class="l"><span class="muted" style="font-size:11px">${r.source}</span></td>
     <td class="num c-time">${r.start ? ctFmt(new Date(r.start), {hour: "numeric", minute: "2-digit"}) : "–"}</td>`;
 }
@@ -1003,7 +1004,7 @@ function renderPlays(takes){
   $("#playsBox").innerHTML = takes.length ? `<div class="board"><table><thead><tr><th class="l pin">Play</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Call</th><th class="num">p</th><th class="num">Model p</th><th class="num">Mult</th><th class="l">Source</th><th class="num">CT</th></tr></thead><tbody>` +
     takes.map(r => `<tr><td class="l pin"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span>${roleBadge(r)}${r.conflicts && r.conflicts.length ? `<div class="cell2 bad">⚠ conflicts: ${r.conflicts.join(", ")}</div>` : ""}</td>
       <td class="l">${r.label}</td><td class="num">${n1(r.line)}</td><td class="l">${verdictPill(r)} <span class="pill ${r.tier === "Lock" ? "HIGH" : "MED"}">${r.tier}</span></td>
-      <td class="num"><b>${pc0(r.p)}</b></td><td class="num">${pc0(r.pModelSide)}</td><td class="num">${r.mult != null ? r.mult + "x" : "–"}</td>
+      <td class="num"><b>${pc0(r.p)}</b></td><td class="num">${pc0(r.pModelSide)}</td><td class="num">${r.mult != null ? r.mult + "x" : r.dk_over != null ? amer(r.side === "OVER" ? r.dk_over : r.dk_under) : "–"}</td>
       <td class="l"><span class="muted" style="font-size:11px">${r.source}</span></td><td class="num">${r.start ? ctFmt(new Date(r.start), {hour: "numeric", minute: "2-digit"}) : "–"}</td></tr>`).join("") + "</tbody></table></div>"
     : `<p class="muted" style="margin:0">No TAKE legs for this date yet. Every prop below shows why it is a PASS.</p>`;
   $("#nPlays").textContent = takes.length ? `${takes.length} leg${takes.length === 1 ? "" : "s"}, ranked by p` : "";

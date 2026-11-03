@@ -65,6 +65,15 @@ class Verdicts(unittest.TestCase):
         self.assertGreaterEqual(r["p_blend"], 0.58)
         self.assertEqual(r["verdict"], "PASS"); self.assertIn("model alone", r["reason"])
 
+    def test_dk_fallback_priced_at_dk_odds(self):
+        # Pick6 doesn't list Reinhart; DK's -233 over is the fallback. At w = 0 the blended p is DK's own no-vig
+        # (70%), which can't beat the -233 price (70.0% implied plus vig), so it is never a free 1x TAKE
+        dk = [{"name": "Sam Reinhart", "player_id": 20, "teams": ["TOR", "FLA"], "date": "2026-11-03", "line": 0.5, "over": -233, "under": 180}]
+        b = self.build([], dk)
+        r = b["rows"][0]
+        self.assertEqual(r["source"], "DraftKings")
+        self.assertEqual(r["verdict"], "PASS"); self.assertIn("break-even", r["reason"])
+
     def test_conflicting_teammates(self):
         rows = [{"name": "A", "player_id": 1, "team": "TOR", "opp": "FLA", "game": 1, "market": "sog", "label": "SOG",
                  "side": "OVER", "p": .64, "verdict": "TAKE MORE"},

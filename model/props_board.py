@@ -1,7 +1,8 @@
 """Tonight's prop board: every posted line with model / market / blended p and one verdict per player.
 
 Lines (audit item 10): every Pick6 row the build pulled (pick6.py), then DraftKings sportsbook lines for
-shots, points and saves as the fallback for players Pick6 doesn't list. DK lines are also the market
+shots, points and saves as the fallback for players Pick6 doesn't list (priced at DK's own odds, so a juiced
+favourite has to beat its implied probability). DK lines are also the market
 price for a Pick6 leg on the same player and line. Every row carries playerId, team, game, market, line,
 More / Less multipliers, source and fetched-at time; started games are left out.
 
@@ -58,7 +59,7 @@ def candidate_lines(payload, pick6_rows, now=None) -> tuple[list[dict], dict]:
             if (mk, int(pid)) in have or slate_mod.started(g, now):
                 continue
             out.append({"name": r["name"], "player_id": int(pid), "team": r.get("team"), "game": g["id"], "date": g["date"],
-                        "market": mk, "line": float(r["line"]), "mo": 1.0, "mu": 1.0, "source": "DraftKings",
+                        "market": mk, "line": float(r["line"]), "mo": None, "mu": None, "source": "DraftKings",
                         "fetched_at": payload.get("built_iso"), "over": r.get("over"), "under": r.get("under")})
     return out, drops
 
@@ -125,7 +126,8 @@ def score_lines(payload, lines) -> list[dict]:
         over_p, under_p = (r.get("over"), r.get("under")) if r["source"] == "DraftKings" else (None, None)
         mkt = pricing.novig(q.get("over"), q.get("under")) if q else None
         pb, pm, pk = pricing.final_p_over(po, cal, market_p=mkt, line=r["line"])
-        v = pricing.verdict(mk, pb, pm, r["line"], proj, r.get("mo"), r.get("mu"), None, None,
+        # a DraftKings fallback line is priced at DraftKings' own odds: a -200 favourite needs 67%, it is not a free 1x leg
+        v = pricing.verdict(mk, pb, pm, r["line"], proj, r.get("mo"), r.get("mu"), over_p, under_p,
                             matched=row["matched"], confirmed=confirmed)
         v["p_model_side"] = v.pop("p_model")
         row.update(proj=round(proj, 3), p_raw=round(po, 4), p_model=round(pm, 4), p_mkt=None if pk is None else round(pk, 4),
