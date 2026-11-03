@@ -334,7 +334,8 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   <div class="card"><h2>Formula</h2>
     <p><code>exp_SA = LG × (TeamSA/LG)<sup>a</sup> × (OppSF/LG)<sup>b</sup> × home × playoff × b2b × opponent b2b × exp(−gs × logit(win prob))</code>, the game-script multiplier capped at ±12%.</p>
     <p><code>saves ~ Normal(mean = exp_SA × share × sv, var = sv²(μ + μ²/K) + μ·sv(1−sv)), μ = exp_SA × share</code>: shots against vary like a negative binomial and each shot is saved with probability sv, so heavier workloads (underdogs) get a wider spread. P(hit) is then calibrated on graded real lines (side-split, no intercept), blended 60/40 with the no-vig DraftKings price when both sides are posted, and a play needs that probability above the price's break-even + 2%.</p>
-    <p><code>Projected saves = exp_SA × time-in-net share × save%</code> &nbsp; <code>Edge = Projected − Line</code></p>
+    <p><code>Projected saves = exp_SA × time-in-net share × save% + rolling bias</code> &nbsp; <code>Edge = Projected − Line</code></p>
+    <p class="sub">The rolling bias is the recent mean of (actual saves − this projection), half-life 30 days, shrunk by 20 starts, added after game script. It is the same number on the slate and in the frozen call.</p>
     <div class="tbl"><table id="parT"></table></div>
     <h3>What each piece does</h3>
     <ul>
@@ -350,10 +351,11 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
       <li>Green rows are OVER, red rows are UNDER.</li>
       <li><b>Confirm the starter</b> (morning skate or warmups) before locking. Every projection is for the goalie shown.</li>
       <li>Overtime inflates raw saves past the per-60 projection. In a tight, high-event series, lean OVER on close calls.</li>
-      <li>Play-by-play extras (GSAx/60, rebound%, block%, CF%, xGF%) are on the Goalies and Teams tabs for reading a matchup. They aren't in the formula yet, and any that go in will only be added if they improve out-of-sample accuracy.</li>
+      <li>Play-by-play extras (GSAx/60, rebound%, block%, CF%, xGF%) are on the Goalies and Teams tabs for reading a matchup. MoneyPuck xGoals, GSAx, unblocked attempts and high-danger rates were tested walk-forward on this season and did not beat the current projection, so they stay out of the formula. The build cross-checks NHL shots, saves and time on ice against MoneyPuck and stops if they diverge.</li>
     </ul>
     <h3>Data</h3>
-    <p class="sub">Box scores and play-by-play come from the public <code>sportsdataverse/fastRhockey-nhl-data</code> set, rebuilt daily from the NHL API. The schedule comes from <code>api-web.nhle.com</code>. The page rebuilds via GitHub Actions.</p>
+    <p class="sub">Box scores and play-by-play come from the public <code>sportsdataverse/fastRhockey-nhl-data</code> set, rebuilt daily from the NHL API. Every build cross-checks starter shots, saves and time on ice against <a href="https://moneypuck.com/data.htm">MoneyPuck</a> goalie game logs (MoneyPuck.com). The schedule comes from <code>api-web.nhle.com</code>. The page rebuilds via GitHub Actions.</p>
+    <p class="sub" id="mpNote"></p>
   </div>
 </section>
 </main>
@@ -779,7 +781,10 @@ function renderSlate(){
     pill(`Your board: ${(BOARD.rows || []).length} props`, (BOARD.rows || []).length > 0 ? true : null),
     pill(`Line combos: ${D.lines_status ? String(D.lines_status).split(":")[0] : "not pulled"}`, D.lines_status ? String(D.lines_status).startsWith("ok") : null)].join(" ");
   $("#srcStatus").innerHTML = SRC_PILLS;
-  $("#ppNote").textContent = `As of ${builtCT}. ${dkMsg} ${ppMsg} Starter order: your pick, a DailyFaceoff confirmation, a DraftKings line, a PrizePicks prop, a saves prop on your pasted board, then the roster default (unconfirmed). A posted line isn't an official confirmation, so check warmups on close calls; unconfirmed starters (roster default) are never plays until you pick the goalie. Projected saves = shots against (team defense × opponent offense, home/road, back-to-backs, game script from the win probability) × time in net × save%, with a spread that grows with the workload. A side is a play only when its calibrated probability, blended with the no-vig price when DraftKings posts both sides, beats the price's break-even by 2%.`;
+  const mp = D.moneypuck;
+  const mpMsg = !mp ? "" : (mp.warning ? ` MoneyPuck: ${mp.warning}` : ` MoneyPuck cross-check: ${mp.matched} starts, shots/saves/TOI match the NHL box score (SA MAE ${mp.sa_mae}).`);
+  if ($("#mpNote")) $("#mpNote").textContent = mp ? (mp.ok ? `MoneyPuck agrees with the NHL box score on ${mp.matched} starter games through ${mp.source && mp.source.through ? mp.source.through : ""}. Shots-against MAE ${mp.sa_mae}, saves MAE ${mp.saves_mae}, TOI MAE ${mp.toi_mae}.` + (mp.source && mp.source.warning ? " " + mp.source.warning : "") : "MoneyPuck cross-check did not pass.") : "";
+  $("#ppNote").textContent = `As of ${builtCT}. ${dkMsg} ${ppMsg}${mpMsg} Starter order: your pick, a DailyFaceoff confirmation, a DraftKings line, a PrizePicks prop, a saves prop on your pasted board, then a DailyFaceoff projected starter (not a play), then the roster default (unconfirmed). A posted line isn't an official confirmation, so check warmups on close calls; unconfirmed starters are never plays until you pick the goalie. Projected saves = shots against (team defense × opponent offense, home/road, back-to-backs, game script from the win probability) × time in net × save%, plus a rolling bias, with a spread that grows with the workload. A side is a play only when its calibrated probability, blended with the no-vig price when DraftKings posts both sides, beats the price's break-even by 2%.`;
   const dates = [...new Set(D.slate.map(g => g.date))];
   const dSel = $("#dateF");
   // the slate day (America/Chicago) stays until every one of its games is final (model/slate.py)

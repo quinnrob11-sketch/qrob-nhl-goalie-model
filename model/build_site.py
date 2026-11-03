@@ -27,6 +27,7 @@ import saves_dist
 import sog
 import starters
 import linecombos
+import moneypuck
 import pick6
 import players
 import props_board
@@ -356,6 +357,7 @@ def main():
     years = list(range(2024, cur + 1))
     print(f"Loading seasons {years} ...")
     tg, st_df = data.load_all(years, refresh=True)
+    mp_rep = moneypuck.verify(st_df)          # raises if MoneyPuck is missing or disagrees with the box scores
     have = sorted(tg.season.unique())
     latest = int(have[-1])
 
@@ -424,6 +426,7 @@ def main():
         "built_iso": now.isoformat(timespec="seconds"),
         "slate_day": slate_day,
         "saves_bias": saves_bias,
+        "moneypuck": mp_rep,
         "rosters_status": players.status, "roster_source": R.source,
         "pick6_status": pick6.status, "pick6_stats": p6_stats,
         "dk_match": odds.match_counts,
