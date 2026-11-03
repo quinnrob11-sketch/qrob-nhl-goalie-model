@@ -33,6 +33,7 @@ import prizepicks
 import saves_dist
 
 MIN_TIER_N = 30
+SLOPE_MIN, SLOPE_MAX = 0.5, 1.25   # side-split calibration slopes are kept in this range
 GATE_N = 150                      # forward-graded plays a market needs before tiers above LOW...
 GATE_HIT = pricing.dfs_break_even(1.0)   # ...with a hit rate above 2-pick 1x DFS break-even (57.7%)...
                                          # ...and positive ROI
@@ -92,8 +93,8 @@ def _slope_fit(x, y, l2=1.0):
 
 def side_fit(p_over, went_over, push=None, min_n=None):
     """Side-split calibration with no intercept: lines the raw model leans OVER get slope b, lines it
-    leans UNDER get b_under, both fitted on P(that side wins) = sigmoid(b x logit(p_side)). With fewer
-    than MIN_CAL_N graded lines the slopes are shrunk toward 1 by n / MIN_CAL_N."""
+    leans UNDER get b_under, both fitted on P(that side wins) = sigmoid(b x logit(p_side)). Each side's
+    slope is shrunk toward 1 by (that side's lines) / MIN_CAL_N and kept in [SLOPE_MIN, SLOPE_MAX]."""
     min_n = min_n or pricing.MIN_CAL_N
     p = np.asarray(p_over, float); y = np.asarray(went_over, bool)
     keep = ~np.asarray(push, bool) if push is not None else np.ones(len(p), bool)
@@ -104,7 +105,12 @@ def side_fit(p_over, went_over, push=None, min_n=None):
     for key, m, win in (("b", lean_over, y), ("b_under", ~lean_over, ~y)):
         raw = _slope_fit(np.abs(_lg(p[m])), win[m].astype(float)) if m.sum() >= 20 else 1.0
         out[key + "_fit"] = round(raw, 4)
-        out[key] = round(1 + lam * (raw - 1), 4)
+        # each side is shrunk by its own line count, and the slope is kept in [SLOPE_MIN, SLOPE_MAX]: a steep
+        # slope fitted on lines near 50% would otherwise be extrapolated to a lopsided line (points overs had
+        # b = 2.24 from 135 lines, turning a raw 82% into 96%)
+        lam_s = min(lam, m.sum() / min_n)
+        out[key] = round(min(max(1 + lam_s * (raw - 1), SLOPE_MIN), SLOPE_MAX), 4)
+        out[key + "_shrink"] = round(lam_s, 3)
     out["shrink"] = round(lam, 3)
     out["mode"] = "full" if lam >= 1 else f"shrunk {lam:.2f} toward identity (n < {min_n})"
     return out
@@ -131,6 +137,73 @@ def _buckets(p_side, win):
 
 
 MARKETS = ("saves", "sog", "points")
+BLEND_GRID = np.round(np.linspace(0, 1, 21), 2)
+DISAGREE_MIN_N = 100          # disagreements needed before the model weight is shrunk by their record
+LINE_L2 = 50.0                # per-line intercepts are shrunk hard toward 0
+
+
+def logloss(p, y):
+    p = np.clip(np.asarray(p, float), 1e-4, 1 - 1e-4); y = np.asarray(y, float)
+    return float(-np.mean(y * np.log(p) + (1 - y) * np.log(1 - p))) if len(p) else None
+
+
+def brier(p, y):
+    return float(np.mean((np.asarray(p, float) - np.asarray(y, float)) ** 2)) if len(p) else None
+
+
+def disagreement(p_model_over, p_mkt_over, went_over) -> dict:
+    """Record of the model's side on lines where it and the no-vig market lean opposite ways."""
+    pm, mk, y = (np.asarray(a, float) for a in (p_model_over, p_mkt_over, went_over))
+    d = (pm >= .5) != (mk >= .5)
+    win = np.where(pm >= .5, y, 1 - y)[d]
+    return {"n": int(d.sum()), "hit": int(win.sum()), "pct": round(float(win.mean()), 4) if d.any() else None}
+
+
+def fit_blend(p_model_over, p_mkt_over, went_over) -> dict:
+    """Weight on the (calibrated) model in w x model + (1 - w) x market, by log loss over a grid. When the
+    model's record on lines where it disagrees with the market is below the 1x DFS break-even (57.7%),
+    the weight is shrunk by (hit - 50%) / (break-even - 50%), floored at 0."""
+    pm, mk, y = (np.asarray(a, float) for a in (p_model_over, p_mkt_over, went_over))
+    if len(pm) < 50:
+        return {"w": pricing.BLEND_W, "w_fit": None, "shrink": 1.0, "disagree": None, "n": int(len(pm))}
+    lls = [logloss(w * pm + (1 - w) * mk, y) for w in BLEND_GRID]
+    w_fit = float(BLEND_GRID[int(np.argmin(lls))])
+    dis = disagreement(pm, mk, y)
+    be = pricing.dfs_break_even(1.0)
+    shrink = 1.0
+    if dis["n"] >= DISAGREE_MIN_N and dis["pct"] < be:
+        shrink = max(0.0, (dis["pct"] - 0.5) / (be - 0.5))
+    return {"w": round(w_fit * shrink, 3), "w_fit": w_fit, "shrink": round(shrink, 3), "disagree": dis, "n": int(len(pm))}
+
+
+def _icpt(p, y, l2=LINE_L2):
+    """Intercept-only logistic recalibration on logit(p), shrunk toward 0."""
+    z = _lg(np.asarray(p, float)); y = np.asarray(y, float); a = 0.0
+    for _ in range(30):
+        q = 1 / (1 + np.exp(-(a + z)))
+        a -= (np.sum(q - y) + l2 * a) / (np.sum(q * (1 - q)) + l2)
+    return float(a)
+
+
+def line_intercepts(p_cal_over, lines, went_over, min_n=30) -> dict:
+    b = np.array([pricing.line_bucket(x) for x in lines])
+    return {k: round(_icpt(np.asarray(p_cal_over)[b == k], np.asarray(went_over)[b == k]), 4)
+            for k in sorted(set(b)) if k and (b == k).sum() >= min_n}
+
+
+def reliability_side_line(p_over, lines, went_over) -> list[dict]:
+    """Predicted vs actual for the side each probability leans to, by side (More / Less) and line bucket."""
+    p = np.asarray(p_over, float); y = np.asarray(went_over, bool)
+    so = p >= .5; ps = np.where(so, p, 1 - p); win = np.where(so, y, ~y)
+    b = np.array([pricing.line_bucket(x) for x in lines])
+    out = []
+    for side, m0 in (("More", so), ("Less", ~so)):
+        for k in sorted(set(b)):
+            m = m0 & (b == k)
+            if m.any():
+                out.append({"side": side, "line": k, "n": int(m.sum()), "pred": round(float(ps[m].mean()), 4),
+                            "actual": round(float(win[m].mean()), 4)})
+    return out
 
 
 def _prop_params(prm):
@@ -179,9 +252,9 @@ def lines_frame(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict
         s["key"] = s.player.map(prizepicks.name_key)
         s = s.drop_duplicates(["date", "key", "team"])
         df["key"] = df.player.map(prizepicks.name_key)
-        m = df[df.market == mk].reset_index().merge(s[["date", "key", "team", "proj"]], on=["date", "key", "team"],
+        m = df[df.market == mk].reset_index().merge(s[["date", "key", "team", "proj", "pos"]], on=["date", "key", "team"],
                                                   how="inner").set_index("index")
-        df.loc[m.index, "p_over"] = [sog.p_over(pj, ln, sog.size_for(pj, prm)) for pj, ln in zip(m.proj, m.line)]
+        df.loc[m.index, "p_over"] = [sog.p_over(pj, ln, sog.size_for(pj, prm, ps)) for pj, ln, ps in zip(m.proj, m.line, m.pos)]
         df.loc[m.index, "model_proj"] = m.proj.values
     return df.dropna(subset=["p_over", "actual"] if all_books else ["p_over", "price", "actual"])
 
@@ -200,19 +273,55 @@ def _side_buckets(p_over, went_over, push):
     return {"OVER": _buckets(p_side[keep & so], win[keep & so]), "UNDER": _buckets(p_side[keep & ~so], win[keep & ~so])}
 
 
+def _mkt(x):
+    return np.array([pricing.novig(o, u) for o, u in zip(x.over, x.under)], float)
+
+
+def calibrate_market(p_over, lines, went_over, push, mkt) -> dict:
+    """The full calibration for one market from graded lines: side-split slopes, the fitted market blend
+    weight, and per-line intercepts (`line_a`, kept only by fit() when they win walk-forward)."""
+    cal = side_fit(p_over, went_over, push)
+    keep = ~np.asarray(push, bool)
+    pc = np.array([pricing.platt(p, cal) for p in np.asarray(p_over)[keep]])
+    y = np.asarray(went_over, float)[keep]; mk = np.asarray(mkt, float)[keep]
+    ok = ~np.isnan(mk)
+    cal["blend"] = fit_blend(pc[ok], mk[ok], y[ok])
+    cal["w"] = cal["blend"]["w"]
+    cal["line_a_fit"] = line_intercepts(pc, np.asarray(lines)[keep], y)
+    return cal
+
+
 def replay(x: pd.DataFrame, mk: str) -> pd.DataFrame:
-    """Walk-forward: each week's lines are calibrated on earlier weeks only, then decided with the live
-    rule (pricing.decide); the one-sided night warning is recorded, not applied. Returns one row per line with the decision and its result."""
-    y = x.went_over.values; push = x.push.values
+    """Walk-forward: each week's lines are calibrated on earlier weeks only (side-split slopes, the market
+    blend weight fitted by log loss, and the per-line intercept candidate), then decided with the live rule
+    (pricing.decide); the one-sided night warning is recorded, not applied. Returns one row per line with
+    the decision and its result, plus p_line_over (the same with per-line intercepts) and p_fixed_over (the
+    old fixed 0.6 blend) for comparison."""
+    y = x.went_over.values; push = x.push.values; mkt = _mkt(x)
     rows = []
+    wf_pc, wf_mk, wf_y = [], [], []          # earlier weeks' out-of-sample calibrated p, market p, outcome
     for wk in sorted(x.wk.unique()):
         te, tr = (x.wk == wk).values, (x.wk < wk).values
-        cal = side_fit(x.p_over.values[tr], y[tr], push[tr]) if tr.sum() >= 50 else None
-        for r in x[te].itertuples():
+        cal = calibrate_market(x.p_over.values[tr], x.line.values[tr], y[tr], push[tr], mkt[tr]) if tr.sum() >= 50 else None
+        if cal is not None:
+            # same as tonight's fit: the weight comes from earlier weeks' walk-forward probabilities once there are 200
+            ok = [i for i in range(len(wf_pc)) if wf_mk[i] == wf_mk[i]]
+            if len(ok) >= 200:
+                cal["w"] = fit_blend(np.array(wf_pc)[ok], np.array(wf_mk)[ok], np.array(wf_y)[ok])["w"]
+        cal_line = dict(cal, line_a=cal["line_a_fit"]) if cal else None
+        if cal is not None:
+            for r, m_ in zip(x[te].itertuples(), mkt[te]):
+                if not r.push:
+                    wf_pc.append(pricing.platt(r.p_over, cal)); wf_mk.append(m_); wf_y.append(float(r.went_over))
+        for r, m_ in zip(x[te].itertuples(), mkt[te]):
             d = pricing.decide(r.p_over, cal, r.over, r.under, market=mk, proj=r.model_proj, line=r.line)
+            pl, _, _ = pricing.final_p_over(r.p_over, cal_line, r.over, r.under, line=r.line)
+            pf, _, _ = pricing.final_p_over(r.p_over, cal, r.over, r.under, w=pricing.BLEND_W)
             rows.append({"idx": r.Index, "date": r.date, "side": d["side"], "p": d["p"], "ev": d["ev"], "play": d["play"],
                          "tier": pricing.tier(d["ev"]) if d["play"] else "PASS", "price": r.over if d["side"] == "OVER" else r.under,
-                         "p_cal_over": d["p_model"], "p_final_over": d["p"] if d["side"] == "OVER" else 1 - d["p"]})
+                         "p_cal_over": d["p_model"], "p_final_over": d["p"] if d["side"] == "OVER" else 1 - d["p"],
+                         "p_line_over": pl, "p_fixed_over": pf, "p_mkt_over": m_, "w": cal["w"] if cal else pricing.BLEND_W,
+                         "warm": cal is not None})
     # one-sided board warning per night: display only, it never removes a play
     for d in sorted({r["date"] for r in rows}):
         night = [r for r in rows if r["date"] == d]
@@ -240,7 +349,7 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
         points_prm=None) -> dict:
     df = lines_frame(log, saves_rows, dist_prm, sog_rows, sog_prm, points_rows, points_prm)
     out = {"updated": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "markets": {},
-           "rule": {"blend_w": pricing.BLEND_W, "min_cal_n": pricing.MIN_CAL_N}}
+           "rule": {"blend_w": pricing.BLEND_W, "min_cal_n": pricing.MIN_CAL_N, "blend": "fitted by log loss per market"}}
     if df.empty:
         return out
     # both sides' prices from the DraftKings snapshots (needed to price the side the rule picks)
@@ -258,8 +367,31 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
         x = df[df.market == mk].dropna(subset=["over", "under"]).reset_index(drop=True)
         if len(x) < 40:
             continue
-        cal = side_fit(x.p_over.values, x.went_over.values, x.push.values)
         r = replay(x, mk)
+        cal = calibrate_market(x.p_over.values, x.line.values, x.went_over.values, x.push.values, _mkt(x))
+        # walk-forward comparison on the weeks after the first (each scored only with earlier weeks)
+        wm = r.warm.values & ~x.push.values
+        yy = x.went_over.values[wm].astype(float)
+        scores = {}
+        for name, col in (("raw model", x.p_over.values), ("calibrated model", r.p_cal_over.values),
+                          ("DK no-vig", r.p_mkt_over.values), ("blend 0.6 (old)", r.p_fixed_over.values),
+                          ("blend fitted (new)", r.p_final_over.values), ("blend fitted + line intercepts", r.p_line_over.values)):
+            v = np.asarray(col, float)[wm]
+            scores[name] = {"n": int(wm.sum()), "brier": round(brier(v, yy), 5) if len(v) else None,
+                            "logloss": round(logloss(v, yy), 5) if len(v) else None}
+        # tonight's blend weight: refit by log loss on the walk-forward (out-of-sample) calibrated probabilities
+        # once there are enough of them, so an in-sample fit can't flatter the model
+        ok = wm & ~np.isnan(r.p_mkt_over.values.astype(float))
+        if ok.sum() >= 200:
+            wf = fit_blend(r.p_cal_over.values[ok], r.p_mkt_over.values[ok], x.went_over.values[ok])
+            cal["blend"] = {**wf, "basis": f"walk-forward ({int(ok.sum())} lines)"}
+            cal["w"] = wf["w"]
+        else:
+            cal["blend"]["basis"] = f"in-sample ({len(x)} lines; walk-forward needs 200)"
+        use_line = bool(wm.sum() >= 200 and scores["blend fitted + line intercepts"]["logloss"] < scores["blend fitted (new)"]["logloss"])
+        if use_line:
+            cal["line_a"] = cal["line_a_fit"]
+        cal["line_a_used"] = use_line
         play, push = r.play.values, x.push.values
         tiers = {}
         for name in ("HIGH", "MED", "LOW"):
@@ -307,5 +439,10 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
             "buckets_side": {"raw": _side_buckets(x.p_over.values, x.went_over.values, push),
                              "calibrated": _side_buckets(r.p_cal_over.values, x.went_over.values, push),
                              "final": _side_buckets(r.p_final_over.values, x.went_over.values, push)},
-            "lines": int(len(x)), "from": str(x.date.min()), "to": str(x.date.max())}
+            "lines": int(len(x)), "from": str(x.date.min()), "to": str(x.date.max()),
+            "scores": scores,
+            "reliability": {"raw": reliability_side_line(x.p_over.values[wm], x.line.values[wm], x.went_over.values[wm]),
+                            "final": reliability_side_line((r.p_line_over if use_line else r.p_final_over).values[wm],
+                                                           x.line.values[wm], x.went_over.values[wm])},
+            "disagree_wf": disagreement(r.p_cal_over.values[wm], r.p_mkt_over.values[wm], x.went_over.values[wm])}
     return out

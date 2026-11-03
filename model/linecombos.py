@@ -3,11 +3,12 @@
 For each team on the slate: which forward line (F1-F4) / defence pair (D1-D3) and which power-play
 unit (PP1 / PP2) every skater is on. Used to:
   * tag rows with the player's role (e.g. "F2 · PP1");
-  * react to role changes the box scores haven't caught up with yet: when a player's listed line is
-    two or more slots from where his recent ice time puts him (e.g. a top-six forward moved to the fourth line),
-    his expected TOI is blended halfway toward the league-average TOI of the new slot (role_toi()).
-    This overlay is new and not backtested (there is no history of pre-game line combos), so it is
-    deliberately half-weight and shown on the row so you can see when it moved a projection.
+  * flag role changes the box scores haven't caught up with yet: when a player's listed line is two or
+    more slots from where his recent ice time puts him (e.g. a top-six forward moved to the fourth line)
+    the row gets a role-change badge. The prop is never dropped. Expected TOI moves only when the
+    combination was confirmed (DailyFaceoff updated the page) within CONFIRM_H hours: blended halfway
+    toward the league-average TOI of the new slot, capped at +/- TOI_CAP (role_toi()). This overlay is
+    not backtested (there is no history of pre-game line combos), so it is half-weight and capped.
 
 The page embeds its data as Next.js JSON (__NEXT_DATA__); the parser walks it for player entries
 with a group identifier instead of relying on one exact path. Best-effort: on failure `status`
@@ -29,6 +30,9 @@ FWD = {"f1": 1, "f2": 2, "f3": 3, "f4": 4}
 DEF = {"d1": 1, "d2": 2, "d3": 3}
 
 status = "not run"
+CONFIRM_H = 6.0       # a role change moves TOI only if the combination was updated this recently
+TOI_CAP = 0.15        # ... and by at most this fraction of the player's expected TOI
+UPDATED_KEYS = ("updatedAt", "lastUpdated", "updated_at", "modifiedAt", "lastModified", "publishedAt", "dateModified")
 
 
 def _entries(node):
@@ -42,6 +46,26 @@ def _entries(node):
     elif isinstance(node, list):
         for v in node:
             yield from _entries(v)
+
+
+def _updated(node, best=None):
+    """Latest ISO timestamp under any updated-at style key in the page data."""
+    if isinstance(node, dict):
+        for k in UPDATED_KEYS:
+            v = node.get(k)
+            if isinstance(v, str) and re.match(r"\d{4}-\d{2}-\d{2}T", v) and (best is None or v > best):
+                best = v
+        for v in node.values():
+            best = _updated(v, best)
+    elif isinstance(node, list):
+        for v in node:
+            best = _updated(v, best)
+    return best
+
+
+def updated_at(html: str) -> str | None:
+    m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.S)
+    return _updated(json.loads(m.group(1))) if m else None
 
 
 def parse(html: str) -> dict:
@@ -62,7 +86,8 @@ def parse(html: str) -> dict:
 
 
 def fetch(teams, timeout: int = 20) -> dict:
-    """team -> {name_key: {"name", "line", "pp"}} for the given teams."""
+    """team -> {name_key: {"name", "line", "pp", "updated"}} for the given teams ("updated" = when
+    DailyFaceoff last changed the page, or None)."""
     global status
     out, errs = {}, []
     for t in sorted(teams):
@@ -72,8 +97,9 @@ def fetch(teams, timeout: int = 20) -> dict:
         try:
             req = urllib.request.Request(URL.format(slug=slug), headers=HEADERS)
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                rows = parse(r.read().decode("utf-8", "replace"))
-            out[t] = {prizepicks.name_key(n): {"name": n, **v} for n, v in rows.items() if v["line"] or v["pp"]}
+                page = r.read().decode("utf-8", "replace")
+            rows, upd = parse(page), updated_at(page)
+            out[t] = {prizepicks.name_key(n): {"name": n, **v, "updated": upd} for n, v in rows.items() if v["line"] or v["pp"]}
         except Exception as e:  # blocked, layout change, network
             errs.append(f"{t}: {e}")
     status = f"ok ({len(out)} teams)" if out else ("unavailable: " + "; ".join(errs)[:200] if errs else "no teams")
@@ -101,13 +127,32 @@ def recent_slot(rank: float, pos: str) -> str:
     return f"{pos}{min(top, int((rank - 1) // size) + 1)}"
 
 
-def role_toi(exp_toi: float, listed: str | None, recent: str | None, slots: dict) -> tuple[float, bool]:
-    """Blend expected TOI halfway to the new slot's average when the listed line is two or more slots
-    from the recent one. Returns (toi, changed)."""
+def confirmed_recently(updated: str | None, now=None, hours: float = CONFIRM_H) -> bool:
+    import datetime as dt
+    if not updated:
+        return False
+    try:
+        t = dt.datetime.fromisoformat(str(updated).replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=dt.timezone.utc)
+    now = now or dt.datetime.now(dt.timezone.utc)
+    return dt.timedelta(0) <= now - t <= dt.timedelta(hours=hours)
+
+
+def role_toi(exp_toi: float, listed: str | None, recent: str | None, slots: dict, updated: str | None = None,
+             now=None) -> tuple[float, bool, bool]:
+    """Role change = the listed line is two or more slots from the recent one (one-line shuffles happen all
+    the time and are left to the recency-weighted TOI). Returns (toi, changed, adjusted): TOI is blended
+    halfway to the new slot's average, capped at +/- TOI_CAP, only when the combination was updated within
+    CONFIRM_H hours; otherwise the row is only badged."""
     if not listed or not recent or listed[0] != recent[0] or listed not in slots:
-        return exp_toi, False
-    # only a real role change moves TOI: two or more slots (top-six <-> bottom-six, top pair <-> third pair);
-    # one-line shuffles happen all the time and are left to the recency-weighted TOI
+        return exp_toi, False, False
     if abs(int(listed[1:]) - int(recent[1:])) < 2:
-        return exp_toi, False
-    return 0.5 * exp_toi + 0.5 * slots[listed], True
+        return exp_toi, False, False
+    if not confirmed_recently(updated, now):
+        return exp_toi, True, False
+    toi = 0.5 * exp_toi + 0.5 * slots[listed]
+    toi = min(max(toi, exp_toi * (1 - TOI_CAP)), exp_toi * (1 + TOI_CAP))
+    return toi, True, True

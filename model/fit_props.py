@@ -9,7 +9,8 @@ Everything used for the current season is fitted on earlier seasons only:
     previous season's negative-binomial log-likelihood;
   * back-to-back and opponent back-to-back: projected-vs-actual ratios pooled over earlier seasons;
   * linear mean recalibration (cal_a, cal_b): actual ~ raw on the previous season;
-  * dispersion (disp_k, size = disp_k x mean): max likelihood on the previous season.
+  * dispersion (disp_k, size = disp_k x mean): max likelihood on the previous season, then per
+    position (F / D) and volume tier (disp_f / disp_d over disp_edges) on all earlier seasons.
 The current season is then scored out of sample (log-likelihood, Brier, reliability).
 """
 from __future__ import annotations
@@ -32,6 +33,9 @@ GRID = {"rate_hl": [30, 60, 120], "toi_hl": [4, 8, 16], "k_min": [25, 50, 100, 2
         "c_opp": [0.5, 1.0], "c_team": [0.0, 0.5, 1.0]}
 DISP_K = (3, 5, 7, 10, 15, 20, 30)
 LINES = {"shots_on_goal": (0.5, 1.5, 2.5, 3.5, 4.5), "points": (0.5, 1.5, 2.5)}
+TIER_EDGES = {"shots_on_goal": (1.5, 2.5, 3.5), "points": (0.4, 0.7, 1.0)}
+TIER_K = tuple(np.r_[np.arange(1, 30, 0.5), 40, 60, 100, 300])
+TIER_MIN_N = 200
 
 
 def nb_logpmf(x, mu, size):
@@ -51,9 +55,29 @@ def p_over_vec(mu, line, size):
     return 1 - np.minimum(cdf, 1)
 
 
-def sizes(mu, p):
+def sizes(mu, p, pos=None):
     mu = np.asarray(mu, float)
+    if pos is not None and p.disp_edges and (p.disp_f or p.disp_d):
+        k = np.array([sog.disp_k_for(m, p, q) for m, q in zip(mu, pos)])
+        return np.maximum(k * np.maximum(mu, 0.02), 0.5)
     return np.maximum(p.disp_k * np.maximum(mu, 0.02), 0.5) if p.disp_k else np.full(mu.shape, p.disp)
+
+
+def fit_disp_tiers(df, edges, fallback):
+    """disp_k per position and volume tier by max likelihood (size = k x mean). A tier with fewer than
+    TIER_MIN_N player-games takes the tier below it (or `fallback`)."""
+    t = np.digitize(df.proj.values, edges)
+    out = {}
+    for pos in ("F", "D"):
+        ks = []
+        for i in range(len(edges) + 1):
+            m = (df.pos.values == pos) & (t == i)
+            if m.sum() < TIER_MIN_N:
+                ks.append(ks[-1] if ks else float(fallback)); continue
+            mu = np.maximum(df.proj.values[m], .02); y = df.shots.values[m]
+            ks.append(float(max(TIER_K, key=lambda k: nb_logpmf(y, mu, np.maximum(k * mu, .5)).sum())))
+        out[pos] = tuple(ks)
+    return out
 
 
 def reliability(p, y, edges=(0, .1, .2, .3, .4, .5, .55, .6, .65, .7, .8, .9, 1.0001)):
@@ -65,7 +89,7 @@ def reliability(p, y, edges=(0, .1, .2, .3, .4, .5, .55, .6, .65, .7, .8, .9, 1.
 
 def score(df, p, season, stat):
     x = df[df.season == season]
-    mu = np.maximum(x.proj.values, 0.02); y = x.shots.values; sz = sizes(mu, p)
+    mu = np.maximum(x.proj.values, 0.02); y = x.shots.values; sz = sizes(mu, p, x.pos.values)
     out = {"season": int(season), "n": int(len(x)), "loglik": round(float(nb_logpmf(y, mu, sz).mean()), 5),
            "bias": round(float((y - mu).mean()), 4), "lines": {}}
     for ln in LINES[stat]:
@@ -80,7 +104,8 @@ def score(df, p, season, stat):
 def fit_stat(stat, sk, season, log):
     path = os.path.join(OUT, FILES[stat])
     start = sog.SogParams.load(path) if os.path.exists(path) else sog.SogParams()
-    start = replace(start, b2b=1.0, opp_b2b=1.0, cal_a=0.0, cal_b=1.0, disp_k=start.disp_k or 10.0)
+    start = replace(start, b2b=1.0, opp_b2b=1.0, cal_a=0.0, cal_b=1.0, disp_k=start.disp_k or 10.0,
+                    disp_edges=(), disp_f=(), disp_d=())
     prev = season - 1
 
     def run(p):
@@ -120,6 +145,11 @@ def fit_stat(stat, sk, season, log):
     lls[0] = float(nb_logpmf(x.shots.values, mu, np.full(mu.shape, p.disp)).mean())
     k = max(lls, key=lls.get)
     p = replace(p, disp_k=float(k))
+    # dispersion by position and volume tier, on every earlier season
+    e = df[(df.season < season) & (df.game_type == "R")]
+    tiers = fit_disp_tiers(e, TIER_EDGES[stat], k or 10.0)
+    p = replace(p, disp_edges=TIER_EDGES[stat], disp_f=tiers["F"], disp_d=tiers["D"])
+    log.append(f"- dispersion by tier (projection edges {TIER_EDGES[stat]}): forwards {tiers['F']}, defence {tiers['D']}")
     log.append(f"- back-to-back x{b2b}, opponent back-to-back x{ob2b} (earlier seasons)")
     log.append(f"- mean recalibration: proj = {p.cal_a:+.4f} + {p.cal_b:.4f} x raw (fit on {prev - 1}-{str(prev)[2:]})")
     log.append(f"- dispersion: size = {k} x mean" if k else f"- dispersion: fixed size {p.disp}")

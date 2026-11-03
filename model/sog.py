@@ -10,8 +10,9 @@
               same idea as the saves model), with fitted strength c
 Probability of the OVER comes from a negative binomial with mean = proj. Dispersion scales with
 the mean (size = disp_k x proj, so variance = proj x (1 + 1/disp_k)): measured shot counts vary about
-1.05-1.1x their mean at every volume, while a fixed size over-spread high-volume shooters and made
-unders on stars look better than they are. disp_k = 0 keeps the old fixed size `disp`.
+1.05-1.15x their mean, while a fixed size over-spread high-volume shooters and made unders on stars
+look better than they are. disp_k is fitted per position and volume tier (disp_f / disp_d over the
+projection edges disp_edges); disp_k = 0 keeps the old fixed size `disp`.
 
     python model/sog.py     # fit on 2024-25, test on 2025-26 + real PrizePicks lines
 
@@ -53,6 +54,11 @@ class SogParams:
     c_team: float = 0.0       # weight of the player's own team rate (points: team scoring)
     cal_a: float = -0.1132    # linear recalibration of the mean: proj = cal_a + cal_b x raw
     cal_b: float = 1.047
+    # dispersion by volume tier and position (fit_props.fit_disp_tiers, MLE on player-games): projection
+    # edges of the tiers, and disp_k per tier for forwards / defence. Empty keeps the single disp_k.
+    disp_edges: tuple = (1.5, 2.5, 3.5)
+    disp_f: tuple = (8.0, 7.5, 9.0, 5.0)
+    disp_d: tuple = (14.0, 17.5, 7.0, 7.0)
 
     def to_dict(self):
         return asdict(self)
@@ -60,7 +66,7 @@ class SogParams:
     @classmethod
     def load(cls, path: str) -> "SogParams":
         import engine
-        return cls(**engine.load_fields(cls, path))
+        return cls(**{k: tuple(v) if isinstance(v, list) else v for k, v in engine.load_fields(cls, path).items()})
 
 
 class D:
@@ -174,9 +180,20 @@ def calibrated(raw: float, p: SogParams) -> float:
     return max(0.02, p.cal_a + p.cal_b * raw)
 
 
-def size_for(mean: float, p: SogParams) -> float:
-    """Negative-binomial size for this mean: disp_k x mean when fitted, else the fixed size."""
-    return max(p.disp_k * max(mean, 0.02), 0.5) if p.disp_k else p.disp
+def disp_k_for(mean: float, p: SogParams, pos: str | None = None) -> float:
+    """disp_k for this projection: the player's position and volume tier when tiers are fitted."""
+    tiers = (p.disp_d if pos == "D" else p.disp_f) if pos in ("F", "D") else ()
+    if not tiers or not p.disp_edges:
+        return p.disp_k
+    i = sum(mean >= e for e in p.disp_edges)
+    return float(tiers[min(i, len(tiers) - 1)])
+
+
+def size_for(mean: float, p: SogParams, pos: str | None = None) -> float:
+    """Negative-binomial size for this mean: disp_k x mean when fitted (by position and volume tier when
+    `pos` is given and tiers are fitted), else the fixed size."""
+    k = disp_k_for(mean, p, pos)
+    return max(k * max(mean, 0.02), 0.5) if k else p.disp
 
 
 def _yesterday(st, team, date) -> bool:

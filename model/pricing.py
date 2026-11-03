@@ -27,13 +27,27 @@ SAVES_CAP_TO = 0.60         # tagged "capped" (saves rated 65%+ hit 46% on 41 gr
 EV_TIERS = (("HIGH", 0.08), ("MED", 0.05), ("LOW", MARGIN))
 DFS_DEFAULT = {"legs": 2, "payout": 3.0}          # 2-pick power play at 3x -> 57.7% per leg
 
+# ---- the TAKE / PASS verdict (one per player and market; see verdict() and best_line()) ----
+TAKE_P = 0.58               # shots / points: blended p of the side at least this
+NEAR_MISS_P = 0.55          # 55-58% shows as PASS (near miss)
+LOCK_P = 0.62               # tier label on a TAKE: Lock 62%+, Strong 58-62%
+MIN_MULT = 1.0              # DFS legs below 1x never TAKE
+SAVES_EDGE_OVER = 2.5       # saves: bias-corrected projection minus line, in the pick direction
+SAVES_EDGE_UNDER = 3.0      # unders need more until the backtest shows they are calibrated
+SAVES_TAKE_P = 0.58         # saves also need calibrated p of the side at least this
+SAVES_EDGE_GRID = (1.5, 2.0, 2.5, 3.0)   # edges reported in the backtest so the threshold can be chosen
+SAVES_BIAS_HL = 30.0        # days; half-life of the rolling saves bias correction
+
 
 def config() -> dict:
     """The decision knobs, exported to the page so its mirror of decide() uses the same values."""
     return {"margin": MARGIN, "margin_sog": MARGIN_SOG, "sog_gap": SOG_GAP, "sog_gap_ev": SOG_GAP_EV,
             "blend_w": BLEND_W, "min_cal_n": MIN_CAL_N,
             "alarm_share": ALARM_SHARE, "alarm_min_plays": ALARM_MIN_PLAYS,
-            "saves_cap_at": SAVES_CAP_AT, "saves_cap_to": SAVES_CAP_TO}
+            "saves_cap_at": SAVES_CAP_AT, "saves_cap_to": SAVES_CAP_TO,
+            "take_p": TAKE_P, "near_miss_p": NEAR_MISS_P, "lock_p": LOCK_P, "min_mult": MIN_MULT,
+            "saves_edge_over": SAVES_EDGE_OVER, "saves_edge_under": SAVES_EDGE_UNDER, "saves_take_p": SAVES_TAKE_P,
+            "saves_bias_hl": SAVES_BIAS_HL}
 
 
 def implied(american) -> float | None:
@@ -53,14 +67,27 @@ def dfs_break_even(mult: float = 1.0, legs: int = DFS_DEFAULT["legs"], payout: f
     return payout ** (-1.0 / legs) / (mult or 1.0)
 
 
-def platt(p: float, cal: dict | None) -> float:
+def line_bucket(line) -> str:
+    """Line bucket for calibration: 0.5 / 1.5 / 2.5 / 3.5+ (skaters)."""
+    try:
+        x = float(line)
+    except (TypeError, ValueError):
+        return ""
+    return "3.5+" if x >= 3.5 else f"{max(0.5, math.floor(x) + 0.5):.1f}"
+
+
+def platt(p: float, cal: dict | None, line=None) -> float:
     """Calibrated P(over). cal = {"a", "b"} on logit(p_raw); when the fit is side-split it also has
-    "b_under": lines the raw model leans UNDER on use that slope instead (no intercept, so 50% stays 50%)."""
+    "b_under": lines the raw model leans UNDER on use that slope instead (no intercept, so 50% stays 50%).
+    When the build found a per-line intercept improves walk-forward log loss, cal["line_a"] holds one
+    intercept per line bucket, added on top."""
     if not cal:
         return p
     p = min(max(p, 1e-4), 1 - 1e-4)
     b = cal["b_under"] if "b_under" in cal and p < 0.5 else cal["b"]
     z = cal.get("a", 0.0) + b * math.log(p / (1 - p))
+    if line is not None and cal.get("line_a"):
+        z += cal["line_a"].get(line_bucket(line), 0.0)
     return 1 / (1 + math.exp(-z))
 
 
@@ -70,11 +97,19 @@ def novig(over_price, under_price) -> float | None:
     return o / (o + u) if o is not None and u is not None else None
 
 
-def final_p_over(p_over_raw: float, cal: dict | None, over_price=None, under_price=None, w: float = BLEND_W,
-                 market_p=None) -> tuple:
+def blend_w(cal: dict | None) -> float:
+    """Weight on the model in the market blend: fitted by log loss (calibrate.fit_blend) when the build
+    has one, else the fixed BLEND_W."""
+    w = (cal or {}).get("w")
+    return float(w) if w is not None else BLEND_W
+
+
+def final_p_over(p_over_raw: float, cal: dict | None, over_price=None, under_price=None, w: float | None = None,
+                 market_p=None, line=None) -> tuple:
     """(final P(over), calibrated model P(over), no-vig market P(over) or None). market_p is a no-vig
     P(over) from another book on the same line (e.g. DraftKings for a DFS leg), used when this line has no prices."""
-    pm = platt(p_over_raw, cal)
+    w = blend_w(cal) if w is None else w
+    pm = platt(p_over_raw, cal, line)
     mk = novig(over_price, under_price)
     if mk is None and market_p is not None:
         mk = market_p
@@ -96,7 +131,7 @@ def decide(p_over_raw: float, cal: dict | None, over_price=None, under_price=Non
     """Pick the better side by EV. Prices are American odds (sportsbook) or None; multipliers are
     DFS per-side multipliers (1, 0.9, 0.8 ...). Returns side, p (final, that side), be, ev, tier, play,
     plus p_model / p_mkt (P(over) from the calibrated model and the no-vig market)."""
-    p_over, p_model, p_mkt = final_p_over(p_over_raw, cal, over_price, under_price, market_p=market_p)
+    p_over, p_model, p_mkt = final_p_over(p_over_raw, cal, over_price, under_price, market_p=market_p, line=line)
     best = None
     for side, p, price, mult in (("OVER", p_over, over_price, mult_over), ("UNDER", 1 - p_over, under_price, mult_under)):
         if price not in (None, ""):
@@ -124,6 +159,77 @@ def decide(p_over_raw: float, cal: dict | None, over_price=None, under_price=Non
     # display / ranking only: the play decision and grading above use the uncapped probability
     best["capped"] = market == "saves" and best["p"] >= SAVES_CAP_AT
     best["p_show"] = SAVES_CAP_TO if best["capped"] else best["p"]
+    return best
+
+
+def side_break_even(price=None, mult=None, dfs: dict | None = None) -> float | None:
+    if price not in (None, ""):
+        return implied(price)
+    if mult not in (None, ""):
+        d = dfs or DFS_DEFAULT
+        return dfs_break_even(float(mult), d["legs"], d["payout"])
+    return None
+
+
+def verdict(market: str, p_over: float, p_model_over: float, line: float, proj: float | None = None,
+            mult_over=None, mult_under=None, over_price=None, under_price=None, matched: bool = True,
+            confirmed: bool = True, dfs: dict | None = None) -> dict:
+    """One explicit call for one line: TAKE MORE, TAKE LESS or PASS with a one-line reason.
+
+    TAKE only if all hold for the side: blended p >= TAKE_P (saves: SAVES_TAKE_P and an edge of
+    SAVES_EDGE_OVER / SAVES_EDGE_UNDER saves past the line), multiplier >= MIN_MULT (DFS), p beats that
+    price's break-even, the player is MATCHED (and, for saves, a confirmed starter), and the model alone
+    (no market blend) leans the same way. The side considered is the one with the higher blended p.
+    Returns side ("OVER" / "UNDER"), p, p_model, be, mult / price, verdict, reason, tier, ev."""
+    side = "OVER" if p_over >= 0.5 else "UNDER"
+    p = p_over if side == "OVER" else 1 - p_over
+    pm = p_model_over if side == "OVER" else 1 - p_model_over
+    mult = mult_over if side == "OVER" else mult_under
+    price = over_price if side == "OVER" else under_price
+    be = side_break_even(price, mult, dfs)
+    ev = (p * profit(price) - (1 - p)) if price not in (None, "") else (p / be - 1 if be else None)
+    edge = None if proj is None else (proj - line if side == "OVER" else line - proj)
+    out = {"side": side, "p": p, "p_model": pm, "be": be, "mult": None if mult in (None, "") else float(mult),
+           "price": price, "ev": ev, "edge": edge, "verdict": "PASS", "tier": "", "reason": ""}
+    need = SAVES_TAKE_P if market == "saves" else TAKE_P
+    pct = f"{100 * p:.0f}%"
+    reason = None
+    if not matched:
+        reason = "unmatched player"
+    elif market == "saves" and not confirmed:
+        reason = "starter not confirmed"
+    elif mult not in (None, "") and float(mult) == 0:
+        reason = f"{'MORE' if side == 'OVER' else 'LESS'} not offered on this line"
+    elif mult not in (None, "") and float(mult) < MIN_MULT - 1e-9:
+        reason = f"pays {float(mult):g}x"
+    elif market == "saves" and (edge is None or edge < (SAVES_EDGE_OVER if side == "OVER" else SAVES_EDGE_UNDER) - 1e-9):
+        need_e = SAVES_EDGE_OVER if side == "OVER" else SAVES_EDGE_UNDER
+        reason = f"edge {edge:+.1f} < {need_e:g}" if edge is not None else "no projection"
+    elif p < need - 1e-9:
+        reason = f"{pct} near miss" if p >= NEAR_MISS_P - 1e-9 else f"{pct} < {100 * need:.0f}%"
+    elif be is not None and p <= be:
+        reason = f"{pct} doesn't beat break-even {100 * be:.1f}%"
+    elif pm <= 0.5:
+        reason = f"model alone {100 * pm:.0f}% disagrees (market-driven)"
+    if reason is None:
+        out.update(verdict=f"TAKE {'MORE' if side == 'OVER' else 'LESS'}", tier="Lock" if p >= LOCK_P - 1e-9 else "Strong")
+    else:
+        out["reason"] = reason
+        if market != "saves" and NEAR_MISS_P - 1e-9 <= p < need - 1e-9 and matched:
+            out["tier"] = "Near miss"
+    return out
+
+
+def best_line(cands: list[dict]) -> int | None:
+    """Index of the single line to TAKE among one player's lines in one market (main + alts): the highest
+    EV among TAKE verdicts at >= 1x. None when no line is a TAKE."""
+    best, bev = None, None
+    for i, c in enumerate(cands):
+        if not str(c.get("verdict", "")).startswith("TAKE"):
+            continue
+        ev = c.get("ev") if c.get("ev") is not None else -9
+        if best is None or ev > bev:
+            best, bev = i, ev
     return best
 
 
