@@ -699,7 +699,7 @@ def log_legs(board_rows, built: str):
         else:
             idx[k] = len(cur); cur.append(r)
         n += 1
-    cur.sort(key=lambda r: (r["date"], r["game"], r["market"], r["name"]))
+    cur.sort(key=lambda r: (str(r["date"]), str(r["game"]), str(r["market"]), str(r["name"])))   # CSV rows are strings
     _write_legs(cur)
     return n
 

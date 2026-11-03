@@ -500,10 +500,13 @@ def main():
     try:
         payload["board"] = props_board.build(payload, p6_rows, now)
         print(f"  [board] {payload['board']['counts']}")
-        tracker.log_legs(payload["board"]["rows"], payload["built_iso"])
     except Exception as e:  # never let the board break the dashboard
         import traceback; traceback.print_exc()
         payload["board"] = {"rows": [], "plays": [], "counts": {}, "error": str(e)}
+    try:
+        tracker.log_legs(payload["board"]["rows"], payload["built_iso"])
+    except Exception:  # a logging failure must not blank the board
+        import traceback; traceback.print_exc()
     payload["legs"] = tracker.legs_summary()
     # started games on the slate day: live / final stats and HIT / MISS for the legs logged before puck drop
     day_games = [g for g in slate if g["date"] == slate_day]

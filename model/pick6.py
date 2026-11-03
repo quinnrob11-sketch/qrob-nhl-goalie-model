@@ -303,7 +303,8 @@ def pick_cards(tree) -> tuple[list[dict], dict]:
     ents, comps = pc.get("entityInfoByDkId") or {}, pc.get("competitionById") or {}
     teams, mkts = pc.get("displayTeamById") or {}, pc.get("pickSixMarketById") or {}
     rows, info = [], {"category": pc.get("pickCategoryId"), "paused": 0,
-                      "categories": {str(k): v.get("filterKey") for k, v in (pc.get("pickCategoryById") or {}).items()}}
+                      "categories": {str(k): [x for x in (v.get("filterKey"), v.get("categoryName"), str(k)) if x]
+                                     for k, v in (pc.get("pickCategoryById") or {}).items()}}
     for card in (pc.get("pickCardByPickableId") or {}).values():
         es = card.get("entities") or []
         if len(es) != 1:          # multi-player cards (matchups) are not single-player props
@@ -426,16 +427,18 @@ def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30):
     extract(page)
     info = dict(last_info)
     got[str(info.get("category"))] = True
-    for cid, key in (info.get("categories") or {}).items():
-        if cid in got or not key:
-            continue
-        try:
-            pg = get(f"{URL}&category={urllib.parse.quote(key)}")
-        except Exception:
-            continue
-        extract(pg)
-        if str(last_info.get("category")) == cid:
-            pages.append(pg); got[cid] = True
+    tried = []
+    for cid, keys in (info.get("categories") or {}).items():
+        for key in keys if cid not in got else []:
+            try:
+                pg = get(f"{URL}&category={urllib.parse.quote(key)}")
+            except Exception:
+                continue
+            extract(pg)
+            tried.append(f"{key}->{last_info.get('category')}")
+            if str(last_info.get("category")) == cid:
+                pages.append(pg); got[cid] = True
+                break
     rows, stats, seen = [], {"raw": 0, "kept": 0, "dropped": {}}, set()
     for pg in pages:
         r_, st = build_rows(pg, slate, R, fetched_at)
@@ -448,6 +451,7 @@ def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30):
             stats["dropped"][k] = stats["dropped"].get(k, 0) + v
     stats["kept"] = len(rows)
     stats["categories"] = sorted(got)
+    stats["category_tries"] = tried[:20]
     stats["bytes"] = len(page)
     status = "ok" if rows else ("parse failed: 0 rows" if not stats["raw"] else "0 usable rows")
     if not stats["raw"]:

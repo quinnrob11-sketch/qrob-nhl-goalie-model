@@ -110,3 +110,21 @@ class Rule(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LegLog(unittest.TestCase):
+    def test_second_build_appends_to_csv(self):
+        # rows read back from legs.csv are strings; the next build's rows have int game ids (the live crash)
+        import os, tempfile, tracker
+        old = tracker.LEGS
+        tracker.LEGS = os.path.join(tempfile.mkdtemp(), "legs.csv")
+        try:
+            row = lambda game, pid, line: {"date": "2026-11-03", "game": game, "player_id": pid, "name": "A", "team": "TOR",
+                                           "market": "sog", "line": line, "source": "Pick6", "side": "OVER", "p": .6}
+            tracker.log_legs([row(2026020101, 1, 2.5)], "t1")
+            tracker.log_legs([row(2026020099, 2, 1.5), row(2026020101, 1, 2.5)], "t2")
+            legs = tracker._read_legs()
+            self.assertEqual(len(legs), 2)
+            self.assertEqual(next(r for r in legs if r["player_id"] == "1")["built"], "t2")   # latest snapshot replaces
+        finally:
+            tracker.LEGS = old
