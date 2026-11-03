@@ -27,6 +27,7 @@ import saves_dist
 import sog
 import starters
 import linecombos
+import moneypuck
 import pick6
 import players
 import props_board
@@ -356,6 +357,10 @@ def main():
     years = list(range(2024, cur + 1))
     print(f"Loading seasons {years} ...")
     tg, st_df = data.load_all(years, refresh=True)
+    try:   # MoneyPuck cache (data checks and model inputs); best-effort, at most once every 20 h
+        moneypuck.fetch(today)
+    except Exception as e:
+        print(f"  [moneypuck] failed: {e}")
     have = sorted(tg.season.unique())
     latest = int(have[-1])
 
