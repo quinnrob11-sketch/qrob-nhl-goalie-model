@@ -22,9 +22,9 @@ DIR = os.path.join(HERE, "data", "moneypuck")
 BASE = "https://moneypuck.com/moneypuck/playerData"
 HEADERS = {"User-Agent": "Mozilla/5.0 (qrob goalie model; personal, non-commercial)", "Accept": "text/csv,*/*"}
 MAX_AGE_H = 20.0
-# MoneyPuck team codes that differ from the NHL's
-TO_MP = {"TBL": "T.B", "NJD": "N.J", "SJS": "S.J", "LAK": "L.A"}
-FROM_MP = {v: k for k, v in TO_MP.items()}
+# MoneyPuck used dotted codes for these teams up to 2020 (its old T.B / N.J / S.J / L.A files stop there);
+# current files use the NHL codes. Reading maps any dotted code back.
+FROM_MP = {"T.B": "TBL", "N.J": "NJD", "S.J": "SJS", "L.A": "LAK"}
 TEAMS = ["ANA", "BOS", "BUF", "CGY", "CAR", "CHI", "COL", "CBJ", "DAL", "DET", "EDM", "FLA", "LAK", "MIN", "MTL",
          "NSH", "NJD", "NYI", "NYR", "OTT", "PHI", "PIT", "SJS", "SEA", "STL", "TBL", "TOR", "UTA", "VAN", "VGK",
          "WSH", "WPG"]
@@ -98,7 +98,7 @@ def fetch(today: dt.date | None = None, force: bool = False) -> dict:
     # team game logs are ~3.7 MB each and arrive slowly: 4 at a time
     from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor(4) as ex:
-        list(ex.map(lambda t: _save(f"team_games_{t}", f"{BASE}/careers/gameByGame/regular/teams/{TO_MP.get(t, t)}.csv", force), TEAMS))
+        list(ex.map(lambda t: _save(f"team_games_{t}", f"{BASE}/careers/gameByGame/regular/teams/{t}.csv", force), TEAMS))
     ok = sum(str(v).startswith(("ok", "cached")) for v in status.values())
     _write_status()
     print(f"  [moneypuck] {ok}/{len(status)} files ok or cached")
