@@ -1,0 +1,13 @@
+{
+ "built": "2026-11-03",
+ "seasons": [
+  2023,
+  2024,
+  2025,
+  2026
+ ],
+ "rows": 8819,
+ "through": "2026-11-02",
+ "source": "MoneyPuck goalie game files, situation=all",
+ "credit": "https://moneypuck.com/data.htm"
+}
