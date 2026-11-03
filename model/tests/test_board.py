@@ -93,6 +93,7 @@ class Verdicts(unittest.TestCase):
 class Rule(unittest.TestCase):
     def test_reasons(self):
         self.assertEqual(pricing.verdict("sog", .60, .58, 2.5, 3.0, 0.8, 1.2)["reason"], "pays 0.8x")
+        self.assertEqual(pricing.verdict("sog", .40, .42, 2.5, 2.0, 1.7, 0.0)["reason"], "LESS not offered on this line")
         self.assertEqual(pricing.verdict("sog", .56, .56, 2.5, 3.0, 1, 1)["reason"], "56% near miss")
         self.assertEqual(pricing.verdict("sog", .60, .6, 2.5, 3.0, 1, 1, matched=False)["reason"], "unmatched player")
         t = pricing.verdict("sog", .63, .6, 2.5, 3.0, 1, 1)

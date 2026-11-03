@@ -71,8 +71,19 @@ class Board(unittest.TestCase):
 
     @unittest.skipUnless(os.path.exists(os.path.join(FIX, "pick6.html")), "no real Pick6 page saved yet")
     def test_real_saved_page(self):
+        # the NHL Shots on Goal page the build fetched on 2026-11-03 (its scripts): market 208 is the main line
+        # (More and Less), market 581 the alt lines (More only); 228 paused lines are skipped
         page = open(os.path.join(FIX, "pick6.html"), encoding="utf-8", errors="replace").read()
-        self.assertGreater(len(pick6.extract(page)), 0, "parser found no props in the saved Pick6 page")
+        rows = pick6.extract(page)
+        self.assertEqual(len(rows), 714)
+        self.assertEqual(sum(r["pick6_market"] == 208 for r in rows), 132)
+        self.assertEqual(sum(r["pick6_market"] == 581 for r in rows), 582)
+        self.assertEqual(pick6.last_info["paused"], 228)
+        self.assertTrue(all(r["market"] == "sog" and r["team"] and r["mo"] > 0 for r in rows))
+        self.assertTrue(all(r["mu"] > 0 for r in rows if r["pick6_market"] == 208))
+        self.assertTrue(all(r["mu"] == 0 for r in rows if r["pick6_market"] == 581))   # Less not offered
+        hutson = next(r for r in rows if r["name"] == "Lane Hutson" and r["line"] == 0.5)
+        self.assertEqual((hutson["team"], hutson["pos"], hutson["mo"]), ("MTL", "D", 0.6))
 
 
 if __name__ == "__main__":

@@ -22,6 +22,7 @@ import datetime as dt
 import json
 import os
 import re
+import urllib.parse
 import urllib.request
 
 import players
@@ -270,9 +271,74 @@ def _walk(node, out, seen):
             _walk(v, out, seen)
 
 
+# ---------- the real format (Nov 2026): routes/_homeShared -> pickCardsResponse ----------
+MORE_ID, LESS_ID = 1, 2          # pickSixMarketById[...]["propositionNameById"]: {"1": "More", "2": "Less"}
+
+
+def _find_key(node, key, depth=0):
+    if depth > 6:
+        return None
+    if isinstance(node, dict):
+        if key in node and isinstance(node[key], dict):
+            return node[key]
+        for v in node.values():
+            r = _find_key(v, key, depth + 1)
+            if r is not None:
+                return r
+    elif isinstance(node, list):
+        for v in node[:20]:
+            r = _find_key(v, key, depth + 1)
+            if r is not None:
+                return r
+    return None
+
+
+def pick_cards(tree) -> tuple[list[dict], dict]:
+    """Rows from Pick6's normalized pick cards: card -> entity (player) + competition (game, his team and
+    position) + one row per active market line, with the More / Less multipliers. A side the line doesn't
+    offer (alt lines are More only) gets multiplier 0 ("not offered"); paused lines are skipped."""
+    pc = _find_key(tree, "pickCardsResponse")
+    if not pc or "pickCardByPickableId" not in pc:
+        return [], {}
+    ents, comps = pc.get("entityInfoByDkId") or {}, pc.get("competitionById") or {}
+    teams, mkts = pc.get("displayTeamById") or {}, pc.get("pickSixMarketById") or {}
+    rows, info = [], {"category": pc.get("pickCategoryId"), "paused": 0,
+                      "categories": {str(k): v.get("filterKey") for k, v in (pc.get("pickCategoryById") or {}).items()}}
+    for card in (pc.get("pickCardByPickableId") or {}).values():
+        es = card.get("entities") or []
+        if len(es) != 1:          # multi-player cards (matchups) are not single-player props
+            continue
+        dk = str(es[0].get("dkId")); ent = ents.get(dk) or ents.get(int(dk) if dk.isdigit() else dk) or {}
+        comp = comps.get(str((es[0].get("compIds") or [None])[0])) or {}
+        ec = (comp.get("entityCompByDkId") or {}).get(dk) or {}
+        team = (teams.get(str(ec.get("teamId"))) or {}).get("name")
+        for m in card.get("activePickableMarkets") or []:
+            if m.get("isPaused"):
+                info["paused"] += 1
+                continue
+            mk = _market((mkts.get(str(m.get("pickSixMarketId"))) or {}).get("name"))
+            sel = {s.get("statLinePropositionId"): _num(s.get("standingsMultiplier")) for s in m.get("activeSelections") or []}
+            if not sel or m.get("targetValue") is None:
+                continue
+            rows.append({"name": ent.get("fullName") or ent.get("name"), "market": mk, "line": float(m["targetValue"]),
+                         "mo": sel.get(MORE_ID, 0.0), "mu": sel.get(LESS_ID, 0.0), "team": players.team_code(team) if team else None,
+                         "pos": ec.get("position"), "game_ref": comp.get("compId"), "start": comp.get("startTime"),
+                         "pick6_market": m.get("pickSixMarketId"), "live": bool(m.get("isLive"))})
+    return rows, info
+
+
+last_info: dict = {}
+
+
 def extract(page: str) -> list[dict]:
+    global last_info
     raw = []
     for tree in loader_data(page):
+        rows, info = pick_cards(tree)
+        if rows:
+            raw += rows
+            last_info = info
+            continue
         _walk(tree, raw, set())
     # one row per player + market + line (the same prop can appear in several lists on the page)
     best = {}
@@ -340,10 +406,12 @@ def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30):
     """(rows, stats). Never raises; `status` is "ok", "parse failed: 0 rows", "blocked (HTTP 403)", etc."""
     global status, stats
     fetched_at = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
-    try:
-        req = urllib.request.Request(URL, headers=HEADERS)
+    def get(url):
+        req = urllib.request.Request(url, headers=HEADERS)
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            page = r.read().decode("utf-8", "replace")
+            return r.read().decode("utf-8", "replace")
+    try:
+        page = get(URL)
     except urllib.error.HTTPError as e:
         status, stats = (f"blocked (HTTP {e.code})" if e.code in (401, 403) else f"HTTP {e.code}"), {}
         print(f"  [pick6] {status}")
@@ -352,7 +420,34 @@ def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30):
         status, stats = f"unavailable ({e})", {}
         print(f"  [pick6] {status}")
         return [], stats
-    rows, stats = build_rows(page, slate, R, fetched_at)
+    # the page serves one category (Shots on Goal by default); the others (Points, Assists, Saves when posted,
+    # ...) are ?category=<filterKey>. A category page counts only if it really returned that category.
+    pages, got = [page], {}
+    extract(page)
+    info = dict(last_info)
+    got[str(info.get("category"))] = True
+    for cid, key in (info.get("categories") or {}).items():
+        if cid in got or not key:
+            continue
+        try:
+            pg = get(f"{URL}&category={urllib.parse.quote(key)}")
+        except Exception:
+            continue
+        extract(pg)
+        if str(last_info.get("category")) == cid:
+            pages.append(pg); got[cid] = True
+    rows, stats, seen = [], {"raw": 0, "kept": 0, "dropped": {}}, set()
+    for pg in pages:
+        r_, st = build_rows(pg, slate, R, fetched_at)
+        for r in r_:
+            k = (r["player_id"], r["market"], r["line"])
+            if k not in seen:
+                seen.add(k); rows.append(r)
+        stats["raw"] += st["raw"]
+        for k, v in st["dropped"].items():
+            stats["dropped"][k] = stats["dropped"].get(k, 0) + v
+    stats["kept"] = len(rows)
+    stats["categories"] = sorted(got)
     stats["bytes"] = len(page)
     status = "ok" if rows else ("parse failed: 0 rows" if not stats["raw"] else "0 usable rows")
     if not stats["raw"]:

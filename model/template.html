@@ -459,6 +459,7 @@ function verdictFor(mk, pOver, pModelOver, line, proj, mo, mu, matched = true, c
   let reason = null;
   if (!matched) reason = "unmatched player";
   else if (mk === "saves" && !confirmed) reason = "starter not confirmed";
+  else if (hasVal(mult) && +mult === 0) reason = `${side === "OVER" ? "MORE" : "LESS"} not offered on this line`;
   else if (hasVal(mult) && +mult < RULE.min_mult - 1e-9 && !DFS.sub1x) reason = `pays ${+mult}x`;
   else if (mk === "saves" && (edge == null || edge < (side === "OVER" ? RULE.saves_edge_over : RULE.saves_edge_under) - 1e-9))
     reason = edge == null ? "no projection" : `edge ${sgn1(edge)} < ${side === "OVER" ? RULE.saves_edge_over : RULE.saves_edge_under}`;

@@ -198,6 +198,8 @@ def verdict(market: str, p_over: float, p_model_over: float, line: float, proj: 
         reason = "unmatched player"
     elif market == "saves" and not confirmed:
         reason = "starter not confirmed"
+    elif mult not in (None, "") and float(mult) == 0:
+        reason = f"{'MORE' if side == 'OVER' else 'LESS'} not offered on this line"
     elif mult not in (None, "") and float(mult) < MIN_MULT - 1e-9:
         reason = f"pays {float(mult):g}x"
     elif market == "saves" and (edge is None or edge < (SAVES_EDGE_OVER if side == "OVER" else SAVES_EDGE_UNDER) - 1e-9):
