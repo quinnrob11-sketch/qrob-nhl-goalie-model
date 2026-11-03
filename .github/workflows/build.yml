@@ -13,6 +13,10 @@ on:
     - cron: '*/15 14-23 * * *'
     - cron: '*/15 0-6 * * *'
   workflow_dispatch:
+  # A push to main rebuilds the site. The commit this job pushes uses the
+  # Actions token, which does not start another run, so this does not loop.
+  push:
+    branches: [main]
 
 permissions:
   contents: write
