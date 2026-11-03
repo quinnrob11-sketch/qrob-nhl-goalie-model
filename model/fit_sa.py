@@ -245,7 +245,7 @@ def main():
 
 
 if __name__ == "__main__" and "--corsi" in __import__("sys").argv:
-    import moneypuck
+    import moneypuck_teams as moneypuck
     tg, st = data.load_all([2024, 2025, 2026, 2027], refresh=False)
     d, _ = engine.run(moneypuck.with_attempts(tg), st, engine.Params.load(os.path.join(OUT, "params.json")))
     for s_ in sorted(d.season.unique())[:-1]:

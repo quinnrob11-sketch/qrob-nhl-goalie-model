@@ -13,6 +13,10 @@ on:
     - cron: '*/15 14-23 * * *'
     - cron: '*/15 0-6 * * *'
   workflow_dispatch:
+  # A push to main rebuilds the site. The commit this job pushes uses the
+  # Actions token, which does not start another run, so this does not loop.
+  push:
+    branches: [main]
 
 permissions:
   contents: write
@@ -33,7 +37,7 @@ jobs:
       - run: pip install -r requirements.txt
       # MoneyPuck cache (data checks): its own step, hard-capped so a slow download never holds up the build
       - name: MoneyPuck data
-        run: timeout 300 python -u model/moneypuck.py || echo "moneypuck step timed out or failed"
+        run: timeout 300 python -u model/moneypuck_teams.py || echo "moneypuck step timed out or failed"
       - name: Build dashboard
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}

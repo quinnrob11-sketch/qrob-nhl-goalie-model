@@ -9,7 +9,7 @@ rebuilt through the day by GitHub Actions.
 ```
 exp_SA          = LG × (TeamSA / LG)^a × (OppSF / LG)^b × home × playoff × b2b × opp_b2b
                   × exp(−gs × logit(win prob))                      game script
-Projected saves = exp_SA × time-in-net share × save%
+Projected saves = exp_SA × time-in-net share × save% + rolling bias
 Spread (sd)     = sqrt(sv²(μ + μ²/K) + μ·sv(1−sv)),  μ = exp_SA × share,  floor 6.0
 P(over line)    = Normal(projected saves, spread), then calibrated on graded real lines
 Play            = calibrated P(side) > break-even of the price + 2%
@@ -30,7 +30,14 @@ Play            = calibrated P(side) > break-even of the price + 2%
 
 Every projection uses only games played **before** that date (walk-forward), so the
 backtest has no lookahead. Team rates carry part of last season's weight into a new
-season, which is how the model handles opening night of 2026-27.
+season, which is how the model handles opening night of 2026-27. The rolling bias is the
+recent mean of actual minus this projection (30-day half-life, shrunk by 20 starts).
+
+MoneyPuck goalie game logs (xGoals, unblocked attempts, high-danger rates, GSAx) were
+tested as a replacement for shot volume and for save% on this season's walk-forward.
+They did not lower the error, so they are not in the formula. Every build still
+cross-checks NHL shots, saves and time on ice against those logs and fails if they
+diverge (`model/moneypuck.py`, `model/reports/goalie_backtest.md`).
 
 ### Bet rules (price-aware, from 10/23)
 

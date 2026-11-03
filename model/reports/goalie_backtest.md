@@ -1,43 +1,103 @@
-# Goalie saves model: backtest and MoneyPuck check (2026-11-03)
+# Goalie saves backtest, 2026-27
 
-Every regular-season start, walk-forward: each game projected only from games before it, with every fitted weight taken from the season before. Data through 2026-11-02. Reproduce: `python model/fit_sa.py --corsi` (weights) and the tables below.
+Built 2026-11-03 17:32 UTC by `python model/backtest_goalie.py`. Walk-forward: every projection uses only games played before that date. Season is the regular season through the latest box score in the NHL feed. MoneyPuck.com goalie game logs and the 2026-27 shot file are the external source.
 
-## 1. Data check against MoneyPuck
+## Result
 
-- Team shots on goal per game (this season, every team-game): 93-97% identical to MoneyPuck, never more than 2 shots apart (official-scorer differences). Shot attempts correlate 0.996; goals 0.998.
-- Goalie season totals differ only by relief appearances (the model's starts table leaves them out on purpose).
-- Our play-by-play expected goals correlate 0.85 with MoneyPuck's xG per game; xG of either kind did not improve the shots-against model, so it isn't used there.
+No MoneyPuck alternative beat the production projection by more than one standard error and 0.02 saves, so the formula is unchanged. The after column equals the before column (production projection plus the rolling bias).
 
-## 2. What changed in the projection
+## Projection accuracy (every regular-season start)
 
-`exp_SA` (shots the goalie's team faces) now uses shot attempts as well as shots on goal: MoneyPuck's score-adjusted unblocked attempts (Fenwick) when MoneyPuck covers the season (it does: 100% of this season's team-games), otherwise our own Corsi from the play-by-play. Weights are a Poisson GLM on the previous season (`fit_sa.fit_corsi`); for 2026-27: shots on goal a 0.46 / b 0.38, Fenwick against 0.50 / opponent Fenwick for 0.59 (Corsi fallback: a 0.83, b 0.59, 0.13, 0.38). The old model was shots on goal only (a 0.85, b 0.90).
+| model | starts | MAE | bias (projected − actual) |
+|---|---|---|---|
+| before (production, no rolling bias) | 470 | 5.006 | +0.205 |
+| before (production + rolling bias) | 470 | 5.000 | -0.029 |
+| after | 470 | 5.000 | -0.029 |
 
-| season | model | starts | saves MAE | saves RMSE | corr | shots-against MAE | shots-against corr | log-lik |
-|---|---|---|---|---|---|---|---|---|
-| 2025-26 | old (shots on goal only) | 2624 | 5.297 | 6.779 | 0.2956 | 4.836 | 0.3717 | -3.3296 |
-| 2025-26 | Corsi (ours) | 2624 | 5.296 | 6.771 | 0.2986 | 4.834 | 0.3745 | -3.3285 |
-| 2025-26 | MoneyPuck score-adj Fenwick | 2624 | 5.293 | 6.77 | 0.2992 | 4.827 | 0.378 | -3.3281 |
-| 2026-27 | old (shots on goal only) | 470 | 5.006 | 6.439 | 0.2547 | 4.543 | 0.3766 | -3.274 |
-| 2026-27 | Corsi (ours) | 470 | 4.999 | 6.435 | 0.2626 | 4.523 | 0.3874 | -3.2728 |
-| 2026-27 | MoneyPuck score-adj Fenwick | 470 | 5.003 | 6.439 | 0.2644 | 4.509 | 0.3941 | -3.2739 |
+Shots the goalie is projected to face vs shots he faced: bias -0.050, MAE 5.010. Team shots against: bias +0.245. Mean shrunk save% 0.9000, actual save% 0.8905.
 
-Shots against improves in both seasons with MoneyPuck's attempts (corr .372 -> .378 and .377 -> .394). Saves improve on every measure in 2025-26; in 2026-27 (470 starts) MoneyPuck and our Corsi are within 0.004 saves of each other.
+Full games (time on ice at least 55 minutes) are where a pull did not happen, so the time-in-net haircut makes the projection low there (bias -0.73 on 444 starts). The 18 starts under 40 minutes are high by +14.4 saves. Those two cancel, which is why the unconditional bias is about zero. Removing the haircut would make the average high.
 
-## 3. Against the real saves lines this season
+### Slices of the production projection (with the rolling bias)
 
-Graded DraftKings / DFS saves lines, one per goalie-night, bias-corrected projection (30-day half-life).
+| slice | n | MAE | bias |
+|---|---|---|---|
+| all | 470 | 5.00 | -0.03 |
+| home | 235 | 4.72 | +0.13 |
+| away | 235 | 5.28 | -0.19 |
+| b2b | 53 | 4.36 | -1.38 |
+| opp b2b | 53 | 4.49 | -0.93 |
+| full (TOI ≥ 55) | 444 | 4.58 | -0.73 |
+| pull (TOI < 40) | 18 | 14.36 | +14.36 |
 
-| model | lines | record leaning with the model | Brier | edge 1.5+ | edge 2.5+ | edge 3.0+ |
+## MoneyPuck alternatives (not shipped)
+
+Each one is walk-forward, then the same rolling bias is refit on its own residuals. `dMAE` is the paired change in absolute error versus the production projection (negative would be an improvement). A change is kept only when dMAE is better than both one standard error and 0.02 saves.
+
+| alternative | MAE | bias | dMAE | SE | kept |
+|---|---|---|---|---|---|
+| GSAx save% (k=1500 shots) | 5.007 | -0.020 | +0.0072 | 0.0033 | no |
+| Fenwick shot volume | 4.999 | +0.005 | -0.0010 | 0.0382 | no |
+| Fenwick volume + GSAx save% | 5.007 | +0.013 | +0.0070 | 0.0387 | no |
+
+GSAx is MoneyPuck expected goals against minus goals, per shot, shrunk by 1,500 shots and added to a .900 save%. Fenwick volume replaces team shots-on-goal with unblocked shot attempts faced, converted back to shots on goal at the league on-goal rate, with the same home, back-to-back and game-script multipliers. Neither the goalie's recent shot quality nor the opponent's unblocked volume moved the error by a meaningful amount. Back-to-back and opponent back-to-back multipliers were left as fitted: the 2024-25 and 2025-26 residuals are small, and the 2026-27 back-to-back sample is about 50 starts.
+
+## Calibration of P(over) by line
+
+Every 2026-27 regular-season start, at each half-point line. Predicted is the mean of the model's P(saves > line); actual is the share of starts over that line.
+
+| line | n | predicted | actual | gap |
+|---|---|---|---|---|
+| 22.5 | 470 | 55.5% | 58.3% | +2.8 pts |
+| 23.5 | 470 | 49.7% | 53.6% | +3.9 pts |
+| 24.5 | 470 | 44.0% | 43.8% | -0.1 pts |
+| 25.5 | 470 | 38.4% | 37.2% | -1.2 pts |
+| 26.5 | 470 | 33.1% | 30.9% | -2.2 pts |
+| 27.5 | 470 | 28.1% | 26.0% | -2.2 pts |
+| 28.5 | 470 | 23.6% | 22.6% | -1.0 pts |
+| 29.5 | 470 | 19.5% | 18.5% | -1.0 pts |
+| 30.5 | 470 | 15.9% | 14.5% | -1.4 pts |
+
+On graded real lines, the side the bias-corrected model leans to:
+
+| projection | side | n | predicted | actual |
+|---|---|---|---|---|
+| bias-corrected | OVER | 101 | 54.0% | 52.5% |
+| bias-corrected | UNDER | 286 | 58.6% | 57.3% |
+| calibrated | OVER | 101 | 54.0% | 52.5% |
+| calibrated | UNDER | 286 | 58.4% | 57.3% |
+
+## Record and ROI
+
+Graded real lines joined to the walk-forward projection: 387 lines (2026-09-29 to 2026-11-02), one row per date + goalie + line. Units below use the DraftKings price when that line has one, otherwise the 1x DFS price (2-pick at 3x).
+
+| edge | side | n | record | hit % | units | ROI |
 |---|---|---|---|---|---|---|
-| old (shots on goal only) | 376 | 210-166 (55.9%) | 0.2482 | 70-54 (56.5%) | 20-19 (51.3%) | 8-8 (50.0%) |
-| new (MoneyPuck Fenwick) | 376 | 211-165 (56.1%) | 0.248 | 77-58 (57.0%) | 26-20 (56.5%) | 11-10 (52.4%) |
+| 1.5 | OVER | 12 | 4-8 | 33.3% | -4.50 | -37.5% |
+| 1.5 | UNDER | 118 | 71-47 | 60.2% | +10.81 | 9.2% |
+| 2.0 | OVER | 3 | 1-2 | 33.3% | -1.09 | -36.4% |
+| 2.0 | UNDER | 71 | 40-31 | 56.3% | +1.51 | 2.1% |
+| 2.5 | OVER | 2 | 1-1 | 50.0% | -0.09 | -4.5% |
+| 2.5 | UNDER | 40 | 21-19 | 52.5% | -2.05 | -5.1% |
+| 3.0 | OVER | 0 | 0-0 | – | +0.00 | – |
+| 3.0 | UNDER | 18 | 9-9 | 50.0% | -1.83 | -10.2% |
 
-## 4. Tested and left as is
+Play rule (the one the page uses for a TAKE): edge at least **2.5** saves on an over and **3.0** on an under, calibrated P(side) at least **58%**, priced at **1x**. Calibration is side-split and fit only on earlier weeks. Shots and points thresholds are unchanged.
 
-- Save% shrinkage (k_sv 600-4000 shots) and its half-life: within +/- 0.005 saves of MAE; unchanged.
-- Shot quality (team xG allowed per shot, opponent xG per shot) in save%: about 0.015 saves; not worth the extra term.
-- MoneyPuck high-danger shots, expected shots on goal, score/venue-adjusted xG as shots-against inputs: no consistent gain.
+Record: 10-10 (50.0%), units -2.68, ROI -13.4%, n=20, price 1x DFS (2-pick at 3x, break-even 57.7%). This record is the same before and after, because the projection did not change.
 
-## 5. MoneyPuck in the build
+- OVER: 1-1, units -0.27, ROI -13.4%, n=2
+- UNDER: 9-9, units -2.41, ROI -13.4%, n=18
 
-`model/moneypuck.py` refreshes goalie / team season summaries and all 32 team game logs at most once every 20 hours, in its own workflow step capped at 5 minutes (4 downloads at a time), cached in `model/data/moneypuck/`. If MoneyPuck is missing or covers less than 90% of the season, the engine falls back to our own Corsi automatically. Data from MoneyPuck.com.
+## MoneyPuck cross-check
+
+Goalie game logs versus NHL starter box scores: 8339 of 8854 matched (94.2%). Regular season 100.0% of 8342; the public game file is regular season only, so playoff starts in it are 0 of 512. Shots-against MAE 0.0112, saves MAE 0.0042, TOI MAE 0.0001, exact shots 98.9%. Team-abbrev disagreements other than Arizona/Utah: 0 (none). Regular-season starts in the NHL file and not in the MoneyPuck file: S. Knight CHI 2026-03-03; D. Wolf CGY 2026-11-02; Y. Askarov SJS 2026-11-02. Source {'2023': 'download', '2024': 'download', '2025': 'download', '2026': 'download'}, through 2026-11-02.
+
+Shot file, 2026: 492 of 492 goalie games joined (`season * 1_000_000 + shot game_id`). On-goal MAE 0.2236 (the shot zip lags the game log and drops a few shots), goals MAE 0.0346, xGoals MAE 0.0596 against the sum of shot-level xGoal on unblocked attempts. The NHL box score matches the goalie game log, not the shot zip, so the model keeps the NHL counts.
+
+## What changed in the pipeline
+
+- Frozen calls now add the same rolling bias the page adds before they price a line, so the logged projection is the one on the slate.
+- A DailyFaceoff starter who is Likely or otherwise not confirmed is the projected starter (still not a play), ahead of the back-to-back backup, matching the page.
+- The build loads MoneyPuck goalie games, cross-checks shots, saves and time on ice, and raises if they disagree or if both the download and the committed snapshot are missing.
+

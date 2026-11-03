@@ -57,19 +57,34 @@ def _line_for(payload, team, date, gid):
     return None, None
 
 
+def _df_row(payload, team, date, confirmed_only: bool):
+    """DailyFaceoff row for this team-date, or None. Confirmed is a starter the page will bet;
+    any other posted status (Likely, Projected, Unconfirmed) is the projected starter only."""
+    rows = [r for r in payload.get("starters") or []
+            if r.get("date") == date and r.get("team") == team and r.get("goalie_id") is not None]
+    if confirmed_only:
+        rows = [r for r in rows if str(r.get("status", "")).lower() == "confirmed"]
+    return rows[0] if rows else None
+
+
 def starter(payload, team, date):
-    """Same priority as the page: a DailyFaceoff-confirmed starter, then the goalie with a DraftKings
-    line, then a PrizePicks prop, back-to-back backup, depth chart.
+    """Same priority as the page: DailyFaceoff confirmed, then a DraftKings line, then a PrizePicks
+    prop, then a DailyFaceoff projected starter (Likely / Unconfirmed — shown, not a play), then the
+    back-to-back backup, then the depth chart.
     Returns (goalie_id, starter source, line, line source)."""
-    for r in payload.get("starters") or []:
-        if r.get("date") == date and r.get("team") == team and r.get("goalie_id") is not None \
-                and str(r.get("status", "")).lower() == "confirmed":
-            ls, line = _line_for(payload, team, date, r["goalie_id"])
-            return int(r["goalie_id"]), "df", line, ls
+    conf = _df_row(payload, team, date, True)
+    if conf:
+        ls, line = _line_for(payload, team, date, conf["goalie_id"])
+        return int(conf["goalie_id"]), "df", line, ls
     for src, rows in (("dk", payload.get("dk") or []), ("pp", payload.get("pp") or [])):
         for r in rows:
             if r.get("date") == date and r.get("team") == team and r.get("goalie_id") is not None:
                 return int(r["goalie_id"]), src, r["line"], src
+    proj = _df_row(payload, team, date, False)
+    if proj:
+        ls, line = _line_for(payload, team, date, proj["goalie_id"])
+        status = str(proj.get("status") or "unconfirmed").lower().replace(" ", "")
+        return int(proj["goalie_id"]), f"df-{status}", line, ls
     dep = payload["depth"].get(team) or []
     if len(dep) > 1 and _b2b(payload, team, date) and payload.get("last_starter", {}).get(team) == dep[0]:
         return dep[1], "b2b", None, None
@@ -177,9 +192,11 @@ def calls_for_game(payload, g):
         g_ = next((q for q in payload["goalies"] if q["id"] == x["gid"]), None) or {"sv": .9, "share": payload["lg_share"], "name": str(x["gid"])}
         p_win = p_home if team == g["home"] else 1 - p_home
         pr = saves_dist.project(x["sa"], g_["share"], g_["sv"], p_win, dist)
+        # the page adds the same rolling bias before it prices the line; the frozen call has to match
+        shown = pr["proj"] + float(payload.get("saves_bias") or 0.0)
         row = {"team": team, "opp": x["opp"], "goalie_id": x["gid"], "goalie": g_.get("name", str(x["gid"])), "src": x["src"],
                "confirmed": x["src"] in ("dk", "pp", "manual", "df"), "b2b": x["b2b"], "p_win": round(p_win, 4),
-               "exp_sa": round(pr["exp_sa"], 2), "proj": round(pr["proj"], 2), "sd": round(pr["sd"], 2),
+               "exp_sa": round(pr["exp_sa"], 2), "proj": round(shown, 2), "sd": round(pr["sd"], 2),
                "line": x["line"], "book": {"dk": "DraftKings", "pp": "PrizePicks"}.get(x["lsrc"])}
         st_row = next((r for r in payload.get("starters") or [] if r.get("date") == date and r.get("team") == team
                        and r.get("goalie_id") == x["gid"]), None)
@@ -187,11 +204,11 @@ def calls_for_game(payload, g):
             row["starter_src"] = f"{st_row['source']} {st_row['status']}"
             row["starter_at"] = st_row.get("at")
         if x["line"] is not None:
-            po = saves_dist.p_over(pr["proj"], pr["sd"], x["line"])
+            po = saves_dist.p_over(shown, pr["sd"], x["line"])
             over, under = _dk_prices(payload.get("dk"), date, team, row["goalie"], x["line"]) if x["lsrc"] == "dk" else (None, None)
             dfs = {"mult_over": 1, "mult_under": 1} if x["lsrc"] == "pp" else {}
             d = pricing.decide(po, calib.get("saves", {}).get("cal"), over, under, cap=calib.get("saves", {}).get("tier_cap"),
-                               market="saves", proj=pr["proj"], line=x["line"], **dfs)
+                               market="saves", proj=shown, line=x["line"], **dfs)
             if not row["confirmed"]:
                 d.update(play=False, tier="PASS")
             row.update(p_over=round(po, 4), over=over, under=under, **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in d.items()})

@@ -28,6 +28,7 @@ import sog
 import starters
 import linecombos
 import moneypuck
+import moneypuck_teams
 import pick6
 import players
 import props_board
@@ -364,8 +365,8 @@ def main():
     years = list(range(2024, cur + 1))
     print(f"Loading seasons {years} ...")
     tg, st_df = data.load_all(years, refresh=True)
-    tg = moneypuck.with_attempts(tg)    # MoneyPuck score-adjusted Fenwick (engine uses it when it covers the season)
-
+    mp_rep = moneypuck.verify(st_df)          # raises if MoneyPuck is missing or disagrees with the box scores
+    tg = moneypuck_teams.with_attempts(tg)    # MoneyPuck score-adjusted Fenwick (engine uses it when it covers the season)
     have = sorted(tg.season.unique())
     latest = int(have[-1])
 
@@ -434,6 +435,7 @@ def main():
         "built_iso": now.isoformat(timespec="seconds"),
         "slate_day": slate_day,
         "saves_bias": saves_bias,
+        "moneypuck": mp_rep,
         "rosters_status": players.status, "roster_source": R.source,
         "pick6_status": pick6.status, "pick6_stats": p6_stats,
         "dk_match": odds.match_counts,
@@ -447,8 +449,8 @@ def main():
         "league": round(state.league(), 3),
         "lg_cf": round(state.lg_cf.s / state.lg_cf.w, 3),
         "lg_ff": round(state.lg_ff.s / state.lg_ff.w, 3),
-        "moneypuck": {"sa_mode": state.mode, **(json.load(open(os.path.join(moneypuck.DIR, "status.json")))
-                                                if os.path.exists(os.path.join(moneypuck.DIR, "status.json")) else {})},
+        "moneypuck_teams": {"sa_mode": state.mode, **(json.load(open(os.path.join(moneypuck_teams.DIR, "status.json")))
+                                                      if os.path.exists(os.path.join(moneypuck_teams.DIR, "status.json")) else {})},
         "lg_share": lg_share,
         "sd": report["sd"],
         "teams": team_table(tg, state, display_season),
