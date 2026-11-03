@@ -31,6 +31,9 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - run: pip install -r requirements.txt
+      # MoneyPuck cache (data checks): its own step, hard-capped so a slow download never holds up the build
+      - name: MoneyPuck data
+        run: timeout 300 python -u model/moneypuck.py || echo "moneypuck step timed out or failed"
       - name: Build dashboard
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}

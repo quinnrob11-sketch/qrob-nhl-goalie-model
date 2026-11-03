@@ -27,7 +27,6 @@ import saves_dist
 import sog
 import starters
 import linecombos
-import moneypuck
 import pick6
 import players
 import props_board
@@ -172,6 +171,8 @@ def team_table(tg: pd.DataFrame, st: engine.State, season: int):
             "pim": round(x.pim.mean(), 2), "opp_pim": round(x.opp_pim.mean(), 2),
             "rate_off": round(st.team_rate(st.off, team), 3),
             "rate_def": round(st.team_rate(st.dfn, team), 3),
+            "rate_cf": round(st.corsi_rate(st.cf, team)[0], 3),
+            "rate_ca": round(st.corsi_rate(st.ca, team)[0], 3),
             **goal_rates(st, team),
         }
     # early in a season, teams that haven't played yet still need ratings
@@ -179,7 +180,9 @@ def team_table(tg: pd.DataFrame, st: engine.State, season: int):
     active = set(tg[tg.season >= season - 1].team_abbrev) - DEFUNCT
     for team in active - set(out):
         out[team] = {"gp": 0, "rate_off": round(st.team_rate(st.off, team), 3),
-                     "rate_def": round(st.team_rate(st.dfn, team), 3), **goal_rates(st, team)}
+                     "rate_def": round(st.team_rate(st.dfn, team), 3),
+                     "rate_cf": round(st.corsi_rate(st.cf, team)[0], 3), "rate_ca": round(st.corsi_rate(st.ca, team)[0], 3),
+                     **goal_rates(st, team)}
     return out
 
 
@@ -357,10 +360,7 @@ def main():
     years = list(range(2024, cur + 1))
     print(f"Loading seasons {years} ...")
     tg, st_df = data.load_all(years, refresh=True)
-    try:   # MoneyPuck cache (data checks and model inputs); best-effort, at most once every 20 h
-        moneypuck.fetch(today)
-    except Exception as e:
-        print(f"  [moneypuck] failed: {e}")
+
     have = sorted(tg.season.unique())
     latest = int(have[-1])
 
@@ -439,6 +439,7 @@ def main():
         "latest_final": latest_final(today),
         "params": p.to_dict(),
         "league": round(state.league(), 3),
+        "lg_cf": round(state.lg_cf.s / state.lg_cf.w, 3),
         "lg_share": lg_share,
         "sd": report["sd"],
         "teams": team_table(tg, state, display_season),

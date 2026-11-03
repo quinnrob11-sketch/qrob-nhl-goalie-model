@@ -69,9 +69,11 @@ def _save(name: str, url: str, force: bool = False):
         os.replace(path(name) + ".tmp", path(name))
         status[name] = f"ok ({len(body) // 1024} KB)"
         _fails = 0
+        print(f"  [moneypuck] {name}: {status[name]}", flush=True)
     except Exception as e:  # blocked, renamed, network
         status[name] = f"failed: {e}"[:120]
         _fails += 1
+        print(f"  [moneypuck] {name}: {status[name]}", flush=True)
     time.sleep(0.5)          # be gentle
 
 
@@ -124,5 +126,5 @@ def team_games(teams=TEAMS):
 
 
 if __name__ == "__main__":
-    fetch(force=True)
-    print(json.dumps(status, indent=1))
+    import sys
+    fetch(force="--force" in sys.argv)
