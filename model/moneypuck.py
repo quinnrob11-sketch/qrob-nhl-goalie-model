@@ -48,7 +48,7 @@ def _get(url: str, timeout: int = 20) -> bytes:
 
 
 _fails = 0
-MAX_FAILS = 3          # stop after this many failures in a row (blocked or down): the build must not stall
+MAX_FAILS = 6          # stop after this many failures in a row (blocked or down): the build must not stall
 
 
 def _save(name: str, url: str, force: bool = False):
@@ -95,8 +95,10 @@ def fetch(today: dt.date | None = None, force: bool = False) -> dict:
                 status[f"{kind}_{y}"] = "cached"
                 continue
             _save(f"{kind}_{y}", f"{BASE}/seasonSummary/{y}/regular/{kind}.csv", force)
-    for t in TEAMS:
-        _save(f"team_games_{t}", f"{BASE}/careers/gameByGame/regular/teams/{TO_MP.get(t, t)}.csv", force)
+    # team game logs are ~3.7 MB each and arrive slowly: 4 at a time
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(4) as ex:
+        list(ex.map(lambda t: _save(f"team_games_{t}", f"{BASE}/careers/gameByGame/regular/teams/{TO_MP.get(t, t)}.csv", force), TEAMS))
     ok = sum(str(v).startswith(("ok", "cached")) for v in status.values())
     _write_status()
     print(f"  [moneypuck] {ok}/{len(status)} files ok or cached")
