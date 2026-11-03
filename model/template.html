@@ -147,6 +147,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 <nav id="tabs">
   <button data-t="proj" class="on">Board</button>
   <button data-t="res">Results</button>
+  <button data-t="cal">Calibration</button>
   <button data-t="win">Game Winners</button>
   <button data-t="sogt">SOG Props</button>
   <button data-t="bt">Backtest</button>
@@ -158,7 +159,11 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 <main>
 <section id="proj" class="on">
   <div class="statusbar" id="statusBar"></div>
+  <div id="feedBanner"></div>
   <div id="preNote"></div>
+  <div class="card" id="cardPlays" style="border:2px solid var(--accent)"><h2>Today's plays <span class="muted" id="nPlays" style="font-weight:400;font-size:13px"></span></h2>
+    <p class="sub" style="margin:-4px 0 8px">Only TAKE legs: blended p 58%+ (saves: calibrated p 58%+ and a 2.5-save edge over / 3.0 under), at 1x or better, beating that multiplier's break-even, the player matched, and the model alone leaning the same way. One line per player and prop (the best EV). ⚠ = conflicts with another leg on the slate.</p>
+    <div id="playsBox"></div></div>
   <div class="filters card" style="padding:10px 12px">
     <label>Market<select id="fMk"><option value="">All</option><option value="saves">Saves</option><option value="sog">SOG</option><option value="points">Points</option><option value="win">Winners</option></select></label>
     <label>Side<select id="fSide"><option value="">Both</option><option>OVER</option><option>UNDER</option></select></label>
@@ -167,9 +172,13 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
     <label class="chk"><input type="checkbox" id="fPlays"> Plays only</label>
     <label>Date<select id="dateF"></select></label>
   </div>
-  <div class="card" id="cardRank"><h2>Ranked slate <span class="muted" id="nRank" style="font-weight:400;font-size:13px"></span></h2>
-    <p class="sub" style="margin:-4px 0 8px">Every prop with a line at 55%+ hit chance, highest first: <b>Lock</b> 62%+, <b>Strong</b> 58–62%, <b>Near miss</b> 55–58%. Edge = projection − line in the pick's direction. "Your rule": SOG / points legs at 58%+, saves at a 1.5+ edge, DFS legs at 1x or better, and the hit chance must beat the price's break-even (a −320 under needs 76%). ⚠ flags teammates on opposite sides of the same prop, and a goalie's saves against the opposing skaters' shots the other way.</p>
-    <label class="chk" style="flex-direction:row;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="fRule"> Only props that pass my rule</label>
+  <div class="card" id="cardLive" style="display:none"><h2>Live &amp; final <span class="muted" id="nLive" style="font-weight:400;font-size:13px"></span></h2>
+    <p class="sub" style="margin:-4px 0 8px">Games that have started are off the board. Their legs, as called before puck drop, with the stat so far: an over is a HIT as soon as it clears the line; an under is decided at the final.</p>
+    <label class="chk" style="flex-direction:row;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="liveAll"> all legs (not just TAKEs)</label>
+    <div class="board"><table id="liveT"></table></div></div>
+  <div class="card" id="cardRank"><h2>Every prop: one call each <span class="muted" id="nRank" style="font-weight:400;font-size:13px"></span></h2>
+    <p class="sub" style="margin:-4px 0 8px">Every posted line ends in <b>TAKE MORE</b>, <b>TAKE LESS</b> or <b>PASS</b> with the reason. TAKE tiers: <b>Lock</b> 62%+, <b>Strong</b> 58–62%; 55–58% is PASS (near miss). <b>Blended p</b> = fitted weight × model + (1 − weight) × DraftKings no-vig on the same line (the weight is fitted by log loss on graded lines and shrunk when the model's record against the market is below break-even; Calibration tab). <b>Model p</b> = the calibrated model alone. <b>vs break-even</b> = blended p − the multiplier's break-even. A player's other lines are listed greyed under his main one (↳ alt). Lines: the Pick6 board the build pulls, DraftKings where Pick6 doesn't list the player, then yours.</p>
+    <label class="chk" style="flex-direction:row;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="fRule"> TAKE only</label>
     <div class="board"><table id="bRank"></table></div></div>
   <div class="card" id="cardSaves"><h2>Saves <span class="muted" id="nSaves" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSaves"></table></div></div>
   <div class="card" id="cardSog"><h2>SOG <span class="muted" id="nSog" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSog"></table></div></div>
@@ -183,7 +192,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
     <p style="margin:0 0 10px"><span id="srcStatus"></span> <button class="ghost" id="ppRefresh">↻ Refresh PrizePicks</button></p>
     <details class="card" id="boardBox" style="margin:0 0 12px;padding:10px 12px">
       <summary><b>Paste or upload a PrizePicks / Pick6 board</b> <span class="muted" id="boardCount"></span></summary>
-      <p class="sub">One prop per line. CSV: <code>name,market,line,over mult,under mult</code> (e.g. <code>Igor Shesterkin,saves,25.5,1,0.9</code>). Text works too: <code>Auston Matthews SOG 3.5 1x/0.85x</code>. Market defaults to saves for goalies and SOG for skaters; multipliers default to 1x. These lines are priced as DFS legs at their per-side multipliers (break-even = payout^(−1/legs) ÷ multiplier) on the Projections and SOG tabs, ahead of DraftKings, and a goalie with a saves prop on your board counts as a posted starter.</p>
+      <p class="sub">One prop per line, <b>with the player's team</b> (players are matched by name within their team, never by name alone; a row without a team is left out as UNMATCHED). CSV: <code>name,team,market,line,over mult,under mult</code> (e.g. <code>Igor Shesterkin,NYR,saves,25.5,1,0.9</code>). Text works too: <code>Auston Matthews TOR SOG 3.5 1x/0.85x</code>. The build also pulls the Pick6 board itself; a pasted line replaces the pulled one for that player and market. Market defaults to saves for goalies and SOG for skaters; multipliers default to 1x. These lines are priced as DFS legs at their per-side multipliers (break-even = payout^(−1/legs) ÷ multiplier) on the Projections and SOG tabs, ahead of DraftKings, and a goalie with a saves prop on your board counts as a posted starter.</p>
       <div class="row" style="margin-bottom:8px"><label>Book<select id="boardBook"><option>Pick6</option><option>PrizePicks</option></select></label>
         <label>File<input type="file" id="boardFile" accept=".csv,.txt,text/plain,text/csv"></label></div>
       <textarea id="boardText" rows="5" style="width:100%;font:12px ui-monospace,monospace" placeholder="Igor Shesterkin,saves,25.5,1,0.9&#10;Auston Matthews SOG 3.5 1x/0.85x"></textarea>
@@ -208,8 +217,14 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   </div>
 </section>
 
+<section id="cal">
+  <div class="note">How well the probabilities match outcomes on <b>real graded lines</b>, refit on every build. Each week is scored only with calibration fitted on earlier weeks (walk-forward). The blend weight on the model is fitted by log loss on those out-of-sample probabilities, and shrunk toward the market when the model's record on lines where it disagrees with DraftKings is below the 1x break-even (57.7%). Per-line intercepts are used only when they beat the plain calibration walk-forward.</div>
+  <div id="calBody"></div>
+</section>
+
 <section id="res">
   <div class="note" id="resNote"></div>
+  <div class="card"><h2>Every displayed leg</h2><p class="sub">Every leg the board showed (logged each build with build time, playerId, line, side, multiplier, model p, market p and blended p, graded by playerId from the box score). Reliability = mean blended p vs actual hit rate.</p><div id="resLegs"></div></div>
   <div class="card"><h2>Plays by market and probability</h2>
     <p class="sub">Every play graded at the line it had when picked, grouped by the probability it had then (winners: every model pick). The bar counts plays picked under the price-aware rule (10/23 on) toward the 150 needed before tiers above LOW open.</p>
     <div class="grid3" id="resProb"></div></div>
@@ -331,7 +346,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
     </ul>
     <h3>Bet rules (your markers)</h3>
     <ul>
-      <li>No bet under <b>1.0</b> saves of edge (PASS). <b>1.5+</b> is the standard play. <b>2.5+</b> is HIGH confidence.</li>
+      <li>Every prop ends in one call: <b>TAKE MORE</b>, <b>TAKE LESS</b> or <b>PASS</b> (with the reason). Shots and points: blended p <b>58%+</b>, at <b>1x or better</b>, beating that multiplier's break-even, the player matched to his NHL id, and the model alone leaning the same way. Saves: a bias-corrected edge of <b>2.5+</b> saves over (<b>3.0+</b> under, until unders are shown calibrated) and calibrated p 58%+. Lock 62%+, Strong 58–62%, 55–58% is PASS (near miss). The thresholds are settings in model/pricing.py, and the audit backtest reports how 1.5 / 2.0 / 2.5 / 3.0 saves edges would have done.</li>
       <li>Green rows are OVER, red rows are UNDER.</li>
       <li><b>Confirm the starter</b> (morning skate or warmups) before locking. Every projection is for the goalie shown.</li>
       <li>Overtime inflates raw saves past the per-60 projection. In a tight, high-event series, lean OVER on close calls.</li>
@@ -388,7 +403,8 @@ const MARGIN = 0.02;
 const DIST = Object.assign({nb_k: 30, gs: 0.025, gs_cap: 0.12, sd_floor: 5.5}, D.dist || {});
 const CAL = (D.calib && D.calib.markets) || {};
 const RULE = Object.assign({margin: 0.02, margin_sog: 0.03, sog_gap: 0.15, sog_gap_ev: 0.05, blend_w: 0.6,
-  alarm_share: 0.75, alarm_min_plays: 2, saves_cap_at: 0.65, saves_cap_to: 0.60}, D.pricing || {});
+  alarm_share: 0.75, alarm_min_plays: 2, saves_cap_at: 0.65, saves_cap_to: 0.60, take_p: 0.58, near_miss_p: 0.55,
+  lock_p: 0.62, min_mult: 1, saves_edge_over: 2.5, saves_edge_under: 3.0, saves_take_p: 0.58}, D.pricing || {});
 const DFS = Object.assign({legs: 2, payout: 3, sub1x: false}, store.get("gm_dfs", {}));
 const hasVal = v => v !== undefined && v !== null && v !== "" && !isNaN(+v);
 const impliedP = o => !hasVal(o) ? null : (+o < 0 ? -o / (-o + 100) : 100 / (+o + 100));
@@ -396,14 +412,20 @@ const profitU = o => +o < 0 ? 100 / -o : +o / 100;
 const dfsBE = (mult = 1) => Math.pow(DFS.payout, -1 / DFS.legs) / (mult || 1);
 const amer = o => !hasVal(o) ? "" : (+o > 0 ? "+" + o : "" + o);
 // side-split calibration: lines the raw model leans UNDER use b_under (no intercept, 50% stays 50%)
-function platt(p, cal){ if (!cal) return p; p = Math.min(Math.max(p, 1e-4), 1 - 1e-4); const b = cal.b_under !== undefined && p < .5 ? cal.b_under : cal.b; return 1 / (1 + Math.exp(-((cal.a || 0) + b * Math.log(p / (1 - p))))); }
+// per-line intercepts (cal.line_a) only when the build found they improve walk-forward log loss
+const lineBucket = l => { const x = +l; return !(x >= 0) ? "" : x >= 3.5 ? "3.5+" : (Math.max(0.5, Math.floor(x) + 0.5)).toFixed(1); };
+function platt(p, cal, line){ if (!cal) return p; p = Math.min(Math.max(p, 1e-4), 1 - 1e-4); const b = cal.b_under !== undefined && p < .5 ? cal.b_under : cal.b;
+  const la = cal.line_a && line != null ? (cal.line_a[lineBucket(line)] || 0) : 0;
+  return 1 / (1 + Math.exp(-((cal.a || 0) + b * Math.log(p / (1 - p)) + la))); }
+// weight on the model in the market blend: fitted by log loss per market (calibrate.fit_blend), else the fixed one
+const blendW = cal => cal && cal.w != null ? +cal.w : RULE.blend_w;
 // final P(over) = blend_w x calibrated model + (1 - blend_w) x no-vig market, when both prices are posted
 const novig = (o, u) => hasVal(o) && hasVal(u) ? impliedP(o) / (impliedP(o) + impliedP(u)) : null;
 function evTier(ev, cap){ const t = ev >= .08 ? "HIGH" : ev >= .05 ? "MED" : ev >= MARGIN ? "LOW" : "PASS"; return cap === "LOW" && (t === "HIGH" || t === "MED") ? "LOW" : t; }
 function decide(market, pOverRaw, o = {}){
   // blend with the no-vig market: the line's own two prices, or (for a DFS leg) DraftKings' price on the same line
-  const c = CAL[market] || {}, pm = platt(pOverRaw, c.cal), mk = o.noBlend ? null : (novig(o.over, o.under) ?? (hasVal(o.mkt) ? +o.mkt : null));
-  const po = mk === null ? pm : RULE.blend_w * pm + (1 - RULE.blend_w) * mk;
+  const c = CAL[market] || {}, pm = platt(pOverRaw, c.cal, o.line), mk = o.noBlend ? null : (novig(o.over, o.under) ?? (hasVal(o.mkt) ? +o.mkt : null));
+  const w = blendW(c.cal), po = mk === null ? pm : w * pm + (1 - w) * mk;
   let best = null;
   for (const [side, p, price, mult] of [["OVER", po, o.over, o.multOver], ["UNDER", 1 - po, o.under, o.multUnder]]){
     let be, ev, kind;
@@ -423,6 +445,63 @@ function decide(market, pOverRaw, o = {}){
   best.capped = market === "saves" && best.p >= RULE.saves_cap_at;
   best.pShow = best.capped ? RULE.saves_cap_to : best.p;
   return best;
+}
+// ---------- TAKE / PASS verdict (mirrors pricing.verdict) ----------
+// TAKE only if: blended p >= 58% (saves: calibrated p >= 58% and an edge of 2.5 over / 3.0 under), the side
+// pays >= 1x, p beats that multiplier's break-even, the player is matched, and the model ALONE leans the same way.
+function verdictFor(mk, pOver, pModelOver, line, proj, mo, mu, matched = true, confirmed = true, price = {}){
+  const side = pOver >= .5 ? "OVER" : "UNDER", p = side === "OVER" ? pOver : 1 - pOver, pm = side === "OVER" ? pModelOver : 1 - pModelOver;
+  const mult = side === "OVER" ? mo : mu, pr = side === "OVER" ? price.over : price.under;
+  const be = hasVal(pr) ? impliedP(pr) : hasVal(mult) ? dfsBE(+mult) : null;
+  const ev = hasVal(pr) ? p * profitU(pr) - (1 - p) : be ? p / be - 1 : null;
+  const edge = proj == null ? null : (side === "OVER" ? proj - line : line - proj);
+  const need = mk === "saves" ? RULE.saves_take_p : RULE.take_p, P = Math.round(100 * p) + "%";
+  let reason = null;
+  if (!matched) reason = "unmatched player";
+  else if (mk === "saves" && !confirmed) reason = "starter not confirmed";
+  else if (hasVal(mult) && +mult < RULE.min_mult - 1e-9 && !DFS.sub1x) reason = `pays ${+mult}x`;
+  else if (mk === "saves" && (edge == null || edge < (side === "OVER" ? RULE.saves_edge_over : RULE.saves_edge_under) - 1e-9))
+    reason = edge == null ? "no projection" : `edge ${sgn1(edge)} < ${side === "OVER" ? RULE.saves_edge_over : RULE.saves_edge_under}`;
+  else if (p < need - 1e-9) reason = p >= RULE.near_miss_p - 1e-9 ? `${P} near miss` : `${P} < ${Math.round(100 * need)}%`;
+  else if (be != null && p <= be) reason = `${P} doesn't beat break-even ${pct(be)}`;
+  else if (pm <= .5) reason = `model alone ${Math.round(100 * pm)}% disagrees (market-driven)`;
+  const take = reason === null;
+  return {side, p, pModelSide: pm, be, ev, edge, mult: hasVal(mult) ? +mult : null, verdict: take ? `TAKE ${side === "OVER" ? "MORE" : "LESS"}` : "PASS",
+    tier: take ? (p >= RULE.lock_p - 1e-9 ? "Lock" : "Strong") : (mk !== "saves" && matched && p >= RULE.near_miss_p - 1e-9 && p < need - 1e-9 ? "Near miss" : ""), reason: reason || ""};
+}
+const isTake = r => String(r.verdict || "").startsWith("TAKE");
+// ---------- player matching (mirrors model/players.py): (name, team, game) -> one NHL playerId or UNMATCHED ----------
+const PM_SUFFIX = new Set(["jr", "sr", "ii", "iii", "iv"]);
+const PM_NICK = [["mike","michael","mikey"],["jake","jacob","jakob"],["bill","william","will","willy"],["bob","robert","rob","bobby"],["tony","anthony"],["zach","zack","zachary","zak"],["nick","nicholas","nicolas","nik","niko","nikolai"],["alex","alexander","alexandre","aleksander","sasha"],["matt","matthew","mathew","matthias","mat"],["josh","joshua"],["cam","cameron"],["tim","timothy"],["tom","thomas","tommy"],["dan","daniel","danny"],["chris","christopher"],["jon","jonathan","john","johnny"],["joe","joseph","joey"],["ben","benjamin"],["sam","samuel"],["max","maxim","maxime","maximilian"],["mitch","mitchell"],["pat","patrick"],["greg","gregory"],["fred","frederik","frederick"],["vince","vincent"],["phil","phillip","philip"],["ed","edward","eddie"],["andy","andrew","drew"],["steve","steven","stephen"],["jeff","jeffrey"],["ken","kenneth"],["evgeny","evgeni","yevgeni"],["dmitri","dmitry"],["artemi","artemiy"],["ilya","ilia"]];
+const PM_NICKIX = {}; PM_NICK.forEach((g, i) => g.forEach(n => PM_NICKIX[n] = i));
+const PM_TEAMFIX = {LA:"LAK", NJ:"NJD", SJ:"SJS", TB:"TBL", MON:"MTL", WAS:"WSH", CLB:"CBJ", NAS:"NSH", UTAH:"UTA", VEG:"VGK", CAL:"CGY", LV:"VGK", ARI:"UTA", UTH:"UTA"};
+const pmTeam = t => { t = String(t || "").toUpperCase().trim(); return PM_TEAMFIX[t] || t; };
+const pmFold = s => String(s || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x00-\x7f]/g, "").toLowerCase().replace(/[.'’`]/g, " ").replace(/-/g, " ").replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).join(" ");
+function pmTokens(name){ const t = pmFold(name).split(" ").filter(w => w && !PM_SUFFIX.has(w)); let i = 0; while (i < t.length - 1 && t[i].length === 1) i++; return i > 1 ? [t.slice(0, i).join("")].concat(t.slice(i)) : t; }
+const PM_DE = {"ü":"ue","ö":"oe","ä":"ae","Ü":"Ue","Ö":"Oe","Ä":"Ae","ß":"ss"};
+const pmLastKeys = last => new Set([pmFold(last).replace(/ /g, ""), pmFold([...String(last || "")].map(c => PM_DE[c] || c).join("")).replace(/ /g, "")].filter(Boolean));
+function pmFirstOk(given, first){
+  if (!given || !first) return true;
+  const g = given.replace(/ /g, ""), f = pmFold(first).replace(/ /g, "");
+  if (g === f) return true;
+  if (g.length === 1 || f.length === 1) return g[0] === f[0];
+  if (g.length <= 2 && f.length > 2){ const parts = pmFold(first).split(" "); if (parts.length === g.length && parts.every((p, i) => p[0] === g[i])) return true; }
+  if (Math.min(g.length, f.length) >= 3 && (g.startsWith(f) || f.startsWith(g))) return true;
+  return g in PM_NICKIX && PM_NICKIX[g] === PM_NICKIX[f];
+}
+const pmPos = p => { p = String(p || "").toUpperCase(); return p.startsWith("G") ? "G" : p.startsWith("D") ? "D" : p ? "F" : ""; };
+const ROSTER = {};
+for (const [t, ps] of Object.entries(D.rosters || {})) ROSTER[t] = ps.map(([id, first, last, pos]) => ({id, first, last, pos, keys: pmLastKeys(last)}));
+function matchPlayer(name, team, game, pos){
+  const teams = team ? [pmTeam(team)] : (game || []).map(pmTeam).filter(Boolean);
+  if (!teams.length) return {id: null, status: "UNMATCHED", reason: "no team or game"};
+  const tk = pmTokens(name); let c = [];
+  for (const t of teams) for (const p of ROSTER[t] || []){
+    for (let k = 1; k <= tk.length; k++) if (p.keys.has(tk.slice(-k).join("")) && pmFirstOk(tk.slice(0, -k).join(" "), p.first)){ c.push({...p, team: t}); break; }
+  }
+  if (c.length > 1 && pmPos(pos)){ const n = c.filter(p => pmPos(p.pos) === pmPos(pos)); if (n.length) c = n; }
+  if (c.length === 1) return {id: c[0].id, team: c[0].team, status: "MATCHED", reason: ""};
+  return {id: null, team: teams.length === 1 ? teams[0] : null, status: "UNMATCHED", reason: c.length ? `${c.length} ${teams.join("/")} players match ${name}` : `no ${teams.join("/")} player named ${name}`};
 }
 // one-sided board warning (mirrors pricing.night_alarm): per market per night, more than alarm_share of
 // the plays on one side. Display only: it never removes a play.
@@ -483,6 +562,7 @@ document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
 if (D.preseason) $("#preNote").innerHTML = `<div class="note"><b>Preseason build.</b> Ratings are ${D.display_season} numbers regressed toward league average, the same way the backtest handles a new season. Until a starter is posted, each team's default is the goalie on its current NHL roster who started most last season, so <b>confirm starters</b> before betting. Numbers sharpen after about 15 games.</div>`;
 
 // ---------- slate ----------
+const SAVES_BIAS = +(D.saves_bias || 0);
 const LINES = store.get("gm_lines", {});
 const STARTER = store.get("gm_starter", {});
 // PrizePicks board: a posted "Goalie Saves" line = the goalie PP expects to start
@@ -511,6 +591,7 @@ function parseBoard(txt, book){
   for (let ln of String(txt).split(/\r?\n/)){
     ln = ln.trim();
     if (!ln || /^name\s*[,\t]/i.test(ln)) continue;
+    let team; [ln, team] = takeTeam(ln);
     let name, market = "", line, mo = 1, mu = 1;
     const c = ln.split(/\t|,/).map(s => s.trim()).filter(Boolean);
     const num = s => +String(s).replace(/x$/i, "");
@@ -524,11 +605,24 @@ function parseBoard(txt, book){
     if (!name || !(line >= 0)) continue;
     const key = nameKey(name);
     market = /save/i.test(market) ? "saves" : /sog|shot/i.test(market) ? "sog" : /point|pts/i.test(market) ? "points" : goalieKeys.has(key) ? "saves" : "sog";
-    rows.push({name: name.trim(), key, market, line, mo: mo > 0 ? mo : 1, mu: mu > 0 ? mu : 1, book});
+    // never on name alone: the player is matched within his team (from the row) or not at all
+    const m = matchPlayer(name.trim(), team, null, market === "saves" ? "G" : null);
+    rows.push({name: name.trim(), key, market, line, mo: mo > 0 ? mo : 1, mu: mu > 0 ? mu : 1, book, team: m.team || team || null,
+               player_id: m.id, match: m.status, reason: m.reason});
   }
   return rows;
 }
-const boardFor = (market, name) => (BOARD.rows || []).find(r => r.market === market && r.key === nameKey(name)) || null;
+// a team code anywhere in the row (column or word) is the player's team: "Anders Lee,UTA,sog,1.5" / "Anders Lee UTA SOG 1.5"
+const TEAM_CODES = new Set([...Object.keys(D.teams || {}), ...Object.keys(PM_TEAMFIX)]);
+function takeTeam(ln){
+  let team = null;
+  const out = ln.replace(/(^|[\s,\t(])([A-Za-z]{2,4})(?=$|[\s,\t)])/g, (all, pre, w) => {
+    if (team === null && w === w.toUpperCase() && TEAM_CODES.has(w.toUpperCase())){ team = pmTeam(w); return pre; }
+    return all;
+  });
+  return [out.replace(/,\s*,/g, ",").replace(/^\s*,|,\s*$/g, "").trim(), team];
+}
+const boardFor = (market, pid) => pid == null ? null : (BOARD.rows || []).find(r => r.market === market && r.player_id === pid) || null;
 const multTxt = (o, u) => `${o}x / ${u}x`;
 let ppLive = {state: "idle"};
 function parsePP(js){
@@ -546,14 +640,18 @@ function parsePP(js){
     const pl = players[ref.id] || {}, name = pl.name || pl.display_name;
     if (!name) continue;
     let team = String(pl.team || pl.team_abbreviation || "").toUpperCase(); team = PP_TEAM_FIX[team] || team;
-    if (isSog){ sogRows.push({name, team, line: +a.line_score, date: a.start_time ? etDate(a.start_time) : null, url: `https://app.prizepicks.com/projections/${p.id}`}); continue; }
-    let cands = byKey[nameKey(name)] || [];
-    if (cands.length > 1) cands = cands.filter(g => g.team === team).concat(cands).slice(0, 1);
-    let g = cands[0];
-    if (!g){ // no NHL history: league-average profile so it still projects
-      g = {id: -(rows.length + 1) * 7919 - 1, name, team, gp: 0, sv: .900, share: D.lg_share, last10: [], new: true};
-      D.goalies.push(g); G[g.id] = g;
+    if (isSog){ sogRows.push({name, team, line: +a.line_score, date: a.start_time ? etDate(a.start_time) : null, url: `https://app.prizepicks.com/projections/${p.id}`,
+                              player_id: team ? matchPlayer(name, team).id : null}); continue; }
+    // matched within his team to one NHL playerId (players.py); a roster goalie with no NHL history gets a league-average profile
+    const m = team && ROSTER[pmTeam(team)] ? matchPlayer(name, team, null, "G") : null;
+    let g = m && m.id != null ? (G[m.id] || null) : null;
+    if (!g && !(m && m.status === "UNMATCHED" && ROSTER[pmTeam(team)])){
+      let cands = byKey[nameKey(name)] || [];   // no roster in this build: initial + last name within his team only
+      cands = cands.filter(x => x.team === team);
+      g = cands.length === 1 ? cands[0] : null;
     }
+    if (m && m.id != null && !g){ g = {id: m.id, name, team, gp: 0, sv: .900, share: D.lg_share, last10: [], new: true}; D.goalies.push(g); G[g.id] = g; }
+    if (!g) continue;      // unmatched: left out, never guessed
     rows.push({name, team: team || g.team, line: +a.line_score, date: a.start_time ? etDate(a.start_time) : null,
                url: `https://app.prizepicks.com/projections/${p.id}`, goalie_id: g.id});
   }
@@ -586,7 +684,7 @@ function starterFor(team, date){
   if (DF[k] && String(DF[k].status).toLowerCase() === "confirmed") return {gid: DF[k].goalie_id, src: "df", df: DF[k]};
   if (DK[k]) return {gid: DK[k].goalie_id, src: "dk"};
   if (PP[k]) return {gid: PP[k].goalie_id, src: "pp", pp: PP[k]};
-  const bg = D.goalies.find(g => g.team === team && boardFor("saves", g.name));
+  const bg = D.goalies.find(g => g.team === team && boardFor("saves", g.id));
   if (bg) return {gid: bg.id, src: "board"};
   if (DF[k]) return {gid: DF[k].goalie_id, src: "df-" + String(DF[k].status || "").toLowerCase(), df: DF[k]};
   const dep = D.depth[team] || [], last = D.last_played[team];
@@ -623,12 +721,16 @@ function slateRows(){
       const pp = PP[g.date + "|" + team], dk = DK[g.date + "|" + team];
       const ppLine = pp && pp.goalie_id === gid ? pp.line : null;
       const dkLine = dk && dk.goalie_id === gid ? dk.line : null;
-      const bd = gid != null && G[gid] ? boardFor("saves", G[gid].name) : null;
+      const bd0 = gid != null ? boardFor("saves", gid) : null;
+      // the build's Pick6 pull counts like a pasted board line; yours (pasted or typed) override it
+      const p6 = bd0 ? null : (D.board && D.board.rows || []).find(x => x.market === "saves" && x.source === "Pick6" && x.player_id === gid && x.game === g.id);
+      const bd = bd0 || (p6 ? {line: p6.line, mo: p6.mo, mu: p6.mu, book: "Pick6", auto: true} : null);
       const line = LINES[key] ?? (bd ? bd.line : null) ?? dkLine ?? ppLine;
       const lineSrc = LINES[key] != null ? "manual" : bd ? "board" : dkLine != null ? "dk" : ppLine != null ? "pp" : "";
       // a line you type yourself counts as confirming that goalie
       const confirmed = ["dk", "pp", "manual", "df", "board"].includes(st.src) || LINES[key] != null;
       let d = null, po = null;
+      dist.proj += SAVES_BIAS;   // rolling bias correction (30-day half-life of actual − projected saves)
       if (line != null){
         po = pOverSaves(dist.proj, dist.sd, line);
         // DFS legs (PrizePicks / your board / your line) price at their multiplier and blend with DraftKings when DK has the same line
@@ -679,7 +781,8 @@ function renderSlate(){
   $("#ppNote").textContent = `As of ${builtCT}. ${dkMsg} ${ppMsg} Starter order: your pick, a DailyFaceoff confirmation, a DraftKings line, a PrizePicks prop, a saves prop on your pasted board, then the roster default (unconfirmed). A posted line isn't an official confirmation, so check warmups on close calls; unconfirmed starters (roster default) are never plays until you pick the goalie. Projected saves = shots against (team defense × opponent offense, home/road, back-to-backs, game script from the win probability) × time in net × save%, with a spread that grows with the workload. A side is a play only when its calibrated probability, blended with the no-vig price when DraftKings posts both sides, beats the price's break-even by 2%.`;
   const dates = [...new Set(D.slate.map(g => g.date))];
   const dSel = $("#dateF");
-  if (!dSel.options.length){ dSel.innerHTML = `<option value="">All</option>` + dates.map(d => `<option ${d === TODAY_CT ? "selected" : ""}>${d}</option>`).join(""); }
+  // the slate day (America/Chicago) stays until every one of its games is final (model/slate.py)
+  if (!dSel.options.length){ const day = D.slate_day || TODAY_CT; dSel.innerHTML = `<option value="">All</option>` + dates.map(d => `<option ${d === day ? "selected" : ""}>${d}</option>`).join(""); }
   $("#slateEmpty").style.display = D.slate.length ? "none" : "block";
   if (!D.slate.length){ $("#slateT").innerHTML = ""; renderBoard(); return; }
   const dateF = dSel.value;
@@ -746,9 +849,12 @@ function boardRowsSaves(){
       line: r.line, lineEdit: `<input class="lin" type="number" step="0.5" min="0" inputmode="decimal" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line"><div class="cell2">${lineSrcTxt(r)}</div>`,
       proj: r.proj, diff: r.line != null ? r.proj - r.line : null,
       side: r.d ? r.d.side : null, prob: r.d ? r.d.pShow : null, tier: r.d ? r.d.tier : null, capped: r.d ? r.d.capped : false,
-      play: !!(r.d && r.d.play), noLine: r.line == null, unconf: !r.confirmed, q: [name, r.team, r.opp]};
+      play: !!(r.d && r.d.play), noLine: r.line == null, unconf: !r.confirmed, q: [name, r.team, r.opp],
+      call: r.d ? verdictFor("saves", r.d.side === "OVER" ? r.d.p : 1 - r.d.p, r.d.pModel, r.line, r.proj,
+                             r.lineSrc === "board" ? r.bd.mo : 1, r.lineSrc === "board" ? r.bd.mu : 1, r.gid != null && r.gid > 0, r.confirmed) : null};
   });
 }
+const callOf = (mk, x, pl) => x.d ? verdictFor(mk, x.d.side === "OVER" ? x.d.p : 1 - x.d.p, x.d.pModel, x.L.line, x.proj, x.L.src === "DK" ? 1 : (x.L.mo ?? 1), x.L.src === "DK" ? 1 : (x.L.mu ?? 1)) : null;
 function boardRowsSog(){
   const out = [];
   for (const g of D.slate) for (const [team, opp, home] of [[g.away, g.home, false], [g.home, g.away, true]])
@@ -758,7 +864,7 @@ function boardRowsSog(){
       out.push({t: g.start || "", time: ctStart(g), date: g.date, game: `${g.away} @ ${g.home}`, player: pl.name,
                 sub: `${team} · ${pl.pos}${roleTxt(pl) ? " · " + roleTxt(pl) : ""}`, team, opp, mk: "sog", d: x.d, src: x.L.src,
                 line: x.L.line, proj: x.proj, diff: x.proj - x.L.line, side: x.d.side, prob: x.d.pShow, tier: x.d.tier, capped: false,
-                play: x.d.play, q: [pl.name, team, opp]});
+                play: x.d.play, q: [pl.name, team, opp], call: callOf("sog", x, pl)});
     }
   return out;
 }
@@ -771,56 +877,147 @@ function boardRowsPts(){
       out.push({t: g.start || "", time: ctStart(g), date: g.date, game: `${g.away} @ ${g.home}`, player: pl.name,
                 sub: `${team} · ${pl.pos}${roleTxt(pl) ? " · " + roleTxt(pl) : ""}`, team, opp, mk: "points", d: x.d, src: x.L.src,
                 line: x.L.line, proj: x.proj, diff: x.proj - x.L.line, side: x.d.side, prob: x.d.pShow, tier: x.d.tier, capped: false,
-                play: x.d.play, q: [pl.name, team, opp]});
+                play: x.d.play, q: [pl.name, team, opp], call: callOf("points", x, pl)});
     }
   return out;
 }
-// ---------- ranked slate: every prop with a line, by hit %, in your tiers ----------
+// ---------- the prop board: one verdict per prop (mirrors model/props_board.py) ----------
+// Lines: the build's Pick6 pull with DraftKings as the fallback (D.board), your pasted board and lines you type
+// (they replace the pulled lines for that player and market), and one saves line per starter. Every line gets
+// model p (model alone), market p (DraftKings no-vig, same line), blended p and a TAKE / PASS verdict; per player
+// and market only the best line stays a TAKE and the rest are listed under it as alternates.
 const RANK_TIERS = [[0.62, "Lock"], [0.58, "Strong"], [0.55, "Near miss"]];
 const rankTier = p => (RANK_TIERS.find(([lo]) => p >= lo - 1e-9) || [0, ""])[1];
-// your rules: SOG / points legs at 58%+, saves at a 1.5+ edge in the pick direction, DFS legs at 1x or better
-// and the hit chance must beat the price itself (a -320 under needs 76% just to break even)
-function yourRule(r){
-  if (r.d && r.d.kind === "dfs" && (r.d.mult ?? 1) < 1) return [false, "below 1x"];
-  const be = r.d && r.d.be != null ? r.d.be : null;
-  if (be != null && r.d.p < be) return [false, `price needs ${pc0(be)}`];
-  if (r.mk === "saves") { const e = r.side === "OVER" ? r.diff : -r.diff; return [e >= 1.5, `edge ${sgn1(e)}`]; }
-  return [r.prob >= 0.58, (r.prob >= 0.58 ? "58%+" : "under 58%") + (be != null ? ` · needs ${pc0(be)}` : "")];
+const SKATER = {};
+for (const [team, pls] of Object.entries(D.sog.players || {})) for (const pl of pls) SKATER[pl.id] = {...pl, team};
+const gameOf = (team, date) => D.slate.find(g => (!date || g.date === date) && (g.home === team || g.away === team));
+function scoreSkaterLine(l){
+  const pl = SKATER[l.player_id], g = D.slate.find(x => x.id === l.game);
+  const base = {...l, label: l.market === "sog" ? "SOG" : "Points", matched: l.player_id != null, opp: g ? (g.home === l.team ? g.away : g.home) : null, start: g && g.start};
+  if (!base.matched) return {...base, verdict: "PASS", reason: "unmatched player", side: null, p: null};
+  if (!pl || !g) return {...base, verdict: "PASS", reason: !g ? "no game on the slate" : "not on tonight's skater list", side: null, p: null};
+  const pts = l.market === "points", prm = pts ? PTP : SP;
+  if (!prm || (pts && pl.p60 == null)) return {...base, verdict: "PASS", reason: "no projection", side: null, p: null};
+  const home = g.home === pl.team, opp = home ? g.away : g.home, blk = pts ? D.points : D.sog;
+  const proj = liveProj(pts ? pl.p60 : pl.r60, pts ? (pl.ptoi ?? pl.toi) : pl.toi, blk.opp[opp] ?? 1, (blk.team || {})[pl.team] ?? 1, home, playedYday(pl.team, g.date), playedYday(opp, g.date), prm);
+  const po = nbOver(proj, l.line, prm, pl.pos);
+  const mkt = dkMkt(pts ? D.dk_points : D.dk_sog, pl.name, pl.team, g.date, l.line, pl.id);
+  return {...base, proj, p_raw: po, p_mkt: mkt, role: [pl.line, pl.pp].filter(Boolean).join(" · "), role_change: pl.role_change, role_adjusted: pl.role_adjusted, pos: pl.pos};
 }
-function rankedRows(S, K, Pt){
-  const rows = [...S.filter(r => r.side && r.line != null).map(r => ({...r, mk: "saves", label: "Saves"})),
-                ...K.map(r => ({...r, label: "SOG"})), ...Pt.map(r => ({...r, label: "Points"}))]
-    .filter(r => r.prob != null && r.prob >= 0.55 - 1e-9);
-  // conflicts: teammates on opposite sides; a goalie's saves vs the opposing skaters' shots the other way
-  for (const r of rows){
-    const c = [];
-    for (const o of rows){
-      if (o === r || o.date !== r.date) continue;
-      if (r.mk !== "saves" && o.mk === r.mk && o.team === r.team && o.side !== r.side) c.push(`${o.player} ${o.label} ${o.side}`);
-      if (r.mk === "saves" && o.mk === "sog" && o.team === r.opp && o.side !== r.side) c.push(`${o.player} SOG ${o.side}`);
-      if (r.mk === "sog" && o.mk === "saves" && o.opp === r.team && o.side !== r.side) c.push(`${o.player} saves ${o.side}`);
-    }
-    r.conflicts = c;
+function finishRow(r){
+  if (r.p_raw == null && r.p_blend == null) return r;
+  const c = (CAL[r.market] || {}).cal, pm = r.p_raw != null ? platt(r.p_raw, c, r.line) : r.p_model;
+  const w = blendW(c), pb = r.p_mkt == null ? pm : w * pm + (1 - w) * r.p_mkt;
+  const v = verdictFor(r.market, pb, pm, r.line, r.proj, r.mo, r.mu, r.matched !== false, r.confirmed !== false);
+  return {...r, p_model: pm, p_blend: pb, w, ...v};
+}
+function clientLines(){
+  const out = [];
+  for (const b of BOARD.rows || []){
+    if (b.market === "saves") continue;           // saves go through the starter table
+    const g = b.team ? (gameOf(b.team, $("#dateF").value || D.slate_day) || gameOf(b.team)) : null;
+    out.push({name: b.name, player_id: b.player_id, team: b.team, game: g && g.id, date: g && g.date, market: b.market, line: b.line,
+              mo: b.mo, mu: b.mu, source: b.book + " (yours)", mine: true});
   }
-  return rows.sort((a, b) => b.prob - a.prob);
+  for (const [store_, mk] of [[SOGL, "sog"], [PTL, "points"]]) for (const [k, line] of Object.entries(store_)){
+    const [date, id] = k.split("|"), pl = SKATER[+id], g = pl && gameOf(pl.team, date);
+    if (pl && g) out.push({name: pl.name, player_id: pl.id, team: pl.team, game: g.id, date, market: mk, line: +line, mo: 1, mu: 1, source: "your line", mine: true});
+  }
+  return out;
 }
-function renderRanked(all){
-  const onlyRule = $("#fRule").checked;
-  const rows = onlyRule ? all.filter(r => yourRule(r)[0]) : all;
-  const body = rows.map(r => { const [ok, why] = yourRule(r), t = rankTier(r.prob);
-    const edge = r.side === "OVER" ? r.diff : -r.diff;
-    return `<tr class="${t === "Near miss" ? "pass" : ""}">
-      <td class="l pin"><b>${r.player}</b><div class="cell2">${r.team || ""}${r.conflicts.length ? ` · <span class="bad" title="${r.conflicts.join("; ")}">⚠ conflicts: ${r.conflicts.slice(0, 2).join(", ")}${r.conflicts.length > 2 ? "…" : ""}</span>` : ""}</div></td>
-      <td class="l">${r.label}</td><td class="num">${n1(r.line)}</td><td class="l">${sidePill(r.side)}</td>
-      <td class="num"><b>${pc0(r.prob)}</b>${r.capped ? tierPill("", true) : ""}</td><td class="num">${n1(r.proj)}</td>
-      <td class="num ${diffCls(r.diff, r.side, r.mk === "saves" ? 0.5 : 0.15)}">${sgn1(edge)}</td>
-      <td class="num c-time">${r.time || "–"}</td>
-      <td class="l"><span class="pill ${t === "Lock" ? "HIGH" : t === "Strong" ? "MED" : "LOW"}">${t}</span></td>
-      <td class="l">${ok ? '<span class="good">✓</span>' : '<span class="muted">–</span>'} <span class="muted" style="font-size:11px">${why}${r.d && r.d.kind === "dfs" ? ` · ${r.d.mult ?? 1}x` : r.d && r.d.kind === "book" ? ` · ${amer(r.d.price)}` : ""}</span></td></tr>`; }).join("");
-  $("#bRank").innerHTML = `<thead><tr><th class="l pin">Player</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Side</th><th class="num">Hit %</th><th class="num">Proj</th><th class="num">Edge</th><th class="num c-time">Time (CT)</th><th class="l">Tier</th><th class="l">Your rule</th></tr></thead><tbody>` +
-    (body || `<tr class="empty"><td colspan="10">No props at 55%+ for this date yet. Lines fill in from DraftKings; paste your Pick6 / PrizePicks board below to add yours.</td></tr>`) + "</tbody>";
-  const n = k => rows.filter(r => rankTier(r.prob) === k).length;
-  $("#nRank").textContent = `${n("Lock")} Lock · ${n("Strong")} Strong · ${n("Near miss")} near miss · ${all.filter(r => yourRule(r)[0]).length} of ${all.length} pass your rule · ${rows.filter(r => r.conflicts.length).length} with conflicts`;
+function savesBoardRows(){
+  return slateRows().filter(r => r.line != null && r.d).map(r => {
+    const name = (G[r.gid] || {}).name || "?", d = r.d, pOver = d.side === "OVER" ? d.p : 1 - d.p;
+    const src = r.lineSrc === "manual" ? "your line" : r.lineSrc === "board" ? (r.bd.auto ? "Pick6" : r.bd.book + " (yours)") : r.lineSrc === "dk" ? "DraftKings" : "PrizePicks";
+    const mo = r.lineSrc === "board" ? r.bd.mo : 1, mu = r.lineSrc === "board" ? r.bd.mu : 1;
+    const v = verdictFor("saves", pOver, d.pModel, r.line, r.proj, mo, mu, r.gid != null && r.gid > 0, r.confirmed);
+    return {name, player_id: r.gid, team: r.team, opp: r.opp, game: r.g.id, date: r.g.date, start: r.g.start, market: "saves", label: "Saves",
+            line: r.line, mo, mu, source: src, proj: r.proj, p_model: d.pModel, p_mkt: d.pMkt, p_blend: pOver, matched: true, confirmed: r.confirmed,
+            capped: d.capped, ...v};
+  });
+}
+function chooseRows(rows){
+  const groups = {};
+  for (const r of rows) (groups[[r.player_id ?? r.name, r.market, r.game].join("|")] ||= []).push(r);
+  for (const rs of Object.values(groups)){
+    let best = -1;
+    rs.forEach((r, j) => { if (isTake(r) && (best < 0 || (r.ev ?? -9) > (rs[best].ev ?? -9))) best = j; });
+    const main = best >= 0 ? best : rs.reduce((m, r, j) => (r.p ?? 0) > (rs[m].p ?? 0) ? j : m, 0);
+    rs.forEach((r, j) => {
+      r.primary = j === main; r.alts = j === main ? rs.filter((_, k) => k !== j) : null;
+      if (best >= 0 && j !== best && isTake(r)) Object.assign(r, {verdict: "PASS", reason: `alt line (best is ${rs[best].line} ${rs[best].side === "OVER" ? "more" : "less"})`, tier: ""});
+    });
+  }
+  return rows;
+}
+function conflictRows(rows){
+  const takes = rows.filter(isTake).sort((a, b) => (b.p ?? 0) - (a.p ?? 0));
+  const clash = (a, b) => a !== b && a.game === b.game && ((a.market === b.market && a.market !== "saves" && a.team === b.team && a.side !== b.side) ||
+    [[a, b], [b, a]].some(([x, y]) => x.market === "saves" && y.market === "sog" && y.team === x.opp && x.side !== y.side));
+  const lab = r => `${r.name} ${r.label} ${r.side === "OVER" ? "MORE" : "LESS"}`;
+  for (const a of takes){
+    if (!isTake(a)) continue;
+    for (const b of takes) if (b !== a && isTake(b) && clash(a, b) && (b.p ?? 0) <= (a.p ?? 0)){
+      Object.assign(b, {verdict: "PASS", reason: `conflict: ${lab(a)}`, tier: ""}); (a.conflicts ||= []).push(lab(b));
+    }
+  }
+  return rows;
+}
+function propBoard(dateF){
+  const mine = clientLines(), own = new Set(mine.map(l => l.market + "|" + l.player_id));
+  const server = (D.board && D.board.rows || []).filter(r => r.market !== "saves" && !own.has(r.market + "|" + r.player_id)).map(r => ({...r, conflicts: null}));
+  let rows = server.map(r => r.p_raw != null || r.p_blend != null ? finishRow(r) : r)
+    .concat(mine.map(l => finishRow(scoreSkaterLine(l)))).concat(savesBoardRows());
+  rows = rows.filter(r => !dateF || r.date === dateF);
+  return conflictRows(chooseRows(rows));
+}
+const verdictPill = r => isTake(r) ? `<span class="sp ${r.side}">${r.verdict}</span>` : `<span class="pill PASS">PASS</span>`;
+const roleBadge = r => r.role_change ? ` <span class="pill LOW" title="Listed on a different line than his recent ice time${r.role_adjusted ? "; TOI adjusted (confirmed within 6 h, capped ±15%)" : "; not confirmed in the last 6 h, so TOI is unchanged"}">role ${r.role_change}${r.role_adjusted ? " · TOI adj" : ""}</span>` : "";
+function propCells(r, alt){
+  const edgeBE = r.p != null && r.be != null ? r.p - r.be : null;
+  return `<td class="l pin">${alt ? '<span class="muted">↳ alt</span> ' : ""}<b>${r.name}</b>${roleBadge(r)}<div class="cell2">${r.team || "?"}${r.opp ? " vs " + r.opp : ""}${r.conflicts && r.conflicts.length ? ` · <span class="bad" title="${r.conflicts.join("; ")}">⚠ conflicts: ${r.conflicts.join(", ")}</span>` : ""}</div></td>
+    <td class="l">${r.label}</td><td class="num">${n1(r.line)}</td>
+    <td class="l">${verdictPill(r)}${isTake(r) && r.tier ? ` <span class="pill ${r.tier === "Lock" ? "HIGH" : "MED"}">${r.tier}</span>` : ""}${!isTake(r) && r.reason ? `<div class="cell2">${r.tier === "Near miss" ? "near miss · " : ""}${r.reason}</div>` : ""}</td>
+    <td class="num"><b>${pc0(r.p)}</b></td><td class="num">${pc0(r.p_model != null && r.side ? (r.side === "OVER" ? r.p_model : 1 - r.p_model) : null)}</td>
+    <td class="num">${r.p_mkt != null && r.side ? pc0(r.side === "OVER" ? r.p_mkt : 1 - r.p_mkt) : "–"}</td>
+    <td class="num">${n1(r.proj)}</td><td class="num ${r.edge != null ? diffCls(r.side === "OVER" ? r.edge : -r.edge, r.side, r.market === "saves" ? 0.5 : 0.15) : ""}">${sgn1(r.edge)}</td>
+    <td class="num ${edgeBE == null ? "" : edgeBE > 0 ? "diff-sup" : "diff-con"}">${edgeBE == null ? "–" : (edgeBE > 0 ? "+" : "−") + (100 * Math.abs(edgeBE)).toFixed(1)}</td>
+    <td class="num">${r.mult != null ? r.mult + "x" : `${r.mo ?? "–"}x/${r.mu ?? "–"}x`}</td>
+    <td class="l"><span class="muted" style="font-size:11px">${r.source}</span></td>
+    <td class="num c-time">${r.start ? ctFmt(new Date(r.start), {hour: "numeric", minute: "2-digit"}) : "–"}</td>`;
+}
+const PROP_HEAD = `<thead><tr><th class="l pin">Player</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Call</th><th class="num">Blended p</th><th class="num">Model p</th><th class="num">Market p</th><th class="num">Proj</th><th class="num">Edge</th><th class="num">vs break-even</th><th class="num">Mult</th><th class="l">Source</th><th class="num c-time">CT</th></tr></thead>`;
+function renderRanked(rows){
+  const onlyTake = $("#fRule").checked, mkF = $("#fMk").value, sideF = $("#fSide").value;
+  const keep = r => r.primary && (!mkF || r.market === mkF) && (!sideF || r.side === sideF) && matchQ(r.name, r.team, r.opp) && (!onlyTake || isTake(r));
+  const prim = rows.filter(keep).sort((a, b) => isTake(b) - isTake(a) || (b.p ?? -1) - (a.p ?? -1));
+  const body = prim.map(r => `<tr class="${isTake(r) ? "" : "pass"}">${propCells(r, false)}</tr>` +
+    (r.alts || []).sort((a, b) => a.line - b.line).map(a => `<tr class="pass alt">${propCells(a, true)}</tr>`).join("")).join("");
+  $("#bRank").innerHTML = PROP_HEAD + "<tbody>" + (body || `<tr class="empty"><td colspan="13">No props for this date yet. The build pulls Pick6 and DraftKings every 15 minutes; paste your board below to add yours.</td></tr>`) + "</tbody>";
+  const takes = rows.filter(isTake), nm = rows.filter(r => r.reason === "unmatched player").length;
+  $("#nRank").textContent = `${takes.length} TAKE · ${takes.filter(r => r.tier === "Lock").length} Lock · ${takes.filter(r => r.tier === "Strong").length} Strong · ${rows.filter(r => r.primary && r.tier === "Near miss").length} near miss · ${rows.length} lines${nm ? ` · ${nm} unmatched` : ""}`;
+  renderPlays(takes);
+}
+function renderPlays(takes){
+  takes = takes.slice().sort((a, b) => b.p - a.p);
+  $("#playsBox").innerHTML = takes.length ? `<div class="board"><table><thead><tr><th class="l pin">Play</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Call</th><th class="num">p</th><th class="num">Model p</th><th class="num">Mult</th><th class="l">Source</th><th class="num">CT</th></tr></thead><tbody>` +
+    takes.map(r => `<tr><td class="l pin"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span>${roleBadge(r)}${r.conflicts && r.conflicts.length ? `<div class="cell2 bad">⚠ conflicts: ${r.conflicts.join(", ")}</div>` : ""}</td>
+      <td class="l">${r.label}</td><td class="num">${n1(r.line)}</td><td class="l">${verdictPill(r)} <span class="pill ${r.tier === "Lock" ? "HIGH" : "MED"}">${r.tier}</span></td>
+      <td class="num"><b>${pc0(r.p)}</b></td><td class="num">${pc0(r.pModelSide)}</td><td class="num">${r.mult != null ? r.mult + "x" : "–"}</td>
+      <td class="l"><span class="muted" style="font-size:11px">${r.source}</span></td><td class="num">${r.start ? ctFmt(new Date(r.start), {hour: "numeric", minute: "2-digit"}) : "–"}</td></tr>`).join("") + "</tbody></table></div>"
+    : `<p class="muted" style="margin:0">No TAKE legs for this date yet. Every prop below shows why it is a PASS.</p>`;
+  $("#nPlays").textContent = takes.length ? `${takes.length} leg${takes.length === 1 ? "" : "s"}, ranked by p` : "";
+}
+function renderLive(){
+  const L = (D.live || {}).legs || [], all = $("#liveAll") && $("#liveAll").checked;
+  const rows = L.filter(r => all || String(r.verdict || "").startsWith("TAKE"));
+  $("#cardLive").style.display = L.length ? "" : "none";
+  if (!L.length) return;
+  const cls = s => s === "HIT" ? "good" : s === "MISS" ? "bad" : "muted";
+  $("#liveT").innerHTML = `<thead><tr><th class="l">Player</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Side</th><th class="l">Call at puck drop</th><th class="num">So far</th><th class="l">Game</th><th class="l">Result</th></tr></thead><tbody>` +
+    (rows.map(r => `<tr><td class="l"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span></td><td class="l">${r.market}</td><td class="num">${n1(+r.line)}</td><td class="l">${sidePill(r.side)}</td><td class="l">${r.verdict || ""}</td><td class="num">${r.stat ?? "–"}</td><td class="l">${r.state || ""}</td><td class="l"><b class="${cls(r.status)}">${r.status || "–"}</b></td></tr>`).join("") || `<tr class="empty"><td colspan="8">No TAKE legs on started games. Tick "all legs" to see every logged leg.</td></tr>`) + "</tbody>";
+  const t = L.filter(r => String(r.verdict || "").startsWith("TAKE")), h = t.filter(r => r.status === "HIT").length, m = t.filter(r => r.status === "MISS").length;
+  $("#nLive").textContent = `TAKE legs ${h}-${m}${t.length - h - m ? ` · ${t.length - h - m} live` : ""} · ${L.length} legs logged on started games`;
 }
 function boardRowsWin(){
   const out = [], minE = 0.03;
@@ -856,9 +1053,10 @@ function boardTable(id, mk, rows, opts = {}){
       <td class="num ${r.diff == null ? "" : opts.win ? (Math.abs(r.diff) < 1 ? "diff-neu" : r.diff > 0 ? "diff-sup" : "diff-con") : diffCls(r.diff, r.side, neutral)}">${r.diff == null ? "–" : sgn1(r.diff) + (opts.win ? " pts" : "")}</td>
       <td class="l">${sidePill(opts.win ? r.player : r.side)}</td>
       <td class="num"><b>${pc0(r.prob)}</b></td>
-      <td class="l">${r.noLine ? '<span class="muted">needs a line</span>' : r.play ? tierPill(r.tier, r.capped) : `<span class="pill PASS">PASS</span>${r.unconf ? ' <span class="muted" style="font-size:11px">unconfirmed</span>' : ""}${r.capped ? tierPill("", true) : ""}`}</td></tr>`).join("");
-  $(id).innerHTML = `<thead><tr>${th("time", "Time (CT)").replace('<th class="', '<th class="c-time ')}<th class="l c-game">Game</th><th class="l pin">${opts.win ? "Pick" : "Player"}</th>${th("line", "Line")}<th class="num">Proj</th>${th("diff", "Diff")}<th class="l">Side</th>${th("prob", "Prob")}<th class="l">Tier</th></tr></thead><tbody>` +
-    (body || `<tr class="empty"><td colspan="9">No ${opts.label || "lines"} match these filters${D.slate.length ? "" : " (no games in this build yet)"}.</td></tr>`) + "</tbody>";
+      <td class="l">${r.noLine ? '<span class="muted">needs a line</span>' : r.play ? tierPill(r.tier, r.capped) : `<span class="pill PASS">PASS</span>${r.unconf ? ' <span class="muted" style="font-size:11px">unconfirmed</span>' : ""}${r.capped ? tierPill("", true) : ""}`}</td>
+      ${opts.win ? "" : `<td class="l">${r.call ? verdictPill(r.call) + (isTake(r.call) ? "" : `<div class="cell2">${r.call.reason}</div>`) : '<span class="muted">–</span>'}</td>`}</tr>`).join("");
+  $(id).innerHTML = `<thead><tr>${th("time", "Time (CT)").replace('<th class="', '<th class="c-time ')}<th class="l c-game">Game</th><th class="l pin">${opts.win ? "Pick" : "Player"}</th>${th("line", "Line")}<th class="num">Proj</th>${th("diff", "Diff")}<th class="l">Side</th>${th("prob", "Prob")}<th class="l">Tier</th>${opts.win ? "" : '<th class="l">Call</th>'}</tr></thead><tbody>` +
+    (body || `<tr class="empty"><td colspan="10">No ${opts.label || "lines"} match these filters${D.slate.length ? "" : " (no games in this build yet)"}.</td></tr>`) + "</tbody>";
   $(id).querySelectorAll("th[data-sort]").forEach(h => h.onclick = () => {
     const k = h.dataset.sort; SORT[mk] = [k, SORT[mk] && SORT[mk][0] === k ? -SORT[mk][1] : (k === "time" ? 1 : -1)];
     store.set("gm_sort", SORT); renderBoard();
@@ -874,7 +1072,7 @@ function renderBoard(){
   const S = allS.filter(r => (!dateF || r.date === dateF) && (!plays || r.play) && (!sideF || r.side === sideF) && (!minS || (r.prob ?? 0) >= minS) && matchQ(...r.q));
   const K = allK.filter(r => keep(r)), Wn = allW.filter(r => keep(r, false)), Pt = allP.filter(r => keep(r));
   const day = r => (!dateF || r.date === dateF) && matchQ(...r.q) && (!sideF || r.side === sideF);
-  renderRanked(rankedRows(allS.filter(day).map(r => ({...r, team: r.q[1], opp: r.q[2]})), allK.filter(day), allP.filter(day)));
+  renderRanked(propBoard(dateF)); renderLive();
   // plays the probability filter hides are counted, never hidden silently
   const hid = (all, sides = true) => all.filter(r => r.play && r.prob < minP - 1e-9 && (!dateF || r.date === dateF) && (!sides || !sideF || r.side === sideF) && matchQ(...r.q)).length;
   $("#cardSaves").style.display = !mkF || mkF === "saves" ? "" : "none";
@@ -913,12 +1111,56 @@ function renderStatus(){
     STALE ? `<span class="warn">⚠ Stale: built ${BUILD_AGE_H.toFixed(1)} h ago on a game day. Wait for the next build before betting.</span>` : "",
     `<span>${SRC_PILLS}</span>`,
     alarms.length ? `<div class="alarms">${alarms.map(a => `<div>${a}</div>`).join("")}</div>` : ""].filter(Boolean).join(" ");
+  renderFeeds();
 }
+// data plumbing on screen: a Pick6 pull that parses to 0 rows is a red banner, never a silently empty board
+function renderFeeds(){
+  const st = String(D.pick6_status || "not run"), ps = D.pick6_stats || {}, bc = (D.board || {}).counts || {}, dm = D.dk_match || {};
+  const drops = Object.entries(ps.dropped || {}).map(([k, v]) => `${v} ${k}`).join(", ");
+  const dkUn = ["sog", "points"].map(k => dm[k] && dm[k].unmatched ? `${dm[k].unmatched} DK ${k} unmatched` : "").filter(Boolean).join(", ");
+  const bad = !st.startsWith("ok") && D.slate.some(g => g.date === (D.slate_day || TODAY_CT));
+  const parts = [
+    `Pick6: <b>${st.startsWith("ok") ? `${ps.kept} lines` : st}</b>${ps.raw != null ? ` (${ps.raw} found${drops ? `; dropped ${drops}` : ""})` : ""}`,
+    `Board match rate <b>${bc.match_rate != null ? pct(bc.match_rate, 0) : "–"}</b>${bc.modeled ? ` of ${bc.modeled} modeled lines` : ""}`,
+    dkUn ? `<span class="warn-inline">${dkUn}</span>` : "",
+    `Rosters: ${D.rosters_status || "–"}`, `Live scores: ${(D.live || {}).status || "–"}`];
+  $("#feedBanner").innerHTML = (bad ? `<div class="note" style="border-color:var(--under);background:var(--under-bg)"><b>⚠ Pick6 board missing: ${st}.</b> The board below falls back to DraftKings lines and anything you paste. ${st.startsWith("parse failed") ? "The page changed shape: save it (File → Save Page As, HTML only) as model/tests/fixtures/pick6.html so the parser can be fixed against it." : st.startsWith("blocked") ? "DraftKings refused the build server's request." : ""}</div>` : "") +
+    `<p class="sub" style="margin:4px 0 10px">${parts.filter(Boolean).join(" · ")}</p>`;
+}
+$("#liveAll").oninput = renderLive;
 ["#fMk","#fSide","#fMinP","#f60","#fPlays"].forEach(s => $(s).oninput = renderBoard);
 $("#fRule").checked = !!store.get("gm_rule_only", false);
 $("#fRule").oninput = () => { store.set("gm_rule_only", $("#fRule").checked); renderBoard(); };
 $("#dateF").onchange = renderSlate;
 
+
+// ---------- every displayed leg (model/tracker.legs_summary) ----------
+function recCells(r){ return r && r.n ? `<td class="num">${r.hit}-${r.miss}</td><td class="num">${pct(r.pct)}</td><td class="num">${r.pred != null ? pct(r.pred) : "–"}</td>` : `<td class="num">–</td><td class="num">–</td><td class="num">–</td>`; }
+function renderLegs(){
+  const L = D.legs || {}, M = L.by_market || {};
+  if (!L.n){ $("#resLegs").innerHTML = '<p class="muted">No graded legs yet: the leg log starts with this build, and legs grade once their games are final.</p>'; return; }
+  const table = (title, obj) => `<h3>${title}</h3><div class="tbl"><table><thead><tr><th class="l"></th><th class="num">Record</th><th class="num">Hit %</th><th class="num">Predicted</th></tr></thead><tbody>` +
+    Object.entries(obj || {}).map(([k, r]) => `<tr><td class="l">${k}</td>${recCells(r)}</tr>`).join("") + "</tbody></table></div>";
+  $("#resLegs").innerHTML = Object.entries(M).map(([mk, x]) => `<div class="card" style="margin:8px 0"><h2>${{sog: "SOG", points: "Points", saves: "Saves"}[mk] || mk} <span class="muted" style="font-weight:400;font-size:13px">${x.all.n} graded legs</span></h2>
+    <div class="grid2">${table("Reliability (blended p)", x.reliability)}${table("TAKE legs (rule-passing)", {all: x.takes, ...Object.fromEntries(Object.entries(x.takes_by_side).map(([k, v]) => ["TAKE " + (k === "OVER" ? "MORE" : "LESS"), v]))})}</div>
+    <div class="grid3">${table("By side", {MORE: x.by_side.OVER, LESS: x.by_side.UNDER})}${table("By line", x.by_line)}${table("By multiplier", x.by_mult)}</div>
+    <p class="sub">Model's side where it disagreed with the market: ${x.model_vs_market && x.model_vs_market.n ? `${x.model_vs_market.hit}-${x.model_vs_market.miss} (${pct(x.model_vs_market.pct)})` : "none graded yet"}.</p></div>`).join("");
+}
+// ---------- calibration panel (model/calibrate.py) ----------
+function renderCalib(){
+  const M = CAL, names = {saves: "Saves", sog: "SOG", points: "Points"};
+  const rel = rows => `<table><thead><tr><th class="l">Side</th><th class="l">Line</th><th class="num">n</th><th class="num">Predicted</th><th class="num">Actual</th><th class="num">Gap</th></tr></thead><tbody>` +
+    (rows || []).map(r => { const gap = r.actual - r.pred, ok = r.n < 200 || Math.abs(gap) <= 0.03;
+      return `<tr><td class="l">${r.side}</td><td class="l">${r.line}</td><td class="num">${r.n}</td><td class="num">${pct(r.pred)}</td><td class="num">${pct(r.actual)}</td><td class="num ${ok ? "" : "bad"}">${gap > 0 ? "+" : ""}${(100 * gap).toFixed(1)}${r.n >= 200 ? (ok ? " ✓" : " ✗") : ""}</td></tr>`; }).join("") + "</tbody></table>";
+  $("#calBody").innerHTML = Object.entries(M).map(([mk, m]) => { const c = m.cal || {}, b = c.blend || {}, sc = m.scores || {};
+    const best = Object.entries(sc).filter(([, v]) => v.logloss != null).sort((a, b) => a[1].logloss - b[1].logloss)[0];
+    return `<div class="card"><h2>${names[mk] || mk} <span class="muted" style="font-weight:400;font-size:13px">${m.lines} graded lines, ${m.from} to ${m.to}</span></h2>
+      <p class="sub">Model weight in the blend: <b>${c.w != null ? c.w : RULE.blend_w}</b>${b.w_fit != null ? ` (log-loss fit ${b.w_fit}${b.shrink != null && b.shrink < 1 ? `, × ${b.shrink} shrink` : ""}; ${b.basis || ""})` : ""}.
+        Model's side where it disagreed with DraftKings: ${b.disagree && b.disagree.n ? `${b.disagree.hit}-${b.disagree.n - b.disagree.hit} (${pct(b.disagree.pct)}) vs 57.7% break-even` : "–"}. Per-line intercepts: ${c.line_a_used ? "used" : "not used (no walk-forward gain)"}.</p>
+      <div class="grid2"><div><h3>Walk-forward scores (lower is better)</h3><div class="tbl"><table><thead><tr><th class="l">Probability</th><th class="num">n</th><th class="num">Brier</th><th class="num">Log loss</th></tr></thead><tbody>` +
+      Object.entries(sc).map(([k, v]) => `<tr${best && best[0] === k ? ' class="good"' : ""}><td class="l">${k}</td><td class="num">${v.n}</td><td class="num">${v.brier ?? "–"}</td><td class="num">${v.logloss ?? "–"}</td></tr>`).join("") +
+      `</tbody></table></div></div><div><h3>Reliability by side and line (✓ within ±3 pts, n ≥ 200)</h3><div class="grid2"><div class="tbl"><b>Raw model</b>${rel((m.reliability || {}).raw)}</div><div class="tbl"><b>Final (blended)</b>${rel((m.reliability || {}).final)}</div></div></div></div></div>`; }).join("") || '<p class="muted">No calibration in this build.</p>';
+}
 // ---------- matchup builder ----------
 function initBuilder(){
   const gs = D.goalies.filter(g => (g.gp||0) > 0).sort((a,b) => a.name.localeCompare(b.name));
@@ -1299,16 +1541,22 @@ function nbCdf(k, mean, size){
   return Math.min(tot, 1);
 }
 // negative-binomial size for a mean (mirrors sog.size_for): disp_k x mean when fitted, else the fixed size
-const sizeFor = (mean, prm) => prm.disp_k ? Math.max(prm.disp_k * Math.max(mean, 0.02), 0.5) : prm.disp;
-function nbOver(mean, line, prm){   // P(over | no push); whole-number lines push on X == line
+// by position and volume tier when fitted (disp_f / disp_d over the projection edges disp_edges)
+function dispK(mean, prm, pos){
+  const t = pos === "D" ? prm.disp_d : pos === "F" ? prm.disp_f : null;
+  if (!t || !t.length || !prm.disp_edges || !prm.disp_edges.length) return prm.disp_k;
+  const i = prm.disp_edges.filter(e => mean >= e).length; return t[Math.min(i, t.length - 1)];
+}
+const sizeFor = (mean, prm, pos) => { const k = dispK(mean, prm, pos); return k ? Math.max(k * Math.max(mean, 0.02), 0.5) : prm.disp; };
+function nbOver(mean, line, prm, pos){   // P(over | no push); whole-number lines push on X == line
   mean = Math.max(mean, 0.02);
-  const size = sizeFor(mean, prm);
+  const size = sizeFor(mean, prm, pos);
   const over = 1 - nbCdf(Math.floor(line), mean, size);
   if (line !== Math.floor(line)) return over;
   const under = nbCdf(line - 1, mean, size);
   return over + under > 0 ? over / (over + under) : 0.5;
 }
-const sogOver = (mean, line) => nbOver(mean, line, SP);
+const sogOver = (mean, line, pos) => nbOver(mean, line, SP, pos);
 // tonight's projection from per-player rates (mirrors sog.live_proj): rate/60 x TOI x opponent x team x
 // home x back-to-back x opponent back-to-back, then the linear recalibration cal_a + cal_b x raw
 function liveProj(rate60, toi, oppF, teamF, home, b2b, oppB2b, prm){
@@ -1316,8 +1564,9 @@ function liveProj(rate60, toi, oppF, teamF, home, b2b, oppB2b, prm){
   return Math.max(0.02, (prm.cal_a ?? 0) + (prm.cal_b ?? 1) * rate60 / 60 * toi * oppF * teamF * mult);
 }
 // DraftKings' no-vig P(over) on exactly this line, for blending a DFS leg (null when DK has no such line)
-function dkMkt(list, name, team, date, line){
-  const key = nameKey(name), r = (list || []).find(x => x.date === date && x.teams.includes(team) && nameKey(x.name) === key && +x.line === +line);
+function dkMkt(list, name, team, date, line, pid){
+  const key = nameKey(name), r = (list || []).find(x => x.date === date && x.teams.includes(team) && +x.line === +line &&
+    (pid != null && x.player_id != null ? x.player_id === pid : nameKey(x.name) === key));
   return r ? novig(r.over, r.under) : null;
 }
 const playedYday = (team, date) => { const l = D.last_played[team]; return !!l && (new Date(date) - new Date(String(l).slice(0, 10))) / 864e5 === 1; };
@@ -1327,12 +1576,12 @@ let PP_SOG = [];
 function sogLineFor(pl, team, date){
   const k = date + "|" + pl.id;
   if (SOGL[k] != null) return {line: SOGL[k], src: "manual"};
-  const bd = boardFor("sog", pl.name);
+  const bd = boardFor("sog", pl.id);
   if (bd) return {line: bd.line, src: bd.book, mo: bd.mo, mu: bd.mu};
   const key = nameKey(pl.name);
-  const dk = (D.dk_sog || []).find(r => r.date === date && r.teams.includes(team) && nameKey(r.name) === key);
+  const dk = (D.dk_sog || []).find(r => r.date === date && r.teams.includes(team) && (r.player_id != null ? r.player_id === pl.id : nameKey(r.name) === key));
   if (dk) return {line: dk.line, src: "DK", over: dk.over, under: dk.under};
-  const pp = PP_SOG.find(r => (!r.date || r.date === date) && (!r.team || r.team === team) && nameKey(r.name) === key);
+  const pp = PP_SOG.find(r => (!r.date || r.date === date) && r.team === team && (r.player_id != null ? r.player_id === pl.id : nameKey(r.name) === key));
   if (pp) return {line: pp.line, src: "PP", url: pp.url};
   return {line: null, src: ""};
 }
@@ -1342,10 +1591,10 @@ function sogDecision(g, team, opp, home, pl){
   const L = sogLineFor(pl, team, g.date), mk = g.date + "|" + pl.id;
   let po = null, d = null;
   if (L.line != null){
-    po = sogOver(proj, L.line);
+    po = sogOver(proj, L.line, pl.pos);
     const m = SOGM[mk] || {};
     d = decide("sog", po, Object.assign({proj, line: L.line}, L.src === "DK" ? {over: L.over, under: L.under}
-      : {multOver: m.o ?? L.mo ?? 1, multUnder: m.u ?? L.mu ?? 1, mkt: dkMkt(D.dk_sog, pl.name, team, g.date, L.line)}));
+      : {multOver: m.o ?? L.mo ?? 1, multUnder: m.u ?? L.mu ?? 1, mkt: dkMkt(D.dk_sog, pl.name, team, g.date, L.line, pl.id)}));
   }
   return {proj, L, mk, po, d};
 }
@@ -1355,10 +1604,10 @@ const PTL = store.get("gm_ptl", {});
 function ptsLineFor(pl, team, date){
   const k = date + "|" + pl.id;
   if (PTL[k] != null) return {line: PTL[k], src: "manual"};
-  const bd = boardFor("points", pl.name);
+  const bd = boardFor("points", pl.id);
   if (bd) return {line: bd.line, src: bd.book, mo: bd.mo, mu: bd.mu};
   const key = nameKey(pl.name);
-  const dk = (D.dk_points || []).find(r => r.date === date && r.teams.includes(team) && nameKey(r.name) === key);
+  const dk = (D.dk_points || []).find(r => r.date === date && r.teams.includes(team) && (r.player_id != null ? r.player_id === pl.id : nameKey(r.name) === key));
   if (dk) return {line: dk.line, src: "DK", over: dk.over, under: dk.under};
   return {line: null, src: ""};
 }
@@ -1368,9 +1617,9 @@ function ptsDecision(g, team, opp, home, pl){
   const L = ptsLineFor(pl, team, g.date);
   let po = null, d = null;
   if (L.line != null){
-    po = nbOver(proj, L.line, PTP);
+    po = nbOver(proj, L.line, PTP, pl.pos);
     d = decide("points", po, Object.assign({proj, line: L.line}, L.src === "DK" ? {over: L.over, under: L.under}
-      : {multOver: L.mo ?? 1, multUnder: L.mu ?? 1, mkt: dkMkt(D.dk_points, pl.name, team, g.date, L.line)}));
+      : {multOver: L.mo ?? 1, multUnder: L.mu ?? 1, mkt: dkMkt(D.dk_points, pl.name, team, g.date, L.line, pl.id)}));
   }
   return {proj, L, po, d};
 }
@@ -1444,11 +1693,12 @@ $("#boardImport").onclick = () => {
   const rows = parseBoard($("#boardText").value, $("#boardBook").value);
   const keep = (BOARD.rows || []).filter(r => !rows.some(x => x.key === r.key && x.market === r.market));
   BOARD = {rows: keep.concat(rows), at: new Date().toISOString()}; store.set("gm_board", BOARD);
-  boardRefresh(rows.length ? `Imported ${rows.length} props (${rows.filter(r => r.market === "saves").length} saves, ${rows.filter(r => r.market === "sog").length} SOG).` : "Nothing recognised. Use name,market,line,over mult,under mult.");
+  const un = rows.filter(r => r.match !== "MATCHED");
+  boardRefresh(rows.length ? `Imported ${rows.length} props (${rows.filter(r => r.market === "saves").length} saves, ${rows.filter(r => r.market === "sog").length} SOG, ${rows.filter(r => r.market === "points").length} points). ${un.length ? `${un.length} UNMATCHED and left out (add the team code, e.g. "Anders Lee UTA"): ${un.slice(0, 5).map(r => r.name + (r.reason ? " – " + r.reason : "")).join("; ")}${un.length > 5 ? "…" : ""}` : "All matched to a player."}` : "Nothing recognised. Use name,team,market,line,over mult,under mult.");
 };
 $("#boardClear").onclick = () => { BOARD = {rows: []}; store.set("gm_board", BOARD); boardRefresh("Board cleared."); };
 $("#boardCount").textContent = (BOARD.rows || []).length ? `(${BOARD.rows.length} props loaded)` : "";
-initDfs(); renderSlate(); initBuilder(); renderResults(); renderWinners(); renderWinBacktest(); renderSOG(); renderSogBacktest(); renderBacktest(); renderTracker(); renderSlip(); initGoalies(); renderTeams(); renderLogic();
+initDfs(); renderSlate(); initBuilder(); renderResults(); renderLegs(); renderCalib(); renderWinners(); renderWinBacktest(); renderSOG(); renderSogBacktest(); renderBacktest(); renderTracker(); renderSlip(); initGoalies(); renderTeams(); renderLogic();
 if (D.slate.length) pullPrizePicksLive();
 </script>
 </body>

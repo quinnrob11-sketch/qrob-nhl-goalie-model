@@ -89,8 +89,19 @@ def parse_event(ev: dict, js: dict, market: str = MARKET) -> list[dict]:
     return list(by_player.values())
 
 
-def match(rows: list[dict], goalies: list[dict]) -> list[dict]:
-    """Attach goalie id + team: name match restricted to the two teams in the game."""
+def match(rows: list[dict], goalies: list[dict], R=None) -> list[dict]:
+    """Attach goalie id + team: name match restricted to the two teams in the game (players.Rosters when
+    given, so a goalie resolves to one NHL playerId or is skipped as unmatched)."""
+    if R is not None:
+        out = []
+        for r in rows:
+            m = R.match(r["name"], None, r["teams"], "G")
+            if m["status"] != "MATCHED":
+                print(f"  [odds] can't place {r['name']} ({'/'.join(r['teams'])}): {m['reason']}, skipped")
+                continue
+            r.update(goalie_id=m["player_id"], player_id=m["player_id"], team=m["team"])
+            out.append(r)
+        return out
     by_key = {}
     for g in goalies:
         by_key.setdefault(prizepicks.name_key(g["name"]), []).append(g)
@@ -130,8 +141,58 @@ def fetch_moneylines(key: str) -> list[dict]:
     return rows
 
 
-def fetch(goalies: list[dict], now: dt.datetime | None = None) -> list[dict]:
-    global last_error, sog_rows, points_rows, ml_rows
+CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "odds_cache.json")
+MIN_AGE_MIN = 55          # reuse the last pull if it is younger than this (the page rebuilds every 15 min)
+match_counts: dict = {}
+
+
+def _skater_ids(R):
+    """playerId (and team) on every DK shots / points row: name within the game's two teams, never league-wide."""
+    import players
+    global match_counts
+    for name, rows in (("sog", sog_rows), ("points", points_rows)):
+        match_counts[name] = players.match_rows(rows, R, team_key="team_", game_key="teams")
+
+
+def fetch(goalies: list[dict], now: dt.datetime | None = None, R=None) -> list[dict]:
+    """DraftKings lines, at most one Odds API pull per MIN_AGE_MIN (cached in model/data/odds_cache.json);
+    games that have started are dropped from a reused pull."""
+    global last_error, sog_rows, points_rows, ml_rows, remaining
+    now = now or dt.datetime.now(dt.timezone.utc)
+    if os.path.exists(CACHE):
+        try:
+            c = json.load(open(CACHE))
+            age = (now - dt.datetime.fromisoformat(c["at"])).total_seconds() / 60
+        except (ValueError, KeyError):
+            c, age = None, 1e9
+        if c and 0 <= age < MIN_AGE_MIN:
+            live = lambda r: r.get("start") is None or dt.datetime.fromisoformat(r["start"].replace("Z", "+00:00")) > now
+            sog_rows = [r for r in c["sog"] if live(r)]
+            points_rows = [r for r in c["points"] if live(r)]
+            ml_rows, remaining, last_error = c["ml"], c.get("remaining"), None
+            rows = [r for r in c["saves"] if live(r)]
+            if R is not None:
+                _skater_ids(R)
+            rows = match(rows, goalies, R)
+            print(f"  [odds] reused the pull from {age:.0f} min ago: {len(rows)} saves, {len(sog_rows)} SOG, {len(points_rows)} points lines")
+            return rows
+    rows = _fetch(goalies, now, R)
+    if not last_error or rows or sog_rows:
+        try:
+            raw = {"at": now.isoformat(), "remaining": remaining, "ml": ml_rows, "sog": sog_rows, "points": points_rows,
+                   "saves": [{k: v for k, v in r.items() if k not in ("goalie_id", "player_id", "team", "match", "match_reason")}
+                             for r in _raw_saves]}
+            json.dump(raw, open(CACHE, "w"), separators=(",", ":"))
+        except OSError:
+            pass
+    return rows
+
+
+_raw_saves: list[dict] = []
+
+
+def _fetch(goalies: list[dict], now: dt.datetime | None = None, R=None) -> list[dict]:
+    global last_error, sog_rows, points_rows, ml_rows, _raw_saves
     last_error = None
     sog_rows = []
     points_rows = []
@@ -162,10 +223,15 @@ def fetch(goalies: list[dict], now: dt.datetime | None = None) -> list[dict]:
             last_error = str(e)
             print(f"  [odds] {ev['away_team']} @ {ev['home_team']}: {e}")
             continue
-        rows += parse_event(ev, js)
-        sog_rows += parse_event(ev, js, SOG_MARKET)
-        points_rows += parse_event(ev, js, POINTS_MARKET)
-    rows = match(rows, goalies)
+        for r in (x := parse_event(ev, js)) + (y := parse_event(ev, js, SOG_MARKET)) + (z := parse_event(ev, js, POINTS_MARKET)):
+            r["start"] = ev["commence_time"]
+        rows += x
+        sog_rows += y
+        points_rows += z
+    _raw_saves = [dict(r) for r in rows]
+    if R is not None:
+        _skater_ids(R)
+    rows = match(rows, goalies, R)
     print(f"  [odds] {len(rows)} DraftKings saves lines, {len(sog_rows)} SOG lines, {len(points_rows)} points lines, "
           f"{len(ml_rows)} moneylines "
           f"(requests remaining: {remaining})")

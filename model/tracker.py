@@ -210,7 +210,7 @@ def calls_for_game(payload, g):
                 if pl.get("line") or pl.get("pp"):
                     srow["role"] = " · ".join(v for v in (pl.get("line"), pl.get("pp")) if v)
                 if dk:
-                    po = sog_p_over(mean, dk["line"], sog.size_for(mean, prm))
+                    po = sog_p_over(mean, dk["line"], sog.size_for(mean, prm, pl.get("pos")))
                     d = pricing.decide(po, calib.get(market, {}).get("cal"), dk.get("over"), dk.get("under"),
                                        cap=calib.get(market, {}).get("tier_cap"), market=market, proj=mean, line=dk["line"])
                     srow.update(p_over=round(po, 4), over=dk.get("over"), under=dk.get("under"),
@@ -457,6 +457,7 @@ def grade(years, today: dt.date | None = None):
         if r["result"] == "MISS" and auto and auto not in (r.get("note") or ""):
             r["note"] = "; ".join(x for x in (r.get("note"), auto) if x)
     _write_log(log)
+    grade_legs(sb, gb)
     summary = summarize(log, model_rows, alarms)
     with open(OUT, "w") as f:
         json.dump(summary, f, separators=(",", ":"))
@@ -649,3 +650,123 @@ if __name__ == "__main__":
     yrs = [int(sys.argv[1])] if len(sys.argv) > 1 else [dt.date.today().year + (dt.date.today().month >= 7)]
     s = grade(yrs)
     print(json.dumps({k: s[k] for k in ("plays", "markets", "model")}, indent=1)[:3000])
+
+
+# ---------- every displayed leg (audit item 8) ----------
+LEGS = os.path.join(HERE, "data", "legs.csv")
+LEG_FIELDS = ["date", "game", "built", "player_id", "name", "team", "opp", "market", "line", "source", "mo", "mu",
+              "side", "mult", "p_model", "p_mkt", "p_blend", "p", "verdict", "tier", "reason", "role_change", "result", "actual"]
+
+
+def _read_legs():
+    if not os.path.exists(LEGS):
+        return []
+    with open(LEGS, newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def _write_legs(rows):
+    with open(LEGS, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=LEG_FIELDS, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(rows)
+
+
+def _leg_key(r):
+    return (r["date"], str(r["player_id"]), r["market"], float(r["line"]), r["source"])
+
+
+def log_legs(board_rows, built: str):
+    """Store every board leg shown this build (games not started yet). The latest pre-game snapshot of a
+    leg replaces earlier ones; graded legs are never touched."""
+    cur = _read_legs()
+    idx = {_leg_key(r): i for i, r in enumerate(cur)}
+    n = 0
+    for b in board_rows:
+        if b.get("player_id") is None or b.get("side") is None:
+            continue
+        r = {"date": b["date"], "game": b["game"], "built": built, "player_id": b["player_id"], "name": b["name"],
+             "team": b["team"], "opp": b.get("opp"), "market": b["market"], "line": b["line"], "source": b["source"],
+             "mo": b.get("mo"), "mu": b.get("mu"), "side": b["side"], "mult": b.get("mult"),
+             "p_model": b.get("p_model"), "p_mkt": b.get("p_mkt"), "p_blend": b.get("p_blend"), "p": b.get("p"),
+             "verdict": b.get("verdict"), "tier": b.get("tier"), "reason": b.get("reason"),
+             "role_change": b.get("role_change") or "", "result": "", "actual": ""}
+        k = _leg_key(r)
+        if k in idx:
+            if cur[idx[k]].get("result"):
+                continue
+            cur[idx[k]] = r
+        else:
+            idx[k] = len(cur); cur.append(r)
+        n += 1
+    cur.sort(key=lambda r: (r["date"], r["game"], r["market"], r["name"]))
+    _write_legs(cur)
+    return n
+
+
+def grade_legs(sb, gb):
+    """Fill result / actual for logged legs whose game is in the box scores, by playerId."""
+    rows = _read_legs()
+    if not rows:
+        return rows
+    stat = {}
+    for d, col, mk in ((sb, "shots_on_goal", "sog"), (sb, "points", "points"), (gb, "saves", "saves")):
+        for gid, pid, v in d[["game_id", "player_id", col]].itertuples(index=False):
+            stat[(int(gid), int(pid), mk)] = int(v)
+    final = set(int(g) for g in sb.game_id.unique())
+    for r in rows:
+        if r.get("result") or r["market"] not in ("sog", "points", "saves"):
+            continue
+        try:
+            gid, pid = int(r["game"]), int(r["player_id"])
+        except ValueError:
+            continue
+        if gid not in final:
+            continue
+        v = stat.get((gid, pid, r["market"]))
+        if v is None:
+            r["result"] = "VOID"            # did not play
+            continue
+        r["actual"] = v
+        r["result"] = _result(r["side"], v, float(r["line"]))
+    _write_legs(rows)
+    return rows
+
+
+def _disagree(x):
+    """Record of the MODEL's side (p_model is P(over)) on legs where it and the market lean opposite ways."""
+    hit = sum((float(r["actual"]) > float(r["line"])) == (float(r["p_model"]) >= .5) for r in x)
+    return {"n": len(x), "hit": hit, "miss": len(x) - hit, "pct": round(hit / len(x), 4) if x else None}
+
+
+def legs_summary(rows=None) -> dict:
+    """Reliability of the blended probability and records by side, line, multiplier and rule-passing legs."""
+    rows = [r for r in (rows if rows is not None else _read_legs()) if r.get("result") in ("HIT", "MISS")]
+    def rec(x):
+        h = sum(r["result"] == "HIT" for r in x)
+        return {"n": len(x), "hit": h, "miss": len(x) - h, "pct": round(h / len(x), 4) if x else None,
+                "pred": round(sum(float(r["p"]) for r in x) / len(x), 4) if x else None}
+    out = {"n": len(rows), "by_market": {}}
+    for mk in ("sog", "points", "saves"):
+        x = [r for r in rows if r["market"] == mk and r.get("p") not in (None, "")]
+        if not x:
+            continue
+        buckets = {}
+        for lo, hi in ((.5, .55), (.55, .58), (.58, .62), (.62, .7), (.7, 1.01)):
+            b = [r for r in x if lo <= float(r["p"]) < hi]
+            if b:
+                buckets[f"{int(lo * 100)}-{min(int(hi * 100), 100)}"] = rec(b)
+        mult = {}
+        for r in x:
+            mult.setdefault(str(r.get("mult") or "1"), []).append(r)
+        out["by_market"][mk] = {
+            "all": rec(x), "reliability": buckets,
+            "by_side": {s: rec([r for r in x if r["side"] == s]) for s in ("OVER", "UNDER")},
+            "by_line": {k: rec([r for r in x if pricing.line_bucket(r["line"]) == k]) for k in sorted({pricing.line_bucket(r["line"]) for r in x})},
+            "by_mult": {k: rec(v) for k, v in sorted(mult.items())},
+            "takes": rec([r for r in x if str(r.get("verdict", "")).startswith("TAKE")]),
+            "takes_by_side": {s: rec([r for r in x if str(r.get("verdict", "")).startswith("TAKE") and r["side"] == s]) for s in ("OVER", "UNDER")},
+            "model_vs_market": _disagree([r for r in x if r.get("p_mkt") not in (None, "") and r.get("p_model") not in (None, "")
+                                          and (float(r["p_model"]) >= .5) != (float(r["p_mkt"]) >= .5)]),
+        }
+    return out

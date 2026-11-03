@@ -27,6 +27,10 @@ import saves_dist
 import sog
 import starters
 import linecombos
+import pick6
+import players
+import props_board
+import slate as slate_mod
 import tracker
 import winners
 
@@ -44,10 +48,11 @@ def season_end_year(today: dt.date) -> int:
 
 
 def fetch_slate(today: dt.date):
-    """Upcoming games for the next 7 days from the NHL schedule API. Best-effort:
-    returns [] if the API can't be reached (the page then falls back to the matchup builder)."""
+    """Games from yesterday (CT) for the next 7 days from the NHL schedule API; yesterday's only while
+    still live (a late game past midnight CT). Best-effort: returns [] if the API can't be reached (the
+    page then falls back to the matchup builder). `today` is the America/Chicago date."""
     try:
-        req = urllib.request.Request(SCHEDULE_API.format(d=today.isoformat()),
+        req = urllib.request.Request(SCHEDULE_API.format(d=(today - dt.timedelta(days=1)).isoformat()),
                                      headers={"User-Agent": "qrob-goalie-model"})
         with urllib.request.urlopen(req, timeout=30) as r:
             js = json.load(r)
@@ -65,7 +70,7 @@ def fetch_slate(today: dt.date):
                 "type": "P" if g.get("gameType") == 3 else "R",
                 "state": g.get("gameState"),
             })
-    return games
+    return [g for g in games if g["date"] >= today.isoformat() or g["state"] in slate_mod.LIVE]
 
 
 def latest_final(today: dt.date) -> str | None:
@@ -89,12 +94,13 @@ def goal_rates(st: engine.State, team):
 
 
 def sog_export(teams, sst: sog.State, sp: sog.SogParams, skater_df: pd.DataFrame, pst: sog.State | None = None,
-               combos: dict | None = None, slots: dict | None = None):
+               combos: dict | None = None, slots: dict | None = None, R: players.Rosters | None = None):
     """Per-team skater list for the SOG and points props: current roster when we have it,
     otherwise players who played for the team in its last 25 games (wide enough
     to keep regulars who were hurt at the end of the season). Each player carries his shot rate
     (r60) and points rate (p60) per 60 and expected TOI; when DailyFaceoff line combos are in,
-    his listed line / PP unit and, on a role change, the adjusted TOI (linecombos.role_toi)."""
+    his listed line / PP unit and, on a role change, a role-change badge and (only when the combination
+    was confirmed within 6 hours) the adjusted TOI, capped at +/- 15% (linecombos.role_toi)."""
     out = {}
     recent = skater_df.sort_values("game_date")
     for team in sorted(teams):
@@ -124,15 +130,21 @@ def sog_export(teams, sst: sog.State, sp: sog.SogParams, skater_df: pd.DataFrame
             for i, r in enumerate(ranked):
                 r["slot"] = linecombos.recent_slot(i + 1, pos)
         listed = (combos or {}).get(team, {})
+        by_id = {}
+        for c in listed.values():
+            m = R.match(c["name"], team) if R is not None else {"player_id": None}
+            if m["player_id"] is not None:
+                by_id[m["player_id"]] = c
         for r in rows:
-            c = listed.get(prizepicks.name_key(r["name"]))
+            c = by_id.get(r["id"]) if R is not None else listed.get(prizepicks.name_key(r["name"]))
             if not c:
                 continue
             r["line"], r["pp"] = c.get("line"), c.get("pp")
-            toi, changed = linecombos.role_toi(r["toi"], r["line"], r.get("slot"), slots or {})
+            toi, changed, adjusted = linecombos.role_toi(r["toi"], r["line"], r.get("slot"), slots or {}, c.get("updated"))
             if changed:
                 f = toi / r["toi"] if r["toi"] else 1.0
                 r["role_change"] = f"{r['slot']}→{r['line']}"
+                r["role_adjusted"] = bool(adjusted)
                 r["toi"] = round(toi, 2)
                 if "ptoi" in r:
                     r["ptoi"] = round(r["ptoi"] * f, 2)
@@ -200,34 +212,20 @@ def goalie_table(starts: pd.DataFrame, st: engine.State, season: int):
 ROSTER_SKATERS: dict = {}
 
 
-def fetch_rosters(teams):
-    """Current goalies on each NHL roster: {team: [{"id", "name"}]}. Best-effort per team.
-    Skaters (forwards + defense) are collected into ROSTER_SKATERS the same way."""
+def fetch_rosters(R: players.Rosters):
+    """Current goalies on each NHL roster ({team: [{"id", "name"}]}) from the rosters players.fetch pulled
+    (live, or the last saved copy; box-score fallbacks are not treated as rosters). Skaters (forwards +
+    defense) are collected into ROSTER_SKATERS the same way."""
     out = {}
-    for team in sorted(teams):
-        try:
-            req = urllib.request.Request(ROSTER_API.format(team=team),
-                                         headers={"User-Agent": "qrob-goalie-model"})
-            with urllib.request.urlopen(req, timeout=30) as r:
-                js = json.load(r)
-        except Exception as e:
-            print(f"  [roster] {team} unavailable: {e}")
-            continue
-        gs = []
-        for p in js.get("goalies", []):
-            first = (p.get("firstName") or {}).get("default", "")
-            last = (p.get("lastName") or {}).get("default", "")
-            gs.append({"id": int(p["id"]), "name": f"{first[:1]}. {last}".strip(". ")})
-        if gs:
-            out[team] = gs
-        sk = []
-        for grp, pos in (("forwards", "F"), ("defensemen", "D")):
-            for p in js.get(grp, []):
-                first = (p.get("firstName") or {}).get("default", "")
-                last = (p.get("lastName") or {}).get("default", "")
-                sk.append({"id": int(p["id"]), "name": f"{first[:1]}. {last}".strip(". "), "pos": pos})
-        if sk:
-            ROSTER_SKATERS[team] = sk
+    short = lambda p: f"{p['first'][:1]}. {p['last']}".strip(". ")
+    for team, ps in R.teams.items():
+        if R.source.get(team, "").startswith(("live", "saved")):
+            gs = [{"id": p["id"], "name": short(p)} for p in ps if p["pos"] == "G"]
+            if gs:
+                out[team] = gs
+            sk = [{"id": p["id"], "name": short(p), "pos": p["pos"]} for p in ps if p["pos"] in ("F", "D")]
+            if sk:
+                ROSTER_SKATERS[team] = sk
     print(f"  [roster] goalies for {len(out)} teams, skaters for {len(ROSTER_SKATERS)}")
     return out
 
@@ -318,8 +316,42 @@ def saves_rows(df: pd.DataFrame, season: int) -> pd.DataFrame:
     return x
 
 
+def saves_bias_now(df: pd.DataFrame, season: int, today) -> float:
+    """Rolling saves bias (30-day half-life) from every graded start of this season and last: actual saves
+    minus the walk-forward projection the page would have shown (game script included)."""
+    rows = []
+    for s_ in (season - 1, season):
+        x = saves_rows(df, s_)
+        if len(x):
+            rows.append(x)
+    if not rows:
+        return 0.0
+    x = pd.concat(rows)
+    proj = [saves_dist.project(r.exp_sa, r.share, r.sv, r.p_win, DIST)["proj"] for r in x.itertuples()]
+    return saves_dist.bias_now(pd.to_datetime(x.date).dt.strftime("%Y-%m-%d").values, x.saves.values - np.array(proj),
+                               today, pricing.SAVES_BIAS_HL)
+
+
+def live_legs(day_games, live) -> list[dict]:
+    """Legs logged before puck drop for the slate day's started games, with the stat so far and HIT / MISS."""
+    started = {str(g["id"]): g for g in day_games if g.get("state") in slate_mod.FINAL | slate_mod.LIVE}
+    out = []
+    for r in tracker._read_legs():
+        g = started.get(str(r["game"]))
+        if g is None:
+            continue
+        lv = (live.get(str(r["game"])) or {})
+        st = (lv.get("players") or {}).get(str(r["player_id"]), {})
+        v = st.get({"sog": "sog", "points": "points", "saves": "saves"}.get(r["market"], ""))
+        out.append({k: r.get(k) for k in ("name", "team", "market", "line", "side", "verdict", "p", "source", "mult")}
+                   | {"stat": v, "state": lv.get("state", g.get("state")),
+                      "status": slate_mod.leg_status(r["market"], r["side"], float(r["line"]), v, lv.get("state", g.get("state")))})
+    return out
+
+
 def main():
-    today = dt.datetime.now(dt.timezone.utc).date()
+    now = dt.datetime.now(dt.timezone.utc)
+    today = slate_mod.ct_today(now)           # the page's day is America/Chicago, not UTC
     cur = season_end_year(today)
     years = list(range(2024, cur + 1))
     print(f"Loading seasons {years} ...")
@@ -350,8 +382,11 @@ def main():
 
     goalies = goalie_table(st_df, state, display_season)
     slate = fetch_slate(today)
+    slate_day = slate_mod.slate_day(slate, now)
     teams = ({g[k] for g in slate for k in ("home", "away")} or set(state.off)) - DEFUNCT
-    rosters = fetch_rosters(teams)
+    box_rosters = players.from_box(skater_df[skater_df.season == latest], st_df[st_df.season == latest])
+    R = players.fetch(teams, box_rosters)
+    rosters = fetch_rosters(R)
     lg_share = round(state.lg_share.s / state.lg_share.w, 4)
     # Current rosters fix offseason moves; goalies with no NHL starts get a
     # league-average profile so they still project.
@@ -365,10 +400,13 @@ def main():
                                   "sv": engine.LEAGUE_SV, "share": lg_share, "l10": None,
                                   "last10": [], "new": True}
                 goalies.append(by_id[r["id"]])
-    dk = odds.fetch(goalies)
+    dk = odds.fetch(goalies, R=R)
     pp = prizepicks.fetch(goalies)
+    p6_rows, p6_stats = pick6.fetch(slate, R)
     starter_rows = starters.fetch(goalies, sorted({g["date"] for g in slate}))
     combos = linecombos.fetch({g[k] for g in slate for k in ("home", "away")} - DEFUNCT)
+    sv_rows = saves_rows(df, cur)
+    saves_bias = round(saves_bias_now(df, cur, today), 3)
     slots = linecombos.slot_toi(skater_df, latest)
     # Goalies on the board we have no NHL history for get the same treatment.
     for r in pp:
@@ -382,7 +420,13 @@ def main():
 
     recent = df[pd.to_datetime(df.date) >= pd.Timestamp(today) - pd.Timedelta(days=45)]
     payload = {
-        "built": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        "built": now.strftime("%Y-%m-%d %H:%M UTC"),
+        "built_iso": now.isoformat(timespec="seconds"),
+        "slate_day": slate_day,
+        "saves_bias": saves_bias,
+        "rosters_status": players.status, "roster_source": R.source,
+        "pick6_status": pick6.status, "pick6_stats": p6_stats,
+        "dk_match": odds.match_counts,
         "season": f"{cur - 1}-{str(cur)[2:]}",
         "display_season": f"{display_season - 1}-{str(display_season)[2:]}",
         "preseason": bool(latest < cur),
@@ -399,7 +443,7 @@ def main():
         "pp_status": prizepicks.status,
         "starters": starter_rows,
         "starters_status": starters.status,
-        "sog": {"params": sp.to_dict(), "players": sog_export(teams, sst, sp, skater_df, pst, combos, slots),
+        "sog": {"params": sp.to_dict(), "players": sog_export(teams, sst, sp, skater_df, pst, combos, slots, R),
                 "opp": {t: round(float(sst.opp_factor(t)), 4) for t in sst.team_sa if t not in DEFUNCT},
                 "team": {t: round(float(sst.team_factor(t)), 4) for t in sst.team_for if t not in DEFUNCT},
                 "backtest": json.load(open(os.path.join(OUT, "sog_backtest.json")))},
@@ -411,10 +455,11 @@ def main():
                 "lg_goals": round(state.lg_goals.s / state.lg_goals.w, 4),
                 "backtest": json.load(open(os.path.join(OUT, "winners_backtest.json")))},
         "dk": dk,
-        "dk_sog": [{"name": r["name"], "teams": r["teams"], "date": r["date"], "line": r["line"],
-                    "over": r.get("over"), "under": r.get("under")} for r in odds.sog_rows],
-        "dk_points": [{"name": r["name"], "teams": r["teams"], "date": r["date"], "line": r["line"],
-                       "over": r.get("over"), "under": r.get("under")} for r in odds.points_rows],
+        "dk_sog": [{"name": r["name"], "teams": r["teams"], "date": r["date"], "line": r["line"], "player_id": r.get("player_id"),
+                    "team": r.get("team"), "over": r.get("over"), "under": r.get("under")} for r in odds.sog_rows],
+        "dk_points": [{"name": r["name"], "teams": r["teams"], "date": r["date"], "line": r["line"], "player_id": r.get("player_id"),
+                       "team": r.get("team"), "over": r.get("over"), "under": r.get("under")} for r in odds.points_rows],
+        "rosters": {t: [[p["id"], p["first"], p["last"], p["pos"]] for p in ps] for t, ps in R.teams.items() if t in teams},
         "ml": odds.ml_rows,
         "dist": DIST,
         "pricing": pricing.config(),
@@ -442,7 +487,7 @@ def main():
         print(f"  [tracker] grading failed: {e}")
         payload["tracking"] = json.load(open(tracker.OUT)) if os.path.exists(tracker.OUT) else None
     try:
-        payload["calib"] = calibrate.fit(tracker._read_log(), saves_rows(df, cur), DIST,
+        payload["calib"] = calibrate.fit(tracker._read_log(), sv_rows, DIST,
                                          pd.read_csv(PRICES) if os.path.exists(PRICES) else None,
                                          sog_rows=sog_rows, sog_prm=sp, points_rows=points_rows, points_prm=pp_)
         with open(os.path.join(OUT, "calibration.json"), "w") as f:
@@ -451,6 +496,19 @@ def main():
         print(f"  [calibrate] failed: {e}")
         payload["calib"] = json.load(open(os.path.join(OUT, "calibration.json"))) \
             if os.path.exists(os.path.join(OUT, "calibration.json")) else None
+    # tonight's board: every Pick6 line (DK as fallback), one verdict per player and market; every leg shown is logged
+    try:
+        payload["board"] = props_board.build(payload, p6_rows, now)
+        print(f"  [board] {payload['board']['counts']}")
+        tracker.log_legs(payload["board"]["rows"], payload["built_iso"])
+    except Exception as e:  # never let the board break the dashboard
+        import traceback; traceback.print_exc()
+        payload["board"] = {"rows": [], "plays": [], "counts": {}, "error": str(e)}
+    payload["legs"] = tracker.legs_summary()
+    # started games on the slate day: live / final stats and HIT / MISS for the legs logged before puck drop
+    day_games = [g for g in slate if g["date"] == slate_day]
+    live = slate_mod.fetch_live(day_games)
+    payload["live"] = {"status": slate_mod.status, "games": live, "legs": live_legs(day_games, live)}
     print(f"  [tracker] snapshot dates: {tracker.snapshot(payload)}")
     tpl = open(os.path.join(HERE, "template.html"), encoding="utf-8").read()
     html = tpl.replace("/*__DATA__*/null", json.dumps(payload, separators=(",", ":"), default=_np))

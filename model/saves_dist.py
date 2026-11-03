@@ -70,3 +70,44 @@ def devig(ml_a, ml_b):
         return -o / (-o + 100) if o < 0 else 100 / (o + 100)
     a, b = imp(ml_a), imp(ml_b)
     return a / (a + b), b / (a + b)
+
+
+# ---- rolling bias correction (audit item 6) ----
+BIAS_PRIOR_N = 20.0      # starts of weight pulling the correction toward 0 (so a few games can't swing it)
+
+
+def _bias_state(dates, errs, hl_days, prior_n):
+    import numpy as np
+    d = np.asarray(dates, dtype="datetime64[D]"); e = np.asarray(errs, float)
+    order = np.argsort(d, kind="stable")
+    out = np.zeros(len(e)); s = w = 0.0; last = None; i = 0
+    while i < len(order):
+        day = d[order[i]]
+        if last is not None:
+            dec = 0.5 ** (float((day - last).astype(int)) / hl_days)
+            s, w = s * dec, w * dec
+        j = i
+        while j < len(order) and d[order[j]] == day:
+            j += 1
+        out[order[i:j]] = s / (w + prior_n)
+        for k in order[i:j]:
+            if not np.isnan(e[k]):
+                s += e[k]; w += 1.0
+        last, i = day, j
+    return out, s, w, last
+
+
+def rolling_bias(dates, errs, hl_days: float = 30.0, prior_n: float = BIAS_PRIOR_N):
+    """Walk-forward bias correction for every start: the exponentially weighted mean of (actual saves -
+    projected saves) over starts on EARLIER dates (half-life hl_days), shrunk toward 0 by prior_n starts."""
+    return _bias_state(dates, errs, hl_days, prior_n)[0]
+
+
+def bias_now(dates, errs, today, hl_days: float = 30.0, prior_n: float = BIAS_PRIOR_N) -> float:
+    """The correction to add to tonight's projections (every start before `today`, decayed to `today`)."""
+    import numpy as np
+    _, s, w, last = _bias_state(dates, errs, hl_days, prior_n)
+    if last is None:
+        return 0.0
+    dec = 0.5 ** (max(0.0, float((np.datetime64(str(today), "D") - last).astype(int))) / hl_days)
+    return float(s * dec / (w * dec + prior_n))

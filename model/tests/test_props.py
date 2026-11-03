@@ -55,11 +55,18 @@ class LineCombos(unittest.TestCase):
         self.assertEqual(r["Morgan Rielly"], {"line": "D1", "pp": "PP2"})
 
     def test_role_toi(self):
+        import datetime as dt
+        now = dt.datetime(2026, 11, 3, 22, 0, tzinfo=dt.timezone.utc)
+        fresh, stale = "2026-11-03T19:30:00Z", "2026-11-03T12:00:00Z"
         slots = {"F1": 19.0, "F4": 10.0}
-        self.assertEqual(linecombos.role_toi(17.0, "F1", "F1", slots), (17.0, False))
-        toi, changed = linecombos.role_toi(17.0, "F4", "F2", slots)
-        self.assertTrue(changed); self.assertAlmostEqual(toi, 13.5)
-        self.assertEqual(linecombos.role_toi(17.0, "F2", "F1", {"F2": 16.0}), (17.0, False))   # one-line shuffle
+        self.assertEqual(linecombos.role_toi(17.0, "F1", "F1", slots, fresh, now), (17.0, False, False))
+        # confirmed within 6 hours: halfway to the slot (13.5) but capped at -15% (14.45)
+        toi, changed, adj = linecombos.role_toi(17.0, "F4", "F2", slots, fresh, now)
+        self.assertTrue(changed and adj); self.assertAlmostEqual(toi, 17.0 * 0.85)
+        # older than 6 hours (or no timestamp): badge only, TOI unchanged, the prop stays
+        self.assertEqual(linecombos.role_toi(17.0, "F4", "F2", slots, stale, now), (17.0, True, False))
+        self.assertEqual(linecombos.role_toi(17.0, "F4", "F2", slots, None, now), (17.0, True, False))
+        self.assertEqual(linecombos.role_toi(17.0, "F2", "F1", {"F2": 16.0}, fresh, now), (17.0, False, False))   # one-line shuffle
         self.assertEqual(linecombos.recent_slot(4, "F"), "F2"); self.assertEqual(linecombos.recent_slot(14, "F"), "F4")
         self.assertEqual(linecombos.recent_slot(3, "D"), "D2")
 

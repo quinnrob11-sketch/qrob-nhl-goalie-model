@@ -28,7 +28,20 @@ class Calibration(unittest.TestCase):
         p = rng.uniform(.3, .7, 250); y = rng.uniform(size=250) < .5
         cal = calibrate.side_fit(p, y)
         self.assertAlmostEqual(cal["shrink"], 250 / pricing.MIN_CAL_N, places=3)
-        self.assertAlmostEqual(cal["b"], 1 + cal["shrink"] * (cal["b_fit"] - 1), places=3)
+        # each side is shrunk by its own line count
+        self.assertAlmostEqual(cal["b_shrink"], cal["n_over"] / pricing.MIN_CAL_N, places=3)
+        self.assertAlmostEqual(cal["b"], min(max(1 + cal["b_shrink"] * (cal["b_fit"] - 1), calibrate.SLOPE_MIN), calibrate.SLOPE_MAX), places=3)
+
+    def test_steep_slope_capped(self):
+        # a few hundred lean-over lines near 50% that hit far more than predicted: the raw slope is steep, but
+        # it can't turn a lopsided line into a near-lock (points overs: b 2.24 made a raw 82% read 96%)
+        rng = np.random.default_rng(2)
+        p = np.r_[rng.uniform(.5, .62, 140), rng.uniform(.3, .5, 360)]
+        y = np.r_[rng.uniform(size=140) < .73, rng.uniform(size=360) < p[140:]]
+        cal = calibrate.side_fit(p, y)
+        self.assertGreater(cal["b_fit"], 1.5)
+        self.assertLessEqual(cal["b"], calibrate.SLOPE_MAX)
+        self.assertLess(pricing.platt(.816, cal), .87)
 
     def test_blend(self):
         pm = pricing.platt(.62, None)
