@@ -70,10 +70,12 @@ def _save(name: str, url: str, force: bool = False):
         status[name] = f"ok ({len(body) // 1024} KB)"
         _fails = 0
         print(f"  [moneypuck] {name}: {status[name]}", flush=True)
+        _write_status()
     except Exception as e:  # blocked, renamed, network
         status[name] = f"failed: {e}"[:120]
         _fails += 1
         print(f"  [moneypuck] {name}: {status[name]}", flush=True)
+        _write_status()
     time.sleep(0.5)          # be gentle
 
 
@@ -96,11 +98,15 @@ def fetch(today: dt.date | None = None, force: bool = False) -> dict:
     for t in TEAMS:
         _save(f"team_games_{t}", f"{BASE}/careers/gameByGame/regular/teams/{TO_MP.get(t, t)}.csv", force)
     ok = sum(str(v).startswith(("ok", "cached")) for v in status.values())
+    _write_status()
+    print(f"  [moneypuck] {ok}/{len(status)} files ok or cached")
+    return status
+
+
+def _write_status():
     os.makedirs(DIR, exist_ok=True)
     with open(os.path.join(DIR, "status.json"), "w") as f:
         json.dump({"at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "files": status}, f, indent=1)
-    print(f"  [moneypuck] {ok}/{len(status)} files ok or cached")
-    return status
 
 
 def read(name: str):
