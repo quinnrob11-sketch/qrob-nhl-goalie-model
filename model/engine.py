@@ -15,6 +15,9 @@ Projection for a starting goalie G on team T facing opponent O:
            average LCF: attempts are a steadier read of shot volume than shots on goal alone, and
            adding them cut shots-against error out of sample in both 2025-26 and 2026-27
            (fit_sa.fit_corsi, Poisson GLM on the previous season)
+    T_FA, O_FF  when MoneyPuck covers the season (MP_COVERAGE of its team-games): MoneyPuck's
+           score-adjusted unblocked attempts (Fenwick) replace our Corsi, with their own weights
+           (mp_a, mp_b, mp_c_fa, mp_c_ff); they beat our Corsi in 2025-26 and 2026-27 out of sample
     share  fraction of the game G is expected to stay in net (pull risk)
     sv%    G's save% shrunk toward league average
 
@@ -31,6 +34,7 @@ import numpy as np
 import pandas as pd
 
 LEAGUE_SV = 0.900
+MP_COVERAGE = 0.9      # share of the latest season's team-games MoneyPuck must cover to use its attempts
 
 
 @dataclass
@@ -51,6 +55,11 @@ class Params:
     lg_half_life: float = 693.0  # team-games; recency weighting of the league shots-per-game average
     c_ca: float = 0.13          # weight of own team's shot attempts against (Corsi); 0 = shots on goal only
     c_cf: float = 0.38          # weight of the opponent's shot attempts for
+    # MoneyPuck score-adjusted Fenwick set (used when MoneyPuck covers the season; fit_sa --corsi)
+    mp_a: float = 0.46
+    mp_b: float = 0.38
+    mp_c_fa: float = 0.50
+    mp_c_ff: float = 0.59
 
     def to_dict(self):
         return asdict(self)
@@ -106,6 +115,10 @@ class State:
         self.cf = defaultdict(Decayed)     # team -> shot attempts for (Corsi, play-by-play)
         self.ca = defaultdict(Decayed)     # team -> shot attempts against
         self.lg_cf = Decayed()             # league shot attempts per team-game
+        self.ff = defaultdict(Decayed)     # team -> MoneyPuck score-adjusted unblocked attempts for
+        self.fa = defaultdict(Decayed)
+        self.lg_ff = Decayed()
+        self.mode = "corsi"                # "mp" when MoneyPuck's attempts drive the projection (run())
         self.lg_share = Decayed()
         self.g_sv = defaultdict(Decayed)   # goalie -> saves / shots
         self.g_share = defaultdict(Decayed)
@@ -119,6 +132,7 @@ class State:
         self.lg_share.add(0.975 * 50, 1.0, 50.0)
         self.lg_goals.add(3.0 * 50, 1.0, 50.0)
         self.lg_cf.add(55.0 * 50, 1.0, 50.0)
+        self.lg_ff.add(40.0 * 50, 1.0, 50.0)
 
     # --- rates -------------------------------------------------------
     def league(self):
@@ -131,6 +145,20 @@ class State:
         if d is None:
             return lg
         return (d.s + k * lg) / (d.w + k)
+
+    def fenwick_rate(self, table, team):
+        """MoneyPuck score-adjusted unblocked attempts per game, shrunk like team_rate; (rate, league)."""
+        lg = self.lg_ff.s / self.lg_ff.w
+        d = table.get(team)
+        k = self.p.k_team
+        return (lg if d is None else (d.s + k * lg) / (d.w + k)), lg
+
+    def weights(self) -> dict:
+        """The shots-against weights in use: MoneyPuck's set in "mp" mode, else ours (Corsi)."""
+        p = self.p
+        if self.mode == "mp":
+            return {"a": p.mp_a, "b": p.mp_b, "c_ca": 0.0, "c_cf": 0.0, "c_fa": p.mp_c_fa, "c_ff": p.mp_c_ff}
+        return {"a": p.a, "b": p.b, "c_ca": p.c_ca, "c_cf": p.c_cf, "c_fa": 0.0, "c_ff": 0.0}
 
     def corsi_rate(self, table, team):
         """Shot attempts per game, shrunk to the league average like team_rate; (rate, league)."""
@@ -160,11 +188,16 @@ class State:
         lg = self.league()
         d = self.team_rate(self.dfn, team)
         o = self.team_rate(self.off, opp)
-        exp_sa = lg * (d / lg) ** p.a * (o / lg) ** p.b
-        if p.c_ca or p.c_cf:
+        w = self.weights()
+        exp_sa = lg * (d / lg) ** w["a"] * (o / lg) ** w["b"]
+        if w["c_ca"] or w["c_cf"]:
             ca, lcf = self.corsi_rate(self.ca, team)
             cf, _ = self.corsi_rate(self.cf, opp)
-            exp_sa *= (ca / lcf) ** p.c_ca * (cf / lcf) ** p.c_cf
+            exp_sa *= (ca / lcf) ** w["c_ca"] * (cf / lcf) ** w["c_cf"]
+        if w["c_fa"] or w["c_ff"]:
+            fa, lff = self.fenwick_rate(self.fa, team)
+            ff, _ = self.fenwick_rate(self.ff, opp)
+            exp_sa *= (fa / lff) ** w["c_fa"] * (ff / lff) ** w["c_ff"]
         exp_sa *= p.home if is_home else 1.0 / p.home
         if playoff:
             exp_sa *= p.playoff
@@ -180,7 +213,7 @@ class State:
     def new_season(self, season):
         if self.season is not None and season != self.season:
             c = self.p.carry
-            for tbl in (self.off, self.dfn, self.gf, self.ga, self.xgf, self.xga, self.cf, self.ca):
+            for tbl in (self.off, self.dfn, self.gf, self.ga, self.xgf, self.xga, self.cf, self.ca, self.ff, self.fa):
                 for v in tbl.values():
                     v.scale(c)
             # goalies keep more of their history than teams do (rosters change more)
@@ -195,7 +228,7 @@ class State:
         return lg if d is None else (d.s + k * lg) / (d.w + k)
 
     def update_team(self, team, sog_for, sog_against, date, goals_for=None, goals_against=None,
-                    xg_for=None, xg_against=None, cf_for=None, cf_against=None):
+                    xg_for=None, xg_against=None, cf_for=None, cf_against=None, ff_for=None, ff_against=None):
         self.off[team].add(sog_for, self.dec)
         self.dfn[team].add(sog_against, self.dec)
         if goals_for is not None:
@@ -209,6 +242,10 @@ class State:
             self.cf[team].add(cf_for, self.dec)
             self.ca[team].add(cf_against, self.dec)
             self.lg_cf.add(cf_for, self.lg_dec)
+        if ff_for is not None and ff_for == ff_for and ff_against == ff_against:  # MoneyPuck row present
+            self.ff[team].add(ff_for, self.dec)
+            self.fa[team].add(ff_against, self.dec)
+            self.lg_ff.add(ff_for, self.lg_dec)
         self.lg.add(sog_for, self.lg_dec)
         self.last_played[team] = date
 
@@ -222,9 +259,19 @@ class State:
         self.g_name[gid] = name
 
 
+def mp_mode(tg: pd.DataFrame, p: Params) -> str:
+    """ "mp" when MoneyPuck's attempts cover MP_COVERAGE of the latest season's team-games and the
+    MoneyPuck weights are fitted; otherwise "corsi" (our own play-by-play attempts)."""
+    if "mp_ff" not in tg or not (p.mp_c_fa or p.mp_c_ff):
+        return "corsi"
+    last = tg[tg.season == tg.season.max()]
+    return "mp" if len(last) and last.mp_ff.notna().mean() >= MP_COVERAGE else "corsi"
+
+
 def run(tg: pd.DataFrame, starts: pd.DataFrame, p: Params, record_from_season=None):
     """Walk forward through every game. Returns (projections DataFrame, final State)."""
     st = State(p)
+    st.mode = mp_mode(tg, p)
     starts = starts.set_index(["game_id", "team_abbrev"])
     rows = []
     tg = tg.sort_values(["game_date", "game_id"])
@@ -255,6 +302,8 @@ def run(tg: pd.DataFrame, starts: pd.DataFrame, p: Params, record_from_season=No
                     "team_def": d, "opp_off": o, "league": st.league(),
                     "team_ca": st.corsi_rate(st.ca, r.team_abbrev)[0], "opp_cf": st.corsi_rate(st.cf, r.opp_team_abbrev)[0],
                     "lg_cf": st.lg_cf.s / st.lg_cf.w,
+                    "team_fa": st.fenwick_rate(st.fa, r.team_abbrev)[0], "opp_ff": st.fenwick_rate(st.ff, r.opp_team_abbrev)[0],
+                    "lg_ff": st.lg_ff.s / st.lg_ff.w,
                     "l10": float(np.mean(hist)) if hist and len(hist) >= 5 else np.nan,
                     "saves": int(s.saves), "shots": int(s.shots_against), "toi": float(s.toi_min),
                     "actual_team_sa": int(r.opp_shots_on_goal),
@@ -267,7 +316,8 @@ def run(tg: pd.DataFrame, starts: pd.DataFrame, p: Params, record_from_season=No
         for r in day.itertuples(index=False):
             st.update_team(r.team_abbrev, r.shots_on_goal, r.opp_shots_on_goal, date,
                            r.goals, r.opp_goals, getattr(r, "xgf", None), getattr(r, "opp_xgf", None),
-                           getattr(r, "cf", None), getattr(r, "opp_cf", None))
+                           getattr(r, "cf", None), getattr(r, "opp_cf", None),
+                           getattr(r, "mp_ff", None), getattr(r, "mp_fa", None))
             key = (r.game_id, r.team_abbrev)
             if key in starts.index:
                 s = starts.loc[key]

@@ -89,21 +89,24 @@ def walk_forward(err: dict, wk: pd.Series, min_prior: int = 300):
     return pick, picks, keys
 
 
-def fit_corsi(df: pd.DataFrame, season: int) -> dict:
+def fit_corsi(df: pd.DataFrame, season: int, source: str = "corsi") -> dict:
     """Shots-against weights (a, b, c_ca, c_cf) by Poisson GLM on one season's regular-season team-games:
     log E[SA] = const + a log(T_def / LG) + b log(O_off / LG) + c_ca log(T_CA / LCF) + c_cf log(O_CF / LCF)
     + h x home, with every rate the engine's walk-forward pre-game value. Fit on the season before the
     one it is used for."""
-    x = df[(df.season == season) & (df.game_type == "R")].dropna(subset=["team_ca", "opp_cf"])
+    d_, o_, l_ = ("team_ca", "opp_cf", "lg_cf") if source == "corsi" else ("team_fa", "opp_ff", "lg_ff")
+    x = df[(df.season == season) & (df.game_type == "R")].dropna(subset=[d_, o_])
     X = np.c_[np.ones(len(x)), np.log(x.team_def / x.league), np.log(x.opp_off / x.league),
-              np.log(x.team_ca / x.lg_cf), np.log(x.opp_cf / x.lg_cf), np.where(x.is_home, 1.0, -1.0)]
+              np.log(x[d_] / x[l_]), np.log(x[o_] / x[l_]), np.where(x.is_home, 1.0, -1.0)]
     y = x.actual_team_sa.values.astype(float)
     w = np.zeros(X.shape[1]); w[0] = np.log(y.mean())
     for _ in range(30):
         mu = np.exp(X @ w)
         w += np.linalg.solve((X.T * mu) @ X, X.T @ (y - mu))
-    return {"a": round(float(w[1]), 2), "b": round(float(w[2]), 2), "c_ca": round(float(w[3]), 2),
-            "c_cf": round(float(w[4]), 2), "n": int(len(x)), "season": int(season)}
+    c = ("c_ca", "c_cf") if source == "corsi" else ("mp_c_fa", "mp_c_ff")
+    ab = ("a", "b") if source == "corsi" else ("mp_a", "mp_b")
+    return {ab[0]: round(float(w[1]), 2), ab[1]: round(float(w[2]), 2), c[0]: round(float(w[3]), 2),
+            c[1]: round(float(w[4]), 2), "n": int(len(x)), "season": int(season)}
 
 
 def main():
@@ -242,10 +245,12 @@ def main():
 
 
 if __name__ == "__main__" and "--corsi" in __import__("sys").argv:
+    import moneypuck
     tg, st = data.load_all([2024, 2025, 2026, 2027], refresh=False)
-    d, _ = engine.run(tg, st, engine.Params.load(os.path.join(OUT, "params.json")))
+    d, _ = engine.run(moneypuck.with_attempts(tg), st, engine.Params.load(os.path.join(OUT, "params.json")))
     for s_ in sorted(d.season.unique())[:-1]:
-        print(f"fit on {s_ - 1}-{str(s_)[2:]} -> use for {s_}-{str(s_ + 1)[2:]}:", fit_corsi(d, s_))
+        print(f"fit on {s_ - 1}-{str(s_)[2:]} -> use for {s_}-{str(s_ + 1)[2:]}:", fit_corsi(d, s_),
+              "| MoneyPuck:", fit_corsi(d, s_, "mp"))
     raise SystemExit
 if __name__ == "__main__":
     main()

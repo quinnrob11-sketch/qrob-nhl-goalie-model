@@ -83,6 +83,9 @@ def project_saves(payload, gid, team, opp, home, b2b, playoff, opp_b2b=False):
     lcf = payload.get("lg_cf")
     if lcf and (P.get("c_ca") or P.get("c_cf")):   # shot attempts (Corsi), engine.State.project
         sa *= (t.get("rate_ca", lcf) / lcf) ** P.get("c_ca", 0) * (o.get("rate_cf", lcf) / lcf) ** P.get("c_cf", 0)
+    lff = payload.get("lg_ff")
+    if lff and (P.get("c_fa") or P.get("c_ff")):   # MoneyPuck score-adjusted Fenwick
+        sa *= (t.get("rate_fa", lff) / lff) ** P.get("c_fa", 0) * (o.get("rate_ff", lff) / lff) ** P.get("c_ff", 0)
     sa *= P["home"] if home else 1 / P["home"]
     if playoff:
         sa *= P["playoff"]

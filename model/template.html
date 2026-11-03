@@ -389,6 +389,9 @@ function project(gid, team, opp, isHome, b2b, playoff, oppB2b){
   // shot attempts (Corsi) the team allows / the opponent generates (engine.State.project)
   const lcf = D.lg_cf;
   if (lcf && (P.c_ca || P.c_cf)) sa *= Math.pow((t.rate_ca ?? lcf) / lcf, P.c_ca || 0) * Math.pow((o.rate_cf ?? lcf) / lcf, P.c_cf || 0);
+  // MoneyPuck score-adjusted Fenwick, when it drives the shots-against model (D.params.sa_mode = "mp")
+  const lff = D.lg_ff;
+  if (lff && (P.c_fa || P.c_ff)) sa *= Math.pow((t.rate_fa ?? lff) / lff, P.c_fa || 0) * Math.pow((o.rate_ff ?? lff) / lff, P.c_ff || 0);
   sa *= isHome ? P.home : 1/P.home;
   if (playoff) sa *= P.playoff;
   if (b2b) sa *= P.b2b;

@@ -13,7 +13,11 @@
   "opp_b2b": 0.9678,
   "lg_half_life": 693.0,
   "frozen_at": "2026-11-03",
-  "frozen_hash": "456a91d5e120a0fa",
+  "frozen_hash": "192fa78515d91959",
   "c_ca": 0.13,
-  "c_cf": 0.38
+  "c_cf": 0.38,
+  "mp_a": 0.46,
+  "mp_b": 0.38,
+  "mp_c_fa": 0.5,
+  "mp_c_ff": 0.59
 }

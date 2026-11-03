@@ -133,6 +133,27 @@ def team_games(teams=TEAMS):
     return x
 
 
+def attempts():
+    """Score-adjusted unblocked shot attempts (Fenwick) for / against per team-game, all situations:
+    DataFrame(game_id, team_abbrev, mp_ff, mp_fa), or None without the cache."""
+    x = team_games()
+    if x is None:
+        return None
+    x = x[x.situation == "all"]
+    return x.assign(game_id=x.gameId.astype(int), team_abbrev=x.playerTeam)[
+        ["game_id", "team_abbrev", "scoreAdjustedUnblockedShotAttemptsFor", "scoreAdjustedUnblockedShotAttemptsAgainst"]
+    ].rename(columns={"scoreAdjustedUnblockedShotAttemptsFor": "mp_ff", "scoreAdjustedUnblockedShotAttemptsAgainst": "mp_fa"}
+             ).drop_duplicates(["game_id", "team_abbrev"])
+
+
+def with_attempts(tg):
+    """tg with MoneyPuck mp_ff / mp_fa merged in (NaN where MoneyPuck has no row)."""
+    a = attempts()
+    if a is None:
+        return tg.assign(mp_ff=float("nan"), mp_fa=float("nan"))
+    return tg.drop(columns=[c for c in ("mp_ff", "mp_fa") if c in tg]).merge(a, on=["game_id", "team_abbrev"], how="left")
+
+
 if __name__ == "__main__":
     import sys
     fetch(force="--force" in sys.argv)

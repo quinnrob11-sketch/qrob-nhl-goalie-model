@@ -27,6 +27,7 @@ import saves_dist
 import sog
 import starters
 import linecombos
+import moneypuck
 import pick6
 import players
 import props_board
@@ -173,6 +174,8 @@ def team_table(tg: pd.DataFrame, st: engine.State, season: int):
             "rate_def": round(st.team_rate(st.dfn, team), 3),
             "rate_cf": round(st.corsi_rate(st.cf, team)[0], 3),
             "rate_ca": round(st.corsi_rate(st.ca, team)[0], 3),
+            "rate_ff": round(st.fenwick_rate(st.ff, team)[0], 3),
+            "rate_fa": round(st.fenwick_rate(st.fa, team)[0], 3),
             **goal_rates(st, team),
         }
     # early in a season, teams that haven't played yet still need ratings
@@ -182,6 +185,7 @@ def team_table(tg: pd.DataFrame, st: engine.State, season: int):
         out[team] = {"gp": 0, "rate_off": round(st.team_rate(st.off, team), 3),
                      "rate_def": round(st.team_rate(st.dfn, team), 3),
                      "rate_cf": round(st.corsi_rate(st.cf, team)[0], 3), "rate_ca": round(st.corsi_rate(st.ca, team)[0], 3),
+                     "rate_ff": round(st.fenwick_rate(st.ff, team)[0], 3), "rate_fa": round(st.fenwick_rate(st.fa, team)[0], 3),
                      **goal_rates(st, team)}
     return out
 
@@ -360,6 +364,7 @@ def main():
     years = list(range(2024, cur + 1))
     print(f"Loading seasons {years} ...")
     tg, st_df = data.load_all(years, refresh=True)
+    tg = moneypuck.with_attempts(tg)    # MoneyPuck score-adjusted Fenwick (engine uses it when it covers the season)
 
     have = sorted(tg.season.unique())
     latest = int(have[-1])
@@ -437,9 +442,13 @@ def main():
         "preseason": bool(latest < cur),
         "data_through": str(tg.game_date.max()),
         "latest_final": latest_final(today),
-        "params": p.to_dict(),
+        # the shots-against weights actually in use (MoneyPuck Fenwick set, or our Corsi set as the fallback)
+        "params": {**p.to_dict(), **state.weights(), "sa_mode": state.mode},
         "league": round(state.league(), 3),
         "lg_cf": round(state.lg_cf.s / state.lg_cf.w, 3),
+        "lg_ff": round(state.lg_ff.s / state.lg_ff.w, 3),
+        "moneypuck": {"sa_mode": state.mode, **(json.load(open(os.path.join(moneypuck.DIR, "status.json")))
+                                                if os.path.exists(os.path.join(moneypuck.DIR, "status.json")) else {})},
         "lg_share": lg_share,
         "sd": report["sd"],
         "teams": team_table(tg, state, display_season),
