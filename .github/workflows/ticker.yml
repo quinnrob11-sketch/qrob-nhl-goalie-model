@@ -1,0 +1,42 @@
+name: Rebuild ticker
+
+# GitHub's cron is best effort (runs are delayed or dropped under load), so the 15-minute rebuilds are
+# driven from here: one long job dispatches "Rebuild goalie model" every 15 minutes while it is board time
+# (9:00 AM - 1:45 AM America/Chicago), then re-dispatches itself before the 6-hour job limit. Dispatches made
+# with the workflow token do start runs (workflow_dispatch is the documented exception). The schedules below
+# only (re)start the chain if it stopped; the concurrency group keeps a single chain.
+on:
+  schedule:
+    - cron: '4 14,15,17,19,21,23 * * *'
+    - cron: '4 1,3,5 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: rebuild-ticker
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Dispatch a rebuild every 15 minutes during board hours
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          in_hours() {   # 09:00-23:59 or 00:00-01:45 America/Chicago (DST handled by TZ)
+            local hm=$((10#$(TZ=America/Chicago date +%H%M)))
+            [ "$hm" -ge 900 ] || [ "$hm" -le 145 ]
+          }
+          end=$(( $(date +%s) + 330 * 60 ))
+          while [ "$(date +%s)" -lt "$end" ]; do
+            if ! in_hours; then echo "outside board hours, chain stops"; exit 0; fi
+            gh workflow run build.yml --ref main && echo "dispatched build at $(date -u +%H:%M) UTC" || echo "dispatch failed"
+            sleep 900
+          done
+          if in_hours; then gh workflow run ticker.yml --ref main && echo "chain renewed"; fi

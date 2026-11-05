@@ -2,16 +2,16 @@ name: Rebuild goalie model
 
 on:
   schedule:
-    # UTC times. 12:30 UTC (7:30am CT): grade last night's games once the box
-    # scores land; 13:15 is a backup (GitHub sometimes drops or delays scheduled
-    # runs). Then every 15 minutes from 14:00 UTC (9am CT) to 06:45 UTC (1:45am CT):
-    # boards (Pick6) refresh and started games drop off, live / final results show
-    # until the night's last game is final. DraftKings is re-pulled at most once
-    # every 55 minutes (model/odds.py caches it) to stay inside the Odds API quota.
+    # UTC times. GitHub cron is best effort: scheduled runs are often delayed and many are dropped
+    # outright when GitHub is busy (on 2026-11-05 the */15 schedule fired at 01:02, 04:09 and 12:15 UTC
+    # only). The 15-minute cadence therefore comes from .github/workflows/ticker.yml, which dispatches
+    # this workflow every 15 minutes during board hours; these schedules are only the grading runs and
+    # an hourly backup (off the top of the hour, where GitHub drops the most).
+    # 12:30 UTC (7:30am CT): grade last night's games once the box scores land; 13:15 is a backup.
     - cron: '30 12 * * *'
     - cron: '15 13 * * *'
-    - cron: '*/15 14-23 * * *'
-    - cron: '*/15 0-6 * * *'
+    - cron: '41 14-23 * * *'
+    - cron: '41 0-6 * * *'
   workflow_dispatch:
   # A push to main rebuilds the site. The commit this job pushes uses the
   # Actions token, which does not start another run, so this does not loop.
@@ -42,18 +42,9 @@ jobs:
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python model/build_site.py
+      # every successful build is committed and pushed, even if only timestamps changed, so Vercel deploys it
       - name: Commit & push
-        run: |
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          git add index.html model/data/calls model/data/real_line_log.csv model/data/dk_prices.csv model/output/tracking.json model/output/calibration.json
-          git add model/data/legs.csv model/data/rosters.json model/data/odds_cache.json 2>/dev/null || true
-          git add -A model/data/pick6_failed.html 2>/dev/null || true
-          git add model/data/moneypuck 2>/dev/null || true
-          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
-          git commit -m "auto: rebuild $(date -u +'%Y-%m-%d %H:%M UTC')"
-          for i in 1 2 3; do git push && exit 0; git pull --rebase origin "${GITHUB_REF_NAME}"; sleep $((i*3)); done
-          exit 1
+        run: bash model/publish.sh
       # after the commit, so the site still updates (and shows its stale banner)
       - name: Data freshness
         run: python model/freshness.py

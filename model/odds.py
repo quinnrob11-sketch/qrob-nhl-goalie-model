@@ -142,8 +142,10 @@ def fetch_moneylines(key: str) -> list[dict]:
 
 
 CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "odds_cache.json")
-MIN_AGE_MIN = 55          # reuse the last pull if it is younger than this (the page rebuilds every 15 min)
 match_counts: dict = {}
+# every build pulls DraftKings fresh; the cache is the last-known-good pull, used ONLY when this pull fails
+status: str = "not run"       # "fresh" | "fallback" (last good pull reused because this one failed) | "error"
+fetched_at: str | None = None  # when the lines in use were really pulled (never the build time of a later build)
 
 
 def _skater_ids(R):
@@ -154,37 +156,55 @@ def _skater_ids(R):
         match_counts[name] = players.match_rows(rows, R, team_key="team_", game_key="teams")
 
 
+def _stamp(rows, at):
+    for r in rows:
+        r.setdefault("fetched_at", at)
+    return rows
+
+
 def fetch(goalies: list[dict], now: dt.datetime | None = None, R=None) -> list[dict]:
-    """DraftKings lines, at most one Odds API pull per MIN_AGE_MIN (cached in model/data/odds_cache.json);
-    games that have started are dropped from a reused pull."""
-    global last_error, sog_rows, points_rows, ml_rows, remaining
+    """DraftKings saves / SOG / points lines, pulled fresh on every build. Each row carries `fetched_at`, the
+    time of the pull it came from. If this pull fails (no key, API error, no lines at all), the last good pull
+    in model/data/odds_cache.json is reused with its ORIGINAL fetched_at and status "fallback"; games that
+    have started are dropped from it."""
+    global last_error, sog_rows, points_rows, ml_rows, remaining, status, fetched_at
     now = now or dt.datetime.now(dt.timezone.utc)
-    if os.path.exists(CACHE):
-        try:
-            c = json.load(open(CACHE))
-            age = (now - dt.datetime.fromisoformat(c["at"])).total_seconds() / 60
-        except (ValueError, KeyError):
-            c, age = None, 1e9
-        if c and 0 <= age < MIN_AGE_MIN:
-            live = lambda r: r.get("start") is None or dt.datetime.fromisoformat(r["start"].replace("Z", "+00:00")) > now
-            sog_rows = [r for r in c["sog"] if live(r)]
-            points_rows = [r for r in c["points"] if live(r)]
-            ml_rows, remaining, last_error = c["ml"], c.get("remaining"), None
-            rows = [r for r in c["saves"] if live(r)]
-            if R is not None:
-                _skater_ids(R)
-            rows = match(rows, goalies, R)
-            print(f"  [odds] reused the pull from {age:.0f} min ago: {len(rows)} saves, {len(sog_rows)} SOG, {len(points_rows)} points lines")
-            return rows
+    at = now.isoformat(timespec="seconds")
     rows = _fetch(goalies, now, R)
-    if not last_error or rows or sog_rows:
+    if rows or sog_rows or points_rows:
+        status, fetched_at = "fresh", at
+        for rs in (rows, sog_rows, points_rows, _raw_saves):
+            _stamp(rs, at)
         try:
-            raw = {"at": now.isoformat(), "remaining": remaining, "ml": ml_rows, "sog": sog_rows, "points": points_rows,
+            raw = {"at": at, "remaining": remaining, "ml": ml_rows, "sog": sog_rows, "points": points_rows,
                    "saves": [{k: v for k, v in r.items() if k not in ("goalie_id", "player_id", "team", "match", "match_reason")}
                              for r in _raw_saves]}
-            json.dump(raw, open(CACHE, "w"), separators=(",", ":"))
+            with open(CACHE, "w") as f:
+                json.dump(raw, f, separators=(",", ":"))
         except OSError:
             pass
+        return rows
+    err = last_error or "no DraftKings lines returned"
+    try:
+        with open(CACHE) as f:
+            c = json.load(f)
+        c_at = c["at"]
+        dt.datetime.fromisoformat(c_at)
+    except (OSError, ValueError, KeyError, TypeError):
+        status, fetched_at, last_error = "error", None, err
+        print(f"  [odds] DraftKings pull failed ({err}) and there is no last good pull")
+        return rows
+    live = lambda r: r.get("start") is None or dt.datetime.fromisoformat(r["start"].replace("Z", "+00:00")) > now
+    sog_rows = _stamp([r for r in c["sog"] if live(r)], c_at)
+    points_rows = _stamp([r for r in c["points"] if live(r)], c_at)
+    ml_rows, remaining = c.get("ml") or [], c.get("remaining", remaining)
+    rows = _stamp([dict(r) for r in c["saves"] if live(r)], c_at)
+    if R is not None:
+        _skater_ids(R)
+    rows = match(rows, goalies, R)
+    status, fetched_at, last_error = "fallback", c_at, err
+    print(f"  [odds] DraftKings pull failed ({err}); FALLBACK to the last good pull from {c_at}: "
+          f"{len(rows)} saves, {len(sog_rows)} SOG, {len(points_rows)} points lines")
     return rows
 
 

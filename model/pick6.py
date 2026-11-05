@@ -405,7 +405,7 @@ def save_failed(page: str, limit: int = 3_000_000):
         pass
 
 
-def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30):
+def _pull(slate: list[dict], R: players.Rosters, timeout: int = 30):
     """(rows, stats). Never raises; `status` is "ok", "parse failed: 0 rows", "blocked (HTTP 403)", etc."""
     global status, stats
     fetched_at = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
@@ -448,6 +448,39 @@ def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30):
         os.remove(FAILED)
     print(f"  [pick6] {status}: {stats}")
     return rows, stats
+
+
+CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "pick6_cache.json")
+fetch_status = "not run"     # "fresh" | "fallback" (last good board reused because this pull failed) | "error"
+fetched_at: str | None = None  # when the rows in use were really pulled
+
+
+def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30, now: dt.datetime | None = None):
+    """Every build pulls the board fresh (_pull). If the pull fails (blocked, unreachable, 0 usable rows), the
+    last good board in model/data/pick6_cache.json is reused with its ORIGINAL fetched_at and fetch_status
+    "fallback" (started games are dropped downstream). `status` keeps the existing failure text for the banner."""
+    global fetch_status, fetched_at
+    rows, st = _pull(slate, R, timeout)
+    if rows:
+        fetch_status, fetched_at = "fresh", rows[0]["fetched_at"]
+        try:
+            with open(CACHE, "w") as f:
+                json.dump({"at": fetched_at, "rows": rows}, f, separators=(",", ":"))
+        except OSError:
+            pass
+        return rows, st
+    try:
+        with open(CACHE) as f:
+            c = json.load(f)
+        c_at, c_rows = c["at"], c["rows"]
+    except (OSError, ValueError, KeyError, TypeError):
+        fetch_status, fetched_at = "error", None
+        return rows, st
+    games = {g["id"] for g in slate}
+    keep = [{**r, "fetched_at": r.get("fetched_at") or c_at} for r in c_rows if r.get("game") in games]
+    fetch_status, fetched_at = "fallback", c_at
+    print(f"  [pick6] pull failed ({status}); FALLBACK to the last good board from {c_at}: {len(keep)} rows")
+    return keep, {**st, "fallback_rows": len(keep)}
 
 
 import urllib.error  # noqa: E402  (used in fetch)

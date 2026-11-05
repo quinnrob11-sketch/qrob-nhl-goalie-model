@@ -89,6 +89,10 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 .statusbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12.5px;color:var(--text-2)}
 .statusbar b{color:var(--text);font-weight:600}
 .statusbar .warn{color:var(--under);font-weight:600}
+.pill.stale{background:var(--under-bg);color:var(--under);font-weight:700}
+.pill.src-fresh{background:var(--over-bg, #e6f4ea);color:var(--over, #137333)}
+.pill.src-bad{background:var(--under-bg);color:var(--under);font-weight:700}
+.stale-note{border-left-color:var(--under)!important;background:var(--under-bg)!important;font-size:14px}
 .statusbar .alarms{flex-basis:100%;display:flex;flex-direction:column;gap:4px}
 .statusbar .alarms div{background:var(--under-bg);border-left:3px solid var(--under);padding:5px 8px;border-radius:5px;color:var(--text)}
 /* filter row */
@@ -158,6 +162,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 </nav>
 <main>
 <section id="proj" class="on">
+  <div id="srcBar"></div>
   <div class="statusbar" id="statusBar"></div>
   <div id="feedBanner"></div>
   <div id="preNote"></div>
@@ -567,6 +572,31 @@ $("#meta").textContent = `${D.season} season`;
 // stale build on a game day (shown in the status bar)
 const TODAY_CT = new Intl.DateTimeFormat("en-CA", {timeZone: "America/Chicago"}).format(new Date());
 const BUILD_AGE_H = (Date.now() - builtAt) / 36e5;
+// ---------- market-line freshness: real Pick6 / DraftKings fetch times (never the build time) ----------
+const STALE_MIN = D.stale_min ?? 20, SRC = D.sources || {};
+const lineAge = at => { const t = Date.parse(at || ""); return isNaN(t) ? null : (Date.now() - t) / 6e4; };
+const srcStale = s => !s || s.status === "error" || lineAge(s.fetched_at) == null || lineAge(s.fetched_at) > STALE_MIN;
+const rowSrc = r => r.source === "Pick6" ? SRC.pick6 : r.source === "DraftKings" ? SRC.dk : null;
+const lineCT = at => { const t = new Date(at); return isNaN(t) ? "–" : ctFmt(t, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}) + " CT"; };
+function staleBadge(r){
+  const s = rowSrc(r); if (!s) return "";
+  const a = lineAge(r.fetched_at || s.fetched_at), old = a == null || a > STALE_MIN;
+  return (old ? ` <span class="pill stale" title="This line was fetched ${a == null ? "at an unknown time" : Math.round(a) + " min ago"}; the price may have moved">STALE${a == null ? "" : " " + Math.round(a) + "m"}</span>` : "") +
+    (s.status === "fallback" ? ` <span class="pill stale" title="This build's pull failed; last good ${r.source} lines">fallback</span>` : "");
+}
+function renderSources(){
+  const one = (name, s) => {
+    if (!s) return `<span>${name}: <b>not reported</b></span>`;
+    const a = lineAge(s.fetched_at), cls = s.status === "fresh" && !srcStale(s) ? "fresh" : "bad";
+    return `<span>${name} lines <b>${s.fetched_at ? lineCT(s.fetched_at) : "never fetched"}</b>${a != null ? ` · <b>${Math.round(a)} min</b> old` : ""} <span class="pill src-${cls}" title="${s.error ? String(s.error).replace(/"/g, "'") : ""}">${s.status}${s.error && s.status !== "fresh" ? ": " + String(s.error).slice(0, 60) : ""}</span></span>`;
+  };
+  const stale = [["Pick6", SRC.pick6], ["DraftKings", SRC.dk]].filter(([, s]) => srcStale(s));
+  const ba = (Date.now() - builtAt) / 6e4;
+  $("#srcBar").innerHTML = (stale.length ? `<div class="note stale-note"><b>⚠ STALE LINES:</b> ${stale.map(([n, s]) => {
+      const a = s && lineAge(s.fetched_at); return `${n} ${!s || !s.fetched_at ? "has no lines from any pull" : `lines are ${Math.round(a)} min old (fetched ${lineCT(s.fetched_at)}${s.status === "fallback" ? ", fallback: this build's pull failed" : ""})`}`; }).join("; ")}.
+      Older than ${STALE_MIN} min: multipliers and prices may have moved. Check the line on the app before betting; affected rows are marked <span class="pill stale">STALE</span>.</div>` : "") +
+    `<div class="statusbar srcbar">${one("Pick6", SRC.pick6)}${one("DraftKings", SRC.dk)}<span>Build <b>${builtCT}</b>${isNaN(ba) ? "" : ` · <b>${Math.round(ba)} min</b> ago`}</span></div>`;
+}
 const STALE = !isNaN(BUILD_AGE_H) && BUILD_AGE_H > 6 && (D.slate || []).some(g => g.date === TODAY_CT);
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
@@ -1071,7 +1101,7 @@ const verdictPill = r => isTake(r) ? `<span class="sp ${r.side}">${r.verdict}</s
 const roleBadge = r => r.role_change ? ` <span class="pill LOW" title="Listed on a different line than his recent ice time${r.role_adjusted ? "; TOI adjusted (confirmed within 6 h, capped ±15%)" : "; not confirmed in the last 6 h, so TOI is unchanged"}">role ${r.role_change}${r.role_adjusted ? " · TOI adj" : ""}</span>` : "";
 function propCells(r, alt){
   const edgeBE = r.p != null && r.be != null ? r.p - r.be : null;
-  return `<td class="l pin">${alt ? '<span class="muted">↳ alt</span> ' : ""}<b>${r.name}</b>${roleBadge(r)}<div class="cell2">${r.team || "?"}${r.opp ? " vs " + r.opp : ""}${r.conflicts && r.conflicts.length ? ` · <span class="bad" title="${r.conflicts.join("; ")}">⚠ conflicts: ${r.conflicts.join(", ")}</span>` : ""}</div></td>
+  return `<td class="l pin">${alt ? '<span class="muted">↳ alt</span> ' : ""}<b>${r.name}</b>${roleBadge(r)}${staleBadge(r)}<div class="cell2">${r.team || "?"}${r.opp ? " vs " + r.opp : ""}${r.conflicts && r.conflicts.length ? ` · <span class="bad" title="${r.conflicts.join("; ")}">⚠ conflicts: ${r.conflicts.join(", ")}</span>` : ""}</div></td>
     <td class="l">${r.label}</td><td class="num">${n1(r.line)}</td>
     <td class="l">${verdictPill(r)}${isTake(r) && r.tier ? ` <span class="pill ${r.tier === "Lock" ? "HIGH" : "MED"}">${r.tier}</span>` : ""}${!isTake(r) && r.reason ? `<div class="cell2">${r.tier === "Near miss" ? "near miss · " : ""}${r.reason}</div>` : ""}</td>
     <td class="num"><b>${pc0(r.p)}</b></td><td class="num">${pc0(r.p_model != null && r.side ? (r.side === "OVER" ? r.p_model : 1 - r.p_model) : null)}</td>
@@ -1102,7 +1132,7 @@ const PLAY_HEAD = `<thead><tr><th class="l pin">Play</th><th class="l">Prop</th>
 function renderPlays(takes, sel){
   takes = takes.slice().sort((a, b) => b.p - a.p || String(a.player_id ?? a.name).localeCompare(String(b.player_id ?? b.name)));
   $("#playsBox").innerHTML = takes.length ? `<div class="board"><table>${PLAY_HEAD}<tbody>` +
-    takes.map(r => `<tr><td class="l pin"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span>${roleBadge(r)}${conflictTxt(r)}</td>
+    takes.map(r => `<tr><td class="l pin"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span>${roleBadge(r)}${staleBadge(r)}${conflictTxt(r)}</td>
       <td class="l">${r.label}</td><td class="num">${n1(r.line)}</td><td class="l">${verdictPill(r)} <span class="pill ${r.tier === "Lock" ? "HIGH" : "MED"}">${r.tier}</span></td>
       <td class="num"><b>${pc0(r.p)}</b></td><td class="num">${pc0(r.pModelSide)}</td><td class="num">${multCell(r)}</td>
       <td class="l"><span class="muted" style="font-size:11px">${r.source}</span></td><td class="num">${ctCell(r)}</td></tr>`).join("") + "</tbody></table></div>"
@@ -1110,7 +1140,7 @@ function renderPlays(takes, sel){
   $("#nPlays").textContent = takes.length ? `${takes.length} leg${takes.length === 1 ? "" : "s"}, ranked by p` : "";
   const near = sel.near.slice().sort(sogRankCmp);
   $("#nearBox").innerHTML = near.length ? `<div class="board"><table>${PLAY_HEAD}<tbody>` +
-    near.map(r => `<tr><td class="l pin"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span>${conflictTxt(r)}</td>
+    near.map(r => `<tr><td class="l pin"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span>${staleBadge(r)}${conflictTxt(r)}</td>
       <td class="l">${r.label}</td><td class="num">${n1(r.line)}</td><td class="l"><span class="sp ${r.side}">${sideTxt(r)}</span> <span class="pill PASS">Near miss</span></td>
       <td class="num"><b>${pc0(r.p)}</b></td><td class="num">${pc0(r.pModelSide)}</td><td class="num">${multCell(r)}</td>
       <td class="l"><span class="muted" style="font-size:11px">${r.source}</span></td><td class="num">${ctCell(r)}</td></tr>`).join("") + "</tbody></table></div>"
@@ -1236,8 +1266,9 @@ function renderStatus(){
     STALE ? `<span class="warn">⚠ Stale: built ${BUILD_AGE_H.toFixed(1)} h ago on a game day. Wait for the next build before betting.</span>` : "",
     `<span>${SRC_PILLS}</span>`,
     alarms.length ? `<div class="alarms">${alarms.map(a => `<div>${a}</div>`).join("")}</div>` : ""].filter(Boolean).join(" ");
-  renderFeeds();
+  renderFeeds(); renderSources();
 }
+setInterval(() => { try { renderSources(); } catch (e) {} }, 30000);   // ages keep counting while the page is open
 // data plumbing on screen: a Pick6 pull that parses to 0 rows is a red banner, never a silently empty board
 function renderFeeds(){
   const st = String(D.pick6_status || "not run"), ps = D.pick6_stats || {}, bc = (D.board || {}).counts || {}, dm = D.dk_match || {};

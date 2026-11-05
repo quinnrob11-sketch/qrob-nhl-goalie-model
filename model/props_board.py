@@ -49,6 +49,8 @@ def candidate_lines(payload, pick6_rows, now=None) -> tuple[list[dict], dict]:
     have = {(r["market"], r["player_id"]) for r in pick6_rows}
     out = [dict(r) for r in pick6_rows if r["game"] in games and not slate_mod.started(games[r["game"]], now)]
     drops = {}
+    # a DK row without its own stamp takes the DK pull's real fetch time (never the build time)
+    dk_at = ((payload.get("sources") or {}).get("dk") or {}).get("fetched_at")
     for mk, key in (("sog", "dk_sog"), ("points", "dk_points"), ("saves", "dk")):
         for r in payload.get(key) or []:
             pid = r.get("player_id", r.get("goalie_id"))
@@ -60,7 +62,7 @@ def candidate_lines(payload, pick6_rows, now=None) -> tuple[list[dict], dict]:
                 continue
             out.append({"name": r["name"], "player_id": int(pid), "team": r.get("team"), "game": g["id"], "date": g["date"],
                         "market": mk, "line": float(r["line"]), "mo": None, "mu": None, "source": "DraftKings",
-                        "fetched_at": payload.get("built_iso"), "over": r.get("over"), "under": r.get("under")})
+                        "fetched_at": r.get("fetched_at") or dk_at, "over": r.get("over"), "under": r.get("under")})
     return out, drops
 
 
@@ -316,12 +318,17 @@ def finalize(rows) -> tuple[list[dict], dict]:
 
 
 PLAY_KEYS = ("name", "player_id", "team", "market", "label", "line", "side", "verdict", "tier", "p", "p_model", "p_mkt",
-             "mult", "source", "start", "game", "conflicts", "role_change", "role", "reason")
+             "mult", "source", "start", "game", "conflicts", "role_change", "role", "reason", "fetched_at", "stale", "fallback")
 
 
 def build(payload, pick6_rows, now=None, review=None) -> dict:
+    import datetime as _dt
+    import sources
     lines, dk_drops = candidate_lines(payload, pick6_rows, now)
     rows, sel = finalize(score_lines(payload, lines))
+    # freshness labels only, after every call is made: they never change a verdict, p or selection
+    at = sources._ts(payload.get("sources_at")) or now or _dt.datetime.now(_dt.timezone.utc)
+    sources.label_rows(rows, at, payload.get("sources"))
     rows.sort(key=lambda r: (not _is_take(r), -(r.get("p") or 0)))
     plays = [r for r in rows if _is_take(r)]
     modeled = [r for r in rows if r["market"] in MODELED]

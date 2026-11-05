@@ -32,6 +32,7 @@ import moneypuck_teams
 import pick6
 import players
 import props_board
+import sources
 import slate as slate_mod
 import tracker
 import winners
@@ -414,6 +415,10 @@ def main():
     dk = odds.fetch(goalies, R=R)
     pp = prizepicks.fetch(goalies)
     p6_rows, p6_stats = pick6.fetch(slate, R)
+    # real per-source fetch times (never the build time): fresh this build, or the last good pull as a labelled fallback
+    lines_at = dt.datetime.now(dt.timezone.utc)
+    src_info = {"pick6": sources.info(pick6.fetch_status, pick6.fetched_at, lines_at, None if pick6.status == "ok" else pick6.status),
+                "dk": sources.info(odds.status, odds.fetched_at, lines_at, odds.last_error)}
     starter_rows = starters.fetch(goalies, sorted({g["date"] for g in slate}))
     combos = linecombos.fetch({g[k] for g in slate for k in ("home", "away")} - DEFUNCT)
     sv_rows = saves_rows(df, cur)
@@ -433,6 +438,7 @@ def main():
     payload = {
         "built": now.strftime("%Y-%m-%d %H:%M UTC"),
         "built_iso": now.isoformat(timespec="seconds"),
+        "sources": src_info, "sources_at": lines_at.isoformat(timespec="seconds"), "stale_min": sources.STALE_MIN,
         "slate_day": slate_day,
         "saves_bias": saves_bias,
         "moneypuck": mp_rep,
@@ -473,9 +479,9 @@ def main():
                 "backtest": json.load(open(os.path.join(OUT, "winners_backtest.json")))},
         "dk": dk,
         "dk_sog": [{"name": r["name"], "teams": r["teams"], "date": r["date"], "line": r["line"], "player_id": r.get("player_id"),
-                    "team": r.get("team"), "over": r.get("over"), "under": r.get("under")} for r in odds.sog_rows],
+                    "team": r.get("team"), "over": r.get("over"), "under": r.get("under"), "fetched_at": r.get("fetched_at")} for r in odds.sog_rows],
         "dk_points": [{"name": r["name"], "teams": r["teams"], "date": r["date"], "line": r["line"], "player_id": r.get("player_id"),
-                       "team": r.get("team"), "over": r.get("over"), "under": r.get("under")} for r in odds.points_rows],
+                       "team": r.get("team"), "over": r.get("over"), "under": r.get("under"), "fetched_at": r.get("fetched_at")} for r in odds.points_rows],
         "rosters": {t: [[p["id"], p["first"], p["last"], p["pos"]] for p in ps] for t, ps in R.teams.items() if t in teams},
         "ml": odds.ml_rows,
         "dist": DIST,

@@ -28,7 +28,11 @@ Your betting rules (shots and points at 58%+ at 1x or better) are unchanged. The
   - Rows missing playerId, team, game, market, line, either multiplier, source or fetch time are dropped and counted. Started games are removed.
   - A 0-row parse shows a red banner instead of an empty board.
   - DraftKings shots, points and saves lines fill in players Pick6 doesn't list.
-- **Refresh**. Builds run every 15 minutes from 9 AM to 1:45 AM CT. DraftKings is re-pulled at most every 55 minutes (`model/data/odds_cache.json`) to protect the Odds API quota.
+- **Refresh** (updated 2026-11-05).
+  - Builds run every 15 minutes from 9 AM to 1:45 AM CT, dispatched by `.github/workflows/ticker.yml`. GitHub's cron is best effort and on Nov 5 dropped most scheduled runs, so cron is only a backup.
+  - Every build pulls Pick6 and DraftKings (saves, shots, points) fresh. `model/data/odds_cache.json` and `model/data/pick6_cache.json` are the last good pulls, used only when a pull fails. They are shown as **fallback** with their original fetch time.
+  - The dashboard shows each source's fetch time in CT, its age and its status (fresh, fallback or error). Lines older than 20 minutes (`sources.STALE_MIN`) get a STALE warning and row badges.
+  - Every successful build is committed (`model/publish.sh`), even when only timestamps changed, so Vercel deploys it.
 - **Slate day** (`model/slate.py`). The slate is today in America/Chicago until all of today's games are FINAL. The old build used the UTC date, which dropped tonight's games after 6–7 PM CT. Started games show in a Live & final list with the stat so far and HIT/MISS.
 - **Leg log** (`model/data/legs.csv`).
   - Every displayed leg is stored: build time, playerId, team, line, side, multiplier, model p, market p, blended p, verdict, role change.
