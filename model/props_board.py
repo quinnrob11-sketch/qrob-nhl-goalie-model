@@ -118,6 +118,10 @@ def score_lines(payload, lines) -> list[dict]:
                 out.append(row); continue
             proj, po = _skater_p(payload, pl, g, mk, r["line"])
             row["role_change"] = pl.get("role_change"); row["role"] = " · ".join(v for v in (pl.get("line"), pl.get("pp")) if v)
+            # the board says one team, tonight's skater list (current roster) another: a stale or wrong match
+            if mk == "sog":   # SOG only, so saves and points rows stay exactly as before
+                row["team_mismatch"] = bool(r.get("team") and pl.get("team") and r["team"] != pl["team"])
+                row["roster_team"] = pl.get("team")
         if po is None:
             row.update(verdict="PASS", reason="no projection", side=None, p=None)
             out.append(row); continue
@@ -137,8 +141,9 @@ def score_lines(payload, lines) -> list[dict]:
     return out
 
 
-def choose(rows) -> list[dict]:
-    """One TAKE per player and market (best EV); the rest of his lines become alternates."""
+def legacy_choose(rows) -> list[dict]:
+    """One TAKE per player and market (best EV); the rest of his lines become alternates. Saves and points
+    keep this rule unchanged (finalize runs it over every row and keeps its saves / points results)."""
     groups = {}
     for r in rows:
         groups.setdefault((r.get("player_id") or r["name"], r["market"], r["game"]), []).append(r)
@@ -158,9 +163,10 @@ def _main_index(rs):
     return max(range(len(rs)), key=lambda j: (rs[j].get("p") or 0, rs[j]["source"] == "Pick6"))
 
 
-def conflicts(rows) -> list[dict]:
+def legacy_conflicts(rows) -> list[dict]:
     """Teammates on opposite sides of the same prop, and a goalie's saves vs the opposing skaters' shots.
-    Among TAKEs the lower-p leg of a conflicting pair becomes PASS ("conflict"); the kept one is flagged."""
+    Among TAKEs the lower-p leg of a conflicting pair becomes PASS ("conflict"); the kept one is flagged.
+    Saves and points keep this rule unchanged; SOG uses select_sog."""
     takes = [r for r in rows if str(r.get("verdict", "")).startswith("TAKE")]
 
     def clash(a, b):
@@ -186,16 +192,151 @@ def conflicts(rows) -> list[dict]:
     return rows
 
 
-def build(payload, pick6_rows, now=None) -> dict:
+# ---------- SOG selection (one shared rule; template.html selectSog mirrors it) ----------
+SOG_TIER_RANK = {"Lock": 0, "Strong": 1, "Near miss": 2}
+_is_take = lambda r: str(r.get("verdict", "")).startswith("TAKE")
+_sidetxt = lambda r: "MORE" if r.get("side") == "OVER" else "LESS"
+
+
+def sog_class(r) -> tuple[str | None, str]:
+    """Where one SOG line belongs before conflicts: "review" (role change, team-inconsistent or ambiguous
+    match), "discount" (the side pays under 1x: hidden from both curated lists, even at 58%+), "Lock" /
+    "Strong" (a valid TAKE at 62%+ / 58-62%), "Near miss" (55-58%, pays >= 1x, the model alone agrees;
+    never a TAKE), or None (below 55%, a side not offered, or failing break-even / model agreement)."""
+    if r.get("side") is None or r.get("p") is None:
+        return (("review", "unmatched or ambiguous player") if not r.get("matched", True) else (None, r.get("reason") or "no projection"))
+    if not r.get("matched", True):
+        return "review", r.get("match_reason") or "unmatched or ambiguous player"
+    if r.get("team_mismatch"):
+        return "review", f"team mismatch: board {r.get('team')}, roster {r.get('roster_team') or 'other'}"
+    if r.get("role_change"):
+        return "review", f"role change {r['role_change']} (old → new line)"
+    mult = r.get("mult")
+    if mult is not None and float(mult) == 0:
+        return None, r.get("reason") or "side not offered"
+    if mult is not None and float(mult) < pricing.MIN_MULT - 1e-9:
+        return "discount", f"pays {float(mult):g}x"
+    # DraftKings-priced fallback (no multiplier): it "pays >= 1x" only if its break-even is no worse than a 1x leg's
+    if mult is None and r.get("be") is not None and float(r["be"]) > pricing.dfs_break_even(pricing.MIN_MULT) + 1e-9:
+        return "discount", f"DK price break-even {100 * float(r['be']):.1f}% (worse than 1x)"
+    p = float(r["p"])
+    if _is_take(r):
+        return ("Lock" if p >= pricing.LOCK_P - 1e-9 else "Strong"), ""
+    agrees = (r.get("p_model_side") or 0) > 0.5
+    if pricing.NEAR_MISS_P - 1e-9 <= p < pricing.TAKE_P - 1e-9 and agrees:
+        return "Near miss", f"{100 * p:.0f}% near miss"
+    return None, r.get("reason") or ""
+
+
+def sog_rank_key(r):
+    """Tier, then blended p, then EV, then a stable tie-break. EV only breaks ties, so a lower-probability
+    alternate never wins because it pays more."""
+    return (SOG_TIER_RANK.get(r.get("sog_tier"), 9), -float(r.get("p") or 0), -float(r.get("ev") if r.get("ev") is not None else -9),
+            str(r.get("player_id") or r.get("name")), float(r.get("line") or 0), str(r.get("side") or ""), str(r.get("source") or ""))
+
+
+def _sog_clash(a, b) -> bool:
+    """Teammates on opposite sides of SOG in the same game."""
+    return a is not b and a["game"] == b["game"] and a["team"] == b["team"] and a.get("side") != b.get("side")
+
+
+def _saves_clash(sv, k) -> bool:
+    """A goalie's saves TAKE vs an opposing skater's SOG the other way (OVER saves wants the shooters MORE)."""
+    return sv["game"] == k["game"] and k["team"] == sv.get("opp") and sv.get("side") != k.get("side")
+
+
+def select_sog(sog_rows, saves_takes=()) -> dict:
+    """The one deterministic SOG selection.
+    1. Pool: every main and alternate line, classified by sog_class.
+    2. Greedy in sog_rank_key order: a line is kept when its player has no kept line yet and it doesn't
+       clash with a kept teammate on the other side or with a saves TAKE (saves decide first and never
+       change). A line that loses a conflict is skipped, so that player's next-best eligible line that
+       doesn't conflict is promoted. The kept line carries the conflict warning.
+    3. At most one SOG line per player per game. Today's plays = kept Lock / Strong; Near miss = kept 55-58%.
+    Rows are updated in place (verdict / reason / sog_tier / sog_section / primary / conflicts)."""
+    for r in sog_rows:
+        r["sog_tier"], r["sog_note"] = sog_class(r)
+        r["sog_section"] = None
+    pool = sorted([r for r in sog_rows if r["sog_tier"] in SOG_TIER_RANK], key=sog_rank_key)
+    kept, have = [], set()
+    for r in pool:
+        who = (r.get("player_id") or r["name"], r["game"])
+        if who in have:
+            continue
+        foe = next((k for k in kept if _sog_clash(k, r)), None)
+        foe_sv = None if foe else next((s for s in saves_takes if _saves_clash(s, r)), None)
+        if foe or foe_sv:
+            w = foe or foe_sv
+            r["sog_note"] = f"conflict: {w['name']} {w.get('label', 'SOG')} {_sidetxt(w)}"
+            if foe:
+                foe.setdefault("conflicts", []).append(f"{r['name']} SOG {_sidetxt(r)}")
+            continue
+        kept.append(r); have.add(who)
+        r["sog_section"] = "plays" if r["sog_tier"] in ("Lock", "Strong") else "near"
+    kept_ids = {id(r) for r in kept}
+    groups = {}
+    for r in sog_rows:
+        groups.setdefault((r.get("player_id") or r["name"], r["game"]), []).append(r)
+    for rs in groups.values():
+        k = next((r for r in rs if id(r) in kept_ids), None)
+        main = k or max(rs, key=lambda r: (r.get("p") or 0, r.get("source") == "Pick6", -float(r.get("line") or 0)))
+        for r in rs:
+            r["primary"] = r is main
+            if id(r) in kept_ids:
+                if r["sog_section"] == "plays":
+                    r.update(verdict=f"TAKE {_sidetxt(r)}", tier=r["sog_tier"], reason="")
+                else:
+                    r.update(verdict="PASS", tier="Near miss", reason=r["sog_note"])
+                continue
+            if r["sog_tier"] == "review":
+                r["sog_section"] = "review"
+            note = r["sog_note"]
+            if k is not None and r["sog_tier"] in SOG_TIER_RANK and not note.startswith("conflict"):
+                note = f"alt line (best is {k['line']:g} {_sidetxt(k).lower()})"
+            r.update(verdict="PASS", tier="", reason=("needs review: " + note) if r["sog_tier"] == "review" else (note or r.get("reason") or ""))
+    disc = [r for r in sog_rows if r["sog_tier"] == "discount" and (r.get("p") or 0) >= pricing.NEAR_MISS_P - 1e-9]
+    return {"plays": [r for r in kept if r["sog_section"] == "plays"], "near": [r for r in kept if r["sog_section"] == "near"],
+            "review": [r for r in sog_rows if r["sog_section"] == "review"],
+            "counts": {"rows": len(sog_rows), "lock": sum(r["sog_tier"] == "Lock" for r in kept),
+                       "strong": sum(r["sog_tier"] == "Strong" for r in kept), "near_miss": sum(r["sog_section"] == "near" for r in kept),
+                       "needs_review": sum(r["sog_section"] == "review" for r in sog_rows), "hidden_discounts": len(disc)}}
+
+
+def finalize(rows) -> tuple[list[dict], dict]:
+    """Saves and points: the legacy rule, run over every row exactly as before, so their verdicts,
+    reasons, tiers and conflict flags are unchanged. SOG: select_sog."""
+    import copy
+    legacy = legacy_conflicts(legacy_choose(copy.deepcopy(rows)))
+    out = []
+    for r, lg in zip(rows, legacy):
+        out.append(lg if r["market"] != "sog" else r)
+    sog_rows = [r for r in out if r["market"] == "sog"]
+    saves_takes = [r for r in out if r["market"] == "saves" and _is_take(r)]
+    return out, select_sog(sog_rows, saves_takes)
+
+
+PLAY_KEYS = ("name", "player_id", "team", "market", "label", "line", "side", "verdict", "tier", "p", "p_model", "p_mkt",
+             "mult", "source", "start", "game", "conflicts", "role_change", "role", "reason")
+
+
+def build(payload, pick6_rows, now=None, review=None) -> dict:
     lines, dk_drops = candidate_lines(payload, pick6_rows, now)
-    rows = conflicts(choose(score_lines(payload, lines)))
-    rows.sort(key=lambda r: (not str(r.get("verdict", "")).startswith("TAKE"), -(r.get("p") or 0)))
-    plays = [r for r in rows if str(r.get("verdict", "")).startswith("TAKE")]
+    rows, sel = finalize(score_lines(payload, lines))
+    rows.sort(key=lambda r: (not _is_take(r), -(r.get("p") or 0)))
+    plays = [r for r in rows if _is_take(r)]
     modeled = [r for r in rows if r["market"] in MODELED]
     with_p = [r for r in modeled if r.get("p_blend") is not None]
-    return {"rows": rows, "plays": [{k: r.get(k) for k in ("name", "player_id", "team", "market", "label", "line", "side",
-                                                          "verdict", "tier", "p", "p_model", "p_mkt", "mult", "source",
-                                                          "start", "game", "conflicts")} for r in plays],
+    # ambiguous / unmatched board rows the Pick6 pull dropped: listed for review, never in a play list
+    ambiguous = [{"name": r.get("name"), "team": r.get("team"), "market": r.get("market"), "line": r.get("line"),
+                  "reason": r.get("reason")} for r in (review or [])]
+    pick = lambda xs: [{k: r.get(k) for k in PLAY_KEYS} for x in [xs] for r in x]
+    return {"rows": rows, "plays": pick(plays), "near_miss": pick(sel["near"]),
+            "review": pick(sel["review"]) + ambiguous,
             "counts": {"lines": len(rows), "modeled": len(modeled), "with_p": len(with_p),
                        "match_rate": round(len(with_p) / len(modeled), 4) if modeled else None,
-                       "dk_dropped": dk_drops, "takes": len(plays)}}
+                       "dk_dropped": dk_drops, "takes": len(plays),
+                       "sog": {**sel["counts"], "needs_review": sel["counts"]["needs_review"] + sum(r["market"] == "sog" for r in ambiguous)}}}
+
+
+# old names, kept for callers and tests
+choose, conflicts = legacy_choose, legacy_conflicts

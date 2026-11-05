@@ -162,8 +162,14 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   <div id="feedBanner"></div>
   <div id="preNote"></div>
   <div class="card" id="cardPlays" style="border:2px solid var(--accent)"><h2>Today's plays <span class="muted" id="nPlays" style="font-weight:400;font-size:13px"></span></h2>
-    <p class="sub" style="margin:-4px 0 8px">Only TAKE legs: blended p 58%+ (saves: calibrated p 58%+ and a 2.5-save edge over / 3.0 under), at 1x or better, beating that multiplier's break-even, the player matched, and the model alone leaning the same way. One line per player and prop (the best EV). ⚠ = conflicts with another leg on the slate.</p>
+    <p class="sub" style="margin:-4px 0 8px">Only TAKE legs: blended p 58%+ (saves: calibrated p 58%+ and a 2.5-save edge over / 3.0 under), at 1x or better, beating that multiplier's break-even, the player matched, and the model alone leaning the same way. SOG: <b>Lock</b> 62%+, <b>Strong</b> 58–62%, at most one line per player per game (ranked by tier, then p, then EV; a line that loses a teammate conflict falls back to his next-best line). Sub-1x discount sides never appear here. ⚠ = conflicts with another leg on the slate.</p>
     <div id="playsBox"></div></div>
+  <div class="card" id="cardNear"><h2>Near miss (55–58%) <span class="muted" id="nNear" style="font-weight:400;font-size:13px"></span></h2>
+    <p class="sub" style="margin:-4px 0 8px">SOG sides at 55–58% blended p, paying 1x or better, with the model alone leaning the same way. Never a TAKE; shown so a board with 0 plays still shows what came close.</p>
+    <div id="nearBox"></div></div>
+  <div class="card" id="cardReview"><h2>Needs review <span class="muted" id="nReview" style="font-weight:400;font-size:13px"></span></h2>
+    <p class="sub" style="margin:-4px 0 8px">Kept out of both play lists: role changes (old line → new line), and names that matched no player, more than one player, or a player on a different team than the board says.</p>
+    <div id="reviewBox"></div></div>
   <div class="filters card" style="padding:10px 12px">
     <label>Market<select id="fMk"><option value="">All</option><option value="saves">Saves</option><option value="sog">SOG</option><option value="points">Points</option><option value="win">Winners</option></select></label>
     <label>Side<select id="fSide"><option value="">Both</option><option>OVER</option><option>UNDER</option></select></label>
@@ -176,12 +182,12 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
     <p class="sub" style="margin:-4px 0 8px">Games that have started are off the board. Their legs, as called before puck drop, with the stat so far: an over is a HIT as soon as it clears the line; an under is decided at the final.</p>
     <label class="chk" style="flex-direction:row;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="liveAll"> all legs (not just TAKEs)</label>
     <div class="board"><table id="liveT"></table></div></div>
-  <div class="card" id="cardRank"><h2>Every prop: one call each <span class="muted" id="nRank" style="font-weight:400;font-size:13px"></span></h2>
+  <div class="card" id="cardRank"><h2>Every prop: raw projections, one call each <span class="muted" id="nRank" style="font-weight:400;font-size:13px"></span></h2>
     <p class="sub" style="margin:-4px 0 8px">Every posted line ends in <b>TAKE MORE</b>, <b>TAKE LESS</b> or <b>PASS</b> with the reason. TAKE tiers: <b>Lock</b> 62%+, <b>Strong</b> 58–62%; 55–58% is PASS (near miss). <b>Blended p</b> = fitted weight × model + (1 − weight) × DraftKings no-vig on the same line (the weight is fitted by log loss on graded lines and shrunk when the model's record against the market is below break-even; Calibration tab). <b>Model p</b> = the calibrated model alone. <b>vs break-even</b> = blended p − the multiplier's break-even. A player's other lines are listed greyed under his main one (↳ alt). Lines: the Pick6 board the build pulls, DraftKings where Pick6 doesn't list the player, then yours.</p>
     <label class="chk" style="flex-direction:row;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="fRule"> TAKE only</label>
     <div class="board"><table id="bRank"></table></div></div>
   <div class="card" id="cardSaves"><h2>Saves <span class="muted" id="nSaves" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSaves"></table></div></div>
-  <div class="card" id="cardSog"><h2>SOG <span class="muted" id="nSog" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSog"></table></div></div>
+  <div class="card" id="cardSog"><h2>SOG raw projections <span class="muted" id="nSog" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSog"></table></div></div>
   <div class="card" id="cardPts"><h2>Points <span class="muted" id="nPts" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bPts"></table></div></div>
   <div class="card" id="cardWin"><h2>Winners <span class="muted" id="nWin" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bWin"></table></div>
     <p class="sub" style="margin:8px 0 0">Line = the DraftKings moneyline for the pick, Proj = the model's fair price, Diff = model win % − no-vig market % (points).</p></div>
@@ -914,7 +920,7 @@ function scoreSkaterLine(l){
   const proj = liveProj(pts ? pl.p60 : pl.r60, pts ? (pl.ptoi ?? pl.toi) : pl.toi, blk.opp[opp] ?? 1, (blk.team || {})[pl.team] ?? 1, home, playedYday(pl.team, g.date), playedYday(opp, g.date), prm);
   const po = nbOver(proj, l.line, prm, pl.pos);
   const mkt = dkMkt(pts ? D.dk_points : D.dk_sog, pl.name, pl.team, g.date, l.line, pl.id);
-  return {...base, proj, p_raw: po, p_mkt: mkt, role: [pl.line, pl.pp].filter(Boolean).join(" · "), role_change: pl.role_change, role_adjusted: pl.role_adjusted, pos: pl.pos};
+  return {...base, proj, p_raw: po, p_mkt: mkt, ...(l.market === "sog" ? {team_mismatch: !!(l.team && pl.team && l.team !== pl.team), roster_team: pl.team} : {}), role: [pl.line, pl.pp].filter(Boolean).join(" · "), role_change: pl.role_change, role_adjusted: pl.role_adjusted, pos: pl.pos};
 }
 function finishRow(r){
   if (r.p_raw == null && r.p_blend == null) return r;
@@ -949,6 +955,7 @@ function savesBoardRows(){
             capped: d.capped, ...v};
   });
 }
+// saves and points keep these two rules unchanged (props_board.legacy_choose / legacy_conflicts); SOG uses selectSog
 function chooseRows(rows){
   const groups = {};
   for (const r of rows) (groups[[r.player_id ?? r.name, r.market, r.game].join("|")] ||= []).push(r);
@@ -976,13 +983,89 @@ function conflictRows(rows){
   }
   return rows;
 }
+// ---------- SOG selection (mirrors props_board.select_sog: one shared, deterministic rule) ----------
+// pool: main + alt lines; Lock = TAKE at 62%+, Strong = TAKE 58-62%, Near miss = 55-58% at >= 1x with the model alone
+// agreeing (never a TAKE); sub-1x sides are hidden from both lists; role changes and team-inconsistent / ambiguous
+// matches go to Needs review. Greedy by tier, p, EV, stable tie-break: a player's line that loses a conflict (an
+// opposite-side teammate, or a saves TAKE the other way) is skipped so his next-best line can be kept.
+const SOG_RANK = {"Lock": 0, "Strong": 1, "Near miss": 2};
+const sideTxt = r => r.side === "OVER" ? "MORE" : "LESS";
+function sogClass(r){
+  if (r.side == null || r.p == null) return r.matched === false ? ["review", "unmatched or ambiguous player"] : [null, r.reason || "no projection"];
+  if (r.matched === false) return ["review", r.match_reason || "unmatched or ambiguous player"];
+  if (r.team_mismatch) return ["review", `team mismatch: board ${r.team}, roster ${r.roster_team || "other"}`];
+  if (r.role_change) return ["review", `role change ${r.role_change} (old → new line)`];
+  if (r.mult != null && +r.mult === 0) return [null, r.reason || "side not offered"];
+  if (r.mult != null && +r.mult < RULE.min_mult - 1e-9) return ["discount", `pays ${+r.mult}x`];
+  if (r.mult == null && r.be != null && +r.be > dfsBE(RULE.min_mult) + 1e-9) return ["discount", `DK price break-even ${(100 * r.be).toFixed(1)}% (worse than 1x)`];
+  if (isTake(r)) return [r.p >= RULE.lock_p - 1e-9 ? "Lock" : "Strong", ""];
+  const agrees = (r.pModelSide ?? r.p_model_side ?? 0) > 0.5;
+  if (r.p >= RULE.near_miss_p - 1e-9 && r.p < RULE.take_p - 1e-9 && agrees) return ["Near miss", `${Math.round(100 * r.p)}% near miss`];
+  return [null, r.reason || ""];
+}
+function sogRankCmp(a, b){
+  const k = r => [SOG_RANK[r.sog_tier] ?? 9, -(r.p ?? 0), -(r.ev ?? -9), String(r.player_id ?? r.name), +(r.line ?? 0), String(r.side ?? ""), String(r.source ?? "")];
+  const x = k(a), y = k(b);
+  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
+  return 0;
+}
+function selectSog(sog, savesTakes){
+  for (const r of sog){ [r.sog_tier, r.sog_note] = sogClass(r); r.sog_section = null; }
+  const pool = sog.filter(r => r.sog_tier in SOG_RANK).sort(sogRankCmp);
+  const kept = [], have = new Set();
+  const clash = (a, b) => a !== b && a.game === b.game && a.team === b.team && a.side !== b.side;
+  const svClash = (sv, k) => sv.game === k.game && k.team === sv.opp && sv.side !== k.side;
+  for (const r of pool){
+    const who = (r.player_id ?? r.name) + "|" + r.game;
+    if (have.has(who)) continue;
+    const foe = kept.find(k => clash(k, r)), foeSv = foe ? null : (savesTakes || []).find(s => svClash(s, r));
+    if (foe || foeSv){
+      const w = foe || foeSv; r.sog_note = `conflict: ${w.name} ${w.label || "SOG"} ${sideTxt(w)}`;
+      if (foe) (foe.conflicts ||= []).push(`${r.name} SOG ${sideTxt(r)}`);
+      continue;
+    }
+    kept.push(r); have.add(who); r.sog_section = r.sog_tier === "Near miss" ? "near" : "plays";
+  }
+  const keptSet = new Set(kept), groups = {};
+  for (const r of sog) (groups[(r.player_id ?? r.name) + "|" + r.game] ||= []).push(r);
+  for (const rs of Object.values(groups)){
+    const k = rs.find(r => keptSet.has(r));
+    // same tie-break as Python's max(): p, then Pick6, then the lower line; the first such row wins
+    const mk = r => [r.p ?? 0, r.source === "Pick6" ? 1 : 0, -(+(r.line ?? 0))];
+    const better = (r, m) => { const x = mk(r), y = mk(m); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]; return false; };
+    const main = k || rs.reduce((m, r) => better(r, m) ? r : m, rs[0]);
+    for (const r of rs){
+      r.primary = r === main; r.alts = r === main ? rs.filter(x => x !== r) : null;
+      if (keptSet.has(r)){
+        if (r.sog_section === "plays") Object.assign(r, {verdict: `TAKE ${sideTxt(r)}`, tier: r.sog_tier, reason: ""});
+        else Object.assign(r, {verdict: "PASS", tier: "Near miss", reason: r.sog_note});
+        continue;
+      }
+      if (r.sog_tier === "review") r.sog_section = "review";
+      let note = r.sog_note;
+      if (k && r.sog_tier in SOG_RANK && !String(note).startsWith("conflict")) note = `alt line (best is ${k.line} ${sideTxt(k).toLowerCase()})`;
+      Object.assign(r, {verdict: "PASS", tier: "", reason: r.sog_tier === "review" ? "needs review: " + note : (note || r.reason || "")});
+    }
+  }
+  const disc = sog.filter(r => r.sog_tier === "discount" && (r.p ?? 0) >= RULE.near_miss_p - 1e-9);
+  return {plays: kept.filter(r => r.sog_section === "plays"), near: kept.filter(r => r.sog_section === "near"),
+          review: sog.filter(r => r.sog_section === "review"),
+          counts: {rows: sog.length, lock: kept.filter(r => r.sog_tier === "Lock").length, strong: kept.filter(r => r.sog_tier === "Strong").length,
+                   near_miss: kept.filter(r => r.sog_section === "near").length, needs_review: sog.filter(r => r.sog_section === "review").length,
+                   hidden_discounts: disc.length}};
+}
 function propBoard(dateF){
   const mine = clientLines(), own = new Set(mine.map(l => l.market + "|" + l.player_id));
   const server = (D.board && D.board.rows || []).filter(r => r.market !== "saves" && !own.has(r.market + "|" + r.player_id)).map(r => ({...r, conflicts: null}));
   let rows = server.map(r => r.p_raw != null || r.p_blend != null ? finishRow(r) : r)
     .concat(mine.map(l => finishRow(scoreSkaterLine(l)))).concat(savesBoardRows());
   rows = rows.filter(r => !dateF || r.date === dateF);
-  return conflictRows(chooseRows(rows));
+  // saves and points: the legacy rule over every row, exactly as before; SOG: selectSog
+  const legacy = conflictRows(chooseRows(rows.map(r => JSON.parse(JSON.stringify(r)))));
+  rows = rows.map((r, i) => r.market === "sog" ? r : legacy[i]);
+  const sel = selectSog(rows.filter(r => r.market === "sog"), rows.filter(r => r.market === "saves" && isTake(r)));
+  rows.sel = sel;
+  return rows;
 }
 const verdictPill = r => isTake(r) ? `<span class="sp ${r.side}">${r.verdict}</span>` : `<span class="pill PASS">PASS</span>`;
 const roleBadge = r => r.role_change ? ` <span class="pill LOW" title="Listed on a different line than his recent ice time${r.role_adjusted ? "; TOI adjusted (confirmed within 6 h, capped ±15%)" : "; not confirmed in the last 6 h, so TOI is unchanged"}">role ${r.role_change}${r.role_adjusted ? " · TOI adj" : ""}</span>` : "";
@@ -1007,19 +1090,47 @@ function renderRanked(rows){
   const body = prim.map(r => `<tr class="${isTake(r) ? "" : "pass"}">${propCells(r, false)}</tr>` +
     (r.alts || []).sort((a, b) => a.line - b.line).map(a => `<tr class="pass alt">${propCells(a, true)}</tr>`).join("")).join("");
   $("#bRank").innerHTML = PROP_HEAD + "<tbody>" + (body || `<tr class="empty"><td colspan="13">No props for this date yet. The build pulls Pick6 and DraftKings every 15 minutes; paste your board below to add yours.</td></tr>`) + "</tbody>";
-  const takes = rows.filter(isTake), nm = rows.filter(r => r.reason === "unmatched player").length;
-  $("#nRank").textContent = `${takes.length} TAKE · ${takes.filter(r => r.tier === "Lock").length} Lock · ${takes.filter(r => r.tier === "Strong").length} Strong · ${rows.filter(r => r.primary && r.tier === "Near miss").length} near miss · ${rows.length} lines${nm ? ` · ${nm} unmatched` : ""}`;
-  renderPlays(takes);
+  const takes = rows.filter(isTake), nm = rows.filter(r => r.matched === false).length, c = (rows.sel || {}).counts || {};
+  $("#nRank").textContent = `${takes.length} TAKE · ${takes.filter(r => r.tier === "Lock").length} Lock · ${takes.filter(r => r.tier === "Strong").length} Strong · ${c.near_miss ?? 0} SOG near miss · ${rows.length} lines${nm ? ` · ${nm} unmatched` : ""}`;
+  renderPlays(takes, rows.sel || {plays: [], near: [], review: []});
 }
-function renderPlays(takes){
-  takes = takes.slice().sort((a, b) => b.p - a.p);
-  $("#playsBox").innerHTML = takes.length ? `<div class="board"><table><thead><tr><th class="l pin">Play</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Call</th><th class="num">p</th><th class="num">Model p</th><th class="num">Mult</th><th class="l">Source</th><th class="num">CT</th></tr></thead><tbody>` +
-    takes.map(r => `<tr><td class="l pin"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span>${roleBadge(r)}${r.conflicts && r.conflicts.length ? `<div class="cell2 bad">⚠ conflicts: ${r.conflicts.join(", ")}</div>` : ""}</td>
+const multCell = r => r.mult != null ? r.mult + "x" : r.dk_over != null && r.side ? amer(r.side === "OVER" ? r.dk_over : r.dk_under) : "–";
+const ctCell = r => r.start ? ctFmt(new Date(r.start), {hour: "numeric", minute: "2-digit"}) : "–";
+const conflictTxt = r => r.conflicts && r.conflicts.length ? `<div class="cell2 bad">⚠ conflicts: ${r.conflicts.join(", ")}</div>` : "";
+const PLAY_HEAD = `<thead><tr><th class="l pin">Play</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Call</th><th class="num">p</th><th class="num">Model p</th><th class="num">Mult</th><th class="l">Source</th><th class="num">CT</th></tr></thead>`;
+// Today's plays = SOG Lock/Strong kept by selectSog + saves/points TAKEs; Near miss and Needs review are their own lists
+function renderPlays(takes, sel){
+  takes = takes.slice().sort((a, b) => b.p - a.p || String(a.player_id ?? a.name).localeCompare(String(b.player_id ?? b.name)));
+  $("#playsBox").innerHTML = takes.length ? `<div class="board"><table>${PLAY_HEAD}<tbody>` +
+    takes.map(r => `<tr><td class="l pin"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span>${roleBadge(r)}${conflictTxt(r)}</td>
       <td class="l">${r.label}</td><td class="num">${n1(r.line)}</td><td class="l">${verdictPill(r)} <span class="pill ${r.tier === "Lock" ? "HIGH" : "MED"}">${r.tier}</span></td>
-      <td class="num"><b>${pc0(r.p)}</b></td><td class="num">${pc0(r.pModelSide)}</td><td class="num">${r.mult != null ? r.mult + "x" : r.dk_over != null ? amer(r.side === "OVER" ? r.dk_over : r.dk_under) : "–"}</td>
-      <td class="l"><span class="muted" style="font-size:11px">${r.source}</span></td><td class="num">${r.start ? ctFmt(new Date(r.start), {hour: "numeric", minute: "2-digit"}) : "–"}</td></tr>`).join("") + "</tbody></table></div>"
-    : `<p class="muted" style="margin:0">No TAKE legs for this date yet. Every prop below shows why it is a PASS.</p>`;
+      <td class="num"><b>${pc0(r.p)}</b></td><td class="num">${pc0(r.pModelSide)}</td><td class="num">${multCell(r)}</td>
+      <td class="l"><span class="muted" style="font-size:11px">${r.source}</span></td><td class="num">${ctCell(r)}</td></tr>`).join("") + "</tbody></table></div>"
+    : `<p class="muted" style="margin:0">No TAKE legs for this date yet.${sel.near.length ? ` ${sel.near.length} SOG near miss${sel.near.length === 1 ? "" : "es"} below.` : ""}</p>`;
   $("#nPlays").textContent = takes.length ? `${takes.length} leg${takes.length === 1 ? "" : "s"}, ranked by p` : "";
+  const near = sel.near.slice().sort(sogRankCmp);
+  $("#nearBox").innerHTML = near.length ? `<div class="board"><table>${PLAY_HEAD}<tbody>` +
+    near.map(r => `<tr><td class="l pin"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span>${conflictTxt(r)}</td>
+      <td class="l">${r.label}</td><td class="num">${n1(r.line)}</td><td class="l"><span class="sp ${r.side}">${sideTxt(r)}</span> <span class="pill PASS">Near miss</span></td>
+      <td class="num"><b>${pc0(r.p)}</b></td><td class="num">${pc0(r.pModelSide)}</td><td class="num">${multCell(r)}</td>
+      <td class="l"><span class="muted" style="font-size:11px">${r.source}</span></td><td class="num">${ctCell(r)}</td></tr>`).join("") + "</tbody></table></div>"
+    : `<p class="muted" style="margin:0">No SOG sides at 55–58% paying 1x or better.</p>`;
+  $("#nNear").textContent = near.length ? `${near.length} line${near.length === 1 ? "" : "s"}, not plays` : "";
+  // server-side review rows the Pick6 pull could not match (ambiguous names) are added to the client's own
+  const dateF = $("#dateF").value, seen = new Set(sel.review.map(r => r.name + "|" + r.line));
+  const extra = ((D.board || {}).review || []).filter(r => r.verdict == null && !seen.has(r.name + "|" + r.line));
+  // one row per player and game (his main line), the count of his other flagged lines beside it
+  const byWho = {};
+  for (const r of sel.review.concat(extra)) (byWho[(r.player_id ?? r.name) + "|" + (r.game ?? "") + "|" + (r.market || "")] ||= []).push(r);
+  const rev = Object.values(byWho).map(rs => ({...(rs.find(r => r.primary) || rs[0]), nMore: rs.length - 1}));
+  $("#reviewBox").innerHTML = rev.length ? `<div class="board"><table><thead><tr><th class="l pin">Player</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Why</th><th class="num">p</th><th class="l">Source</th></tr></thead><tbody>` +
+    rev.map(r => `<tr class="pass"><td class="l pin"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team || "?"}</span>${r.role ? `<div class="cell2">now ${r.role}</div>` : ""}${r.nMore ? `<div class="cell2">+${r.nMore} more line${r.nMore === 1 ? "" : "s"}</div>` : ""}</td>
+      <td class="l">${r.label || String(r.market || "").toUpperCase()}</td><td class="num">${n1(r.line)}</td>
+      <td class="l">${String(r.reason || "").replace(/^needs review: /, "")}</td><td class="num">${r.p != null ? pc0(r.p) + " " + sideTxt(r) : "–"}</td>
+      <td class="l"><span class="muted" style="font-size:11px">${r.source || "Pick6"}</span></td></tr>`).join("") + "</tbody></table></div>"
+    : `<p class="muted" style="margin:0">Nothing needs review.</p>`;
+  const nLines = rev.reduce((t, r) => t + 1 + r.nMore, 0);
+  $("#nReview").textContent = rev.length ? `${rev.length} player${rev.length === 1 ? "" : "s"} · ${nLines} line${nLines === 1 ? "" : "s"}` : "";
 }
 function renderLive(){
   const L = (D.live || {}).legs || [], all = $("#liveAll") && $("#liveAll").checked;
@@ -1085,7 +1196,7 @@ function renderBoard(){
   const S = allS.filter(r => (!dateF || r.date === dateF) && (!plays || r.play) && (!sideF || r.side === sideF) && (!minS || (r.prob ?? 0) >= minS) && matchQ(...r.q));
   const K = allK.filter(r => keep(r)), Wn = allW.filter(r => keep(r, false)), Pt = allP.filter(r => keep(r));
   const day = r => (!dateF || r.date === dateF) && matchQ(...r.q) && (!sideF || r.side === sideF);
-  renderRanked(propBoard(dateF)); renderLive();
+  const pb = propBoard(dateF); renderRanked(pb); renderLive();
   // plays the probability filter hides are counted, never hidden silently
   const hid = (all, sides = true) => all.filter(r => r.play && r.prob < minP - 1e-9 && (!dateF || r.date === dateF) && (!sides || !sideF || r.side === sideF) && matchQ(...r.q)).length;
   $("#cardSaves").style.display = !mkF || mkF === "saves" ? "" : "none";
@@ -1105,11 +1216,12 @@ function renderBoard(){
   $("#bSaves").querySelectorAll("select[data-st]").forEach(s => s.onchange = () => {
     STARTER[s.dataset.st] = +s.value; store.set("gm_starter", STARTER); renderSlate(); renderSlip(); renderWinners(); renderGoalies();
   });
-  boardTable("#bSog", "sog", K, {label: "SOG lines"});
+  // raw projections only: SOG plays come from selectSog (Today's plays / Near miss), so no tier pills here
+  boardTable("#bSog", "sog", K.map(r => ({...r, play: false})), {label: "SOG lines"});
   boardTable("#bWin", "win", Wn, {win: true, label: "games"});
   const cnt = (rows, h) => `${rows.length} shown · ${rows.filter(r => r.play).length} plays` +
     (h ? ` · <span class="warn-inline">${h} play${h === 1 ? "" : "s"} below ${Math.round(100 * minP)}% hidden (lower the minimum to see ${h === 1 ? "it" : "them"})</span>` : "");
-  $("#nSaves").innerHTML = `${S.length} goalies · ${S.filter(r => !r.noLine).length} with lines · ${S.filter(r => r.play).length} plays`; $("#nSog").innerHTML = cnt(K, hid(allK)); $("#nWin").innerHTML = cnt(Wn, hid(allW, false)); $("#nPts").innerHTML = cnt(Pt, hid(allP));
+  $("#nSaves").innerHTML = `${S.length} goalies · ${S.filter(r => !r.noLine).length} with lines · ${S.filter(r => r.play).length} plays`; const sc = pb.sel.counts; $("#nSog").innerHTML = `${sc.rows} board rows · ${sc.lock} Lock · ${sc.strong} Strong · ${sc.near_miss} near miss · ${sc.needs_review} needs review · ${sc.hidden_discounts} hidden discount${sc.hidden_discounts === 1 ? "" : "s"} (sub-1x) · ${K.length} raw projections shown`; $("#nWin").innerHTML = cnt(Wn, hid(allW, false)); $("#nPts").innerHTML = cnt(Pt, hid(allP));
   renderStatus();
 }
 function renderStatus(){

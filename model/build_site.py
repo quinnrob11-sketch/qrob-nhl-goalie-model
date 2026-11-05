@@ -515,7 +515,7 @@ def main():
             if os.path.exists(os.path.join(OUT, "calibration.json")) else None
     # tonight's board: every Pick6 line (DK as fallback), one verdict per player and market; every leg shown is logged
     try:
-        payload["board"] = props_board.build(payload, p6_rows, now)
+        payload["board"] = props_board.build(payload, p6_rows, now, review=(p6_stats or {}).get("review"))
         print(f"  [board] {payload['board']['counts']}")
     except Exception as e:  # never let the board break the dashboard
         import traceback; traceback.print_exc()

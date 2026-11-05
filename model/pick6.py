@@ -365,7 +365,7 @@ def _game_for(r, slate):
 def build_rows(page: str, slate: list[dict], R: players.Rosters, fetched_at: str, now: dt.datetime | None = None):
     """Board rows with every required field, and the drop counts by reason."""
     import slate as slate_mod
-    rows, drops, n_raw = [], {}, 0
+    rows, drops, n_raw, review = [], {}, 0, []
     for r in extract(page):
         n_raw += 1
         g = _game_for(r, slate)
@@ -377,6 +377,8 @@ def build_rows(page: str, slate: list[dict], R: players.Rosters, fetched_at: str
         missing = [f for f in REQUIRED if row.get(f) in (None, "")]
         if m["status"] != "MATCHED":
             why = "unmatched player"
+            review.append({"name": r["name"], "team": r.get("team"), "market": r["market"], "line": r["line"],
+                           "reason": m.get("reason") or "unmatched"})
         elif missing:
             why = "missing " + ", ".join(missing)
         elif g and slate_mod.started(g, now):
@@ -385,7 +387,7 @@ def build_rows(page: str, slate: list[dict], R: players.Rosters, fetched_at: str
             rows.append(row)
             continue
         drops[why] = drops.get(why, 0) + 1
-    return rows, {"raw": n_raw, "kept": len(rows), "dropped": drops}
+    return rows, {"raw": n_raw, "kept": len(rows), "dropped": drops, "review": review[:100]}
 
 
 FAILED = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "pick6_failed.html")
@@ -433,6 +435,7 @@ def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30):
             if k not in seen:
                 seen.add(k); rows.append(r)
         stats["raw"] += st["raw"]
+        stats.setdefault("review", []).extend(st.get("review") or [])
         for k, v in st["dropped"].items():
             stats["dropped"][k] = stats["dropped"].get(k, 0) + v
     stats["kept"] = len(rows)

@@ -50,7 +50,7 @@ class Verdicts(unittest.TestCase):
                 self.assertTrue(r["reason"], r)
         self.assertEqual([(p["player_id"], p["line"]) for p in b["plays"]],
                          [(r["player_id"], r["line"]) for r in b["rows"] if r["verdict"].startswith("TAKE")])
-        self.assertEqual(next(r for r in b["rows"] if r["name"] == "Nobody")["reason"], "unmatched player")
+        self.assertEqual(next(r for r in b["rows"] if r["name"] == "Nobody")["reason"], "needs review: unmatched or ambiguous player")
         per_player = {}
         for r in b["rows"]:
             if r["verdict"].startswith("TAKE"):
