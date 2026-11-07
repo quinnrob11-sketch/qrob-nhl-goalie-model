@@ -165,11 +165,57 @@ def parse_props(js, slate: list[dict], R, fetched_at: str, now: dt.datetime | No
     return rows, drops
 
 
-def props(slate: list[dict], R, now: dt.datetime | None = None) -> list[dict]:
-    """This build's PrizePicks shots / points lines for the board. Uses the response fetch() already pulled;
-    if that pull failed (PrizePicks answers cloud servers with HTTP 403), the last good board in
-    model/data/pp_cache.json is reused with its ORIGINAL fetch time and props_status "fallback"."""
+def from_odds(odds_rows, slate: list[dict], now: dt.datetime | None = None) -> list[dict]:
+    """PrizePicks lines as The Odds API serves them (bookmaker "prizepicks") -> board rows. Standard lines
+    are 1x DFS legs, More and Less (a side the API doesn't list is not offered: multiplier 0). Demons and
+    goblins (*_alternate markets) pay differently, so they are priced at the odds the API gives them."""
+    import pick6
+    import slate as slate_mod
+    global props_review
+    out, review, seen = [], [], set()
+    for r in odds_rows or []:
+        if r.get("match") != "MATCHED" or r.get("player_id") is None:
+            review.append({"name": r.get("name"), "team": "/".join(r.get("teams") or []), "market": r.get("market"),
+                           "line": r.get("line"), "reason": r.get("match_reason") or "unmatched"})
+            continue
+        g = pick6._game_for({"team": r.get("team"), "start": r.get("start")}, slate)
+        if g is None or slate_mod.started(g, now):
+            continue
+        alt = bool(r.get("alt"))
+        key = (r["player_id"], r["market"], float(r["line"]), alt)
+        if key in seen:
+            continue
+        seen.add(key)
+        row = {"name": r["name"], "player_id": int(r["player_id"]), "team": r.get("team"), "game": g["id"], "date": g["date"],
+               "market": r["market"], "line": float(r["line"]), "source": SOURCE, "fetched_at": r.get("fetched_at"), "via": "The Odds API"}
+        if alt:
+            row.update(mo=None, mu=None, over=r.get("over"), under=r.get("under"), priced=True, alt=True)
+        else:
+            row.update(mo=1.0 if r.get("over") is not None else 0.0, mu=1.0 if r.get("under") is not None else 0.0)
+        out.append(row)
+    props_review = review[:100]
+    return out
+
+
+def props(slate: list[dict], R, now: dt.datetime | None = None, odds_rows=None, odds_status: str | None = None,
+          odds_at: str | None = None) -> list[dict]:
+    """This build's PrizePicks lines for the board.
+    1. PrizePicks' own API (fetch() already pulled it), when PrizePicks lets the build through.
+    2. Otherwise the PrizePicks lines The Odds API carries (odds.pp_rows), with the Odds pull's status and fetch time.
+    3. Otherwise the last good board in model/data/pp_cache.json, ORIGINAL fetch time, status "fallback"."""
     global props_status, props_fetched_at
+    if last_js is None and odds_rows:
+        rows = from_odds(odds_rows, slate, now)
+        props_status, props_fetched_at = (odds_status or "fresh"), (odds_at or (rows[0]["fetched_at"] if rows else None))
+        print(f"  [prizepicks] {len(rows)} lines via The Odds API ({props_status}; "
+              f"{sum(r.get('alt', False) for r in rows)} demon / goblin, {len(props_review)} unmatched)")
+        if rows and props_status == "fresh":
+            try:
+                with open(CACHE, "w") as f:
+                    json.dump({"at": props_fetched_at, "rows": rows}, f, separators=(",", ":"))
+            except OSError:
+                pass
+        return rows
     if last_js is not None:
         at = (now or dt.datetime.now(dt.timezone.utc)).isoformat(timespec="seconds")
         rows, drops = parse_props(last_js, slate, R, at, now)

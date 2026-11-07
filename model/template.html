@@ -906,7 +906,7 @@ function renderSlate(){
     : ppLive.state === "fail" ? `PrizePicks: live pull ${ppLive.err}.`
     : D.pp_status === "unavailable" ? `PrizePicks: blocked for the build server (it refuses requests from cloud IPs); the board is pulled live in your browser instead.`
     : D.pp_error ? `PrizePicks: unavailable (${D.pp_error}).` : `PrizePicks: no goalie saves props posted yet.`;
-  const ppBlocked = ppLive.state === "fail" || (!nPP && ppLive.state !== "ok" && D.pp_status === "unavailable");
+  const ppBlocked = !nPP && !(D.board && (D.board.rows || []).some(r => r.source === "PrizePicks")) && (ppLive.state === "fail" || (ppLive.state !== "ok" && D.pp_status === "unavailable"));
   const pill = (txt, ok) => `<span class="pill ${ok ? "HIGH" : ok === null ? "LOW" : ""}" style="${ok === false ? "background:var(--under-bg);color:var(--under)" : ""}">${txt}</span>`;
   const nDF = (D.starters || []).filter(r => String(r.status).toLowerCase() === "confirmed").length;
   SRC_PILLS = [pill(ppBlocked ? "PrizePicks: blocked" : ppLive.state === "ok" || nPP ? "PrizePicks: ok" : "PrizePicks: no props", !ppBlocked),

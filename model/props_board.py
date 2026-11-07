@@ -129,7 +129,8 @@ def score_lines(payload, lines) -> list[dict]:
             out.append(row); continue
         cal = calib.get(mk, {}).get("cal")
         q = dk.get((mk, r["player_id"], float(r["line"])))
-        over_p, under_p = (r.get("over"), r.get("under")) if r["source"] == "DraftKings" else (None, None)
+        # DraftKings fallback lines, and PrizePicks demons / goblins (non-standard payouts), carry their own odds
+        over_p, under_p = (r.get("over"), r.get("under")) if r["source"] == "DraftKings" or r.get("priced") else (None, None)
         mkt = pricing.novig(q.get("over"), q.get("under")) if q else None
         pb, pm, pk = pricing.final_p_over(po, cal, market_p=mkt, line=r["line"])
         # a DraftKings fallback line is priced at DraftKings' own odds: a -200 favourite needs 67%, it is not a free 1x leg

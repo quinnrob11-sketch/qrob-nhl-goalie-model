@@ -415,13 +415,20 @@ def main():
     dk = odds.fetch(goalies, R=R)
     pp = prizepicks.fetch(goalies)
     p6_rows, p6_stats = pick6.fetch(slate, R)
-    pp_props = prizepicks.props(slate, R)          # shots / points from the same PrizePicks pull (or its last good board)
+    # PrizePicks: its own API if it lets the build through, else its lines on The Odds API, else the last good board
+    pp_props = prizepicks.props(slate, R, odds_rows=odds.pp_rows, odds_status=odds.status, odds_at=odds.fetched_at)
+    if not pp:   # goalie saves feed (starters, saves table) from the same PrizePicks lines
+        pp = [{"name": r["name"], "team": r["team"], "line": r["line"], "date": r["date"], "opp": None, "url": None,
+               "goalie_id": r["player_id"], "source": "The Odds API"} for r in pp_props if r["market"] == "saves" and not r.get("alt")]
     # real per-source fetch times (never the build time): fresh this build, or the last good pull as a labelled fallback
     lines_at = dt.datetime.now(dt.timezone.utc)
     src_info = {"pick6": sources.info(pick6.fetch_status, pick6.fetched_at, lines_at, None if pick6.status == "ok" else pick6.status),
                 "dk": sources.info(odds.status, odds.fetched_at, lines_at, odds.last_error),
                 "pp": sources.info(prizepicks.props_status, prizepicks.props_fetched_at, lines_at,
-                                   None if prizepicks.status == "ok" else prizepicks.last_error)}
+                                   None if prizepicks.status == "ok" or (pp_props and prizepicks.last_js is None and odds.status == "fresh")
+                                   else prizepicks.last_error)}
+    if prizepicks.last_js is None and odds.pp_rows:
+        src_info["pp"]["via"] = "The Odds API"
     starter_rows = starters.fetch(goalies, sorted({g["date"] for g in slate}))
     combos = linecombos.fetch({g[k] for g in slate for k in ("home", "away")} - DEFUNCT)
     sv_rows = saves_rows(df, cur)
@@ -490,7 +497,7 @@ def main():
         "dist": DIST,
         "pricing": pricing.config(),
         "dk_error": odds.last_error,
-        "odds_remaining": odds.remaining,
+        "odds_remaining": odds.remaining, "odds_costs": odds.last_costs[:20],
         "depth": depth_charts(st_df[st_df.season == display_season], rosters,
                               preseason=bool(latest < cur),
                               prev=st_df[st_df.season == display_season - 1]),
