@@ -171,6 +171,8 @@ details.info>p{margin:0}
 #statusBox .statusbar{border:0;padding:0;background:none;margin-bottom:6px}
 .srcline{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;color:var(--text-2);margin:0 2px 10px}
 .srcline b{color:var(--text);font-weight:600}
+.srcline .refresh{padding:3px 10px;font-size:12.5px;margin-left:auto}
+.srcline .refmsg{flex-basis:100%;text-align:right;font-size:12px;color:var(--muted);margin-top:-4px}
 .src .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;background:var(--over)}
 .src.bad .dot{background:var(--under)}
 .src.bad{color:var(--under)}
@@ -666,7 +668,9 @@ function renderSources(){
   $("#srcBar").innerHTML = (stale.length ? `<div class="note stale-note"><b>⚠ STALE LINES:</b> ${stale.map(([n, s]) => {
       const a = s && lineAge(s.fetched_at); return `${n} ${!s || !s.fetched_at ? "has no lines from any pull" : `lines are ${Math.round(a)} min old (fetched ${lineCT(s.fetched_at)}${s.status === "fallback" ? ", fallback: this build's pull failed" : ""})`}`; }).join("; ")}.
       Older than ${STALE_MIN} min: multipliers and prices may have moved. Check the line on the app before betting; affected rows are marked <span class="pill stale">STALE</span>.</div>` : "") +
-    `<div class="srcline">${one("Pick6", SRC.pick6)}${one("DraftKings", SRC.dk)}${SRC.pp || PP_FETCHED_AT ? one("PrizePicks", ppS) : ""}<span>Built <b>${isNaN(builtAt) ? D.built : lineTm(builtAt)}</b>${isNaN(ba) ? "" : ` · ${Math.round(ba)}m ago`} CT</span></div>`;
+    `<div class="srcline">${one("Pick6", SRC.pick6)}${one("DraftKings", SRC.dk)}${SRC.pp || PP_FETCHED_AT ? one("PrizePicks", ppS) : ""}<span>Built <b>${isNaN(builtAt) ? D.built : lineTm(builtAt)}</b>${isNaN(ba) ? "" : ` · ${Math.round(ba)}m ago`} CT</span>` +
+    `<button class="ghost refresh" id="refreshBtn" ${REFRESH.busy ? "disabled" : ""}>${REFRESH.busy ? "Checking…" : "↻ Refresh"}</button>` +
+    (REFRESH.msg ? `<span class="refmsg">${REFRESH.msg}</span>` : "") + `</div>`;
 }
 const STALE = !isNaN(BUILD_AGE_H) && BUILD_AGE_H > 6 && (D.slate || []).some(g => g.date === TODAY_CT);
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
@@ -1393,6 +1397,37 @@ function renderStatus(){
   renderFeeds(); renderSources();
 }
 setInterval(() => { try { renderSources(); } catch (e) {} }, 30000);   // ages keep counting while the page is open
+// ---------- Refresh: load the newest build. Lines are pulled by the build every 15 minutes (9 AM - 1:45 AM CT);
+// the page can't start a build itself (that needs a GitHub key a public page can't hold), so Refresh asks the live
+// site for its current build and reloads into it when it is newer. It also checks on its own when you come back
+// to the tab.
+const REFRESH = {busy: false, msg: ""};
+try { if (/[?&]r=\d+/.test(location.search)) history.replaceState(null, "", location.pathname + location.hash); } catch (e) {}
+async function checkForUpdate(manual){
+  if (REFRESH.busy) return;
+  REFRESH.busy = true; if (manual) { REFRESH.msg = ""; renderSources(); }
+  try {
+    const r = await fetch(location.pathname + "?r=" + Date.now(), {cache: "no-store"});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const m = (await r.text()).match(/"built_iso":"([^"]+)"/);
+    const live = m && Date.parse(m[1]), mine = Date.parse(D.built_iso);
+    if (live && mine && live > mine + 1000){
+      REFRESH.msg = "Newer build found, loading…"; renderSources();
+      location.replace(location.pathname + "?r=" + Date.now() + location.hash);
+      return;
+    }
+    if (manual){
+      const next = new Date(Math.max(Date.now(), (mine || Date.now()) + 15 * 6e4));
+      REFRESH.msg = `Up to date. Next build ≈ ${lineTm(next)} CT`;
+    }
+  } catch (e){
+    if (manual) REFRESH.msg = `Couldn't check (${e.message || "offline"})`;
+  }
+  REFRESH.busy = false; renderSources();
+}
+document.addEventListener("click", e => { if (e.target.closest("#refreshBtn")) checkForUpdate(true); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkForUpdate(false); });
+setInterval(() => { if (document.visibilityState === "visible") checkForUpdate(false); }, 5 * 6e4);
 // data plumbing on screen: a Pick6 pull that parses to 0 rows is a red banner, never a silently empty board
 function renderFeeds(){
   const st = String(D.pick6_status || "not run"), ps = D.pick6_stats || {}, bc = (D.board || {}).counts || {}, dm = D.dk_match || {};
