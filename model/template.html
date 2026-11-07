@@ -1081,6 +1081,16 @@ function savesBoardRows(){
             capped: d.capped, ...v};
   });
 }
+// a player's main line (props_board.main_line_key): offered both ways, Pick6, then PrizePicks, then DraftKings
+const SRC_PREF = {"Pick6": 0, "PrizePicks": 1, "DraftKings": 2};
+const bothWays = r => !(r.alt || r.priced) && (String(r.source).startsWith("DraftKings") ||
+  (r.mo != null && +r.mo !== 0 && r.mu != null && +r.mu !== 0));
+function mainCmp(a, b){
+  const k = r => [bothWays(r) ? 0 : 1, SRC_PREF[r.source] ?? 3, -(+(r.p ?? 0)), +(r.line ?? 0)];
+  const x = k(a), y = k(b);
+  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
+  return 0;
+}
 // saves and points keep these two rules unchanged (props_board.legacy_choose / legacy_conflicts); SOG uses selectSog
 function chooseRows(rows){
   const groups = {};
@@ -1088,7 +1098,7 @@ function chooseRows(rows){
   for (const rs of Object.values(groups)){
     let best = -1;
     rs.forEach((r, j) => { if (isTake(r) && (best < 0 || (r.ev ?? -9) > (rs[best].ev ?? -9))) best = j; });
-    const main = best >= 0 ? best : rs.reduce((m, r, j) => (r.p ?? 0) > (rs[m].p ?? 0) ? j : m, 0);
+    const main = best >= 0 ? best : rs.reduce((m, r, j) => mainCmp(r, rs[m]) < 0 ? j : m, 0);
     rs.forEach((r, j) => {
       r.primary = j === main; r.alts = j === main ? rs.filter((_, k) => k !== j) : null;
       if (best >= 0 && j !== best && isTake(r)) Object.assign(r, {verdict: "PASS", reason: `alt line (best is ${rs[best].line} ${rs[best].side === "OVER" ? "more" : "less"})`, tier: ""});
@@ -1156,10 +1166,7 @@ function selectSog(sog, savesTakes){
   for (const r of sog) (groups[(r.player_id ?? r.name) + "|" + r.game] ||= []).push(r);
   for (const rs of Object.values(groups)){
     const k = rs.find(r => keptSet.has(r));
-    // same tie-break as Python's max(): p, then Pick6, then the lower line; the first such row wins
-    const mk = r => [r.p ?? 0, r.source === "Pick6" ? 1 : 0, -(+(r.line ?? 0))];
-    const better = (r, m) => { const x = mk(r), y = mk(m); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]; return false; };
-    const main = k || rs.reduce((m, r) => better(r, m) ? r : m, rs[0]);
+    const main = k || rs.reduce((m, r) => mainCmp(r, m) < 0 ? r : m, rs[0]);
     for (const r of rs){
       r.primary = r === main; r.alts = r === main ? rs.filter(x => x !== r) : null;
       if (keptSet.has(r)){
@@ -1223,9 +1230,18 @@ function propDetail(r){
     ["Game", `${r.team || "?"}${r.opp ? " vs " + r.opp : ""}${r.start ? " · " + ctCell(r) + " CT" : ""}`],
     ["Source", r.source + (r.fetched_at ? ` · ${lineTm(r.fetched_at)}` : "")], ["Role", r.role || null],
     ["⚠ Conflicts", r.conflicts && r.conflicts.length ? r.conflicts.join(", ") : null, true]]) +
-    (alts.length ? `<div class="alts"><span><i>Other lines</i></span>${alts.map(a => `<span>${n1(a.line)} · ${pc0(a.p)}${a.side ? " " + sideTxt(a).toLowerCase() : ""}${isTake(a) ? " · " + a.verdict : ""}</span>`).join("")}</div>` : "");
+    (alts.length ? `<div class="alts"><span><i>Other lines</i></span>${alts.map(altTxt).join("")}</div>` : "");
 }
 const SHORT_LBL = {SOG: "SOG", Points: "PTS", Saves: "SV"};
+// an alternate line as it can be played: a More-only alt shows MORE and its multiplier, never an unoffered LESS
+function altTxt(a){
+  const flip = a.side && ((a.side === "UNDER" && a.mu != null && +a.mu === 0) || (a.side === "OVER" && a.mo != null && +a.mo === 0));
+  const side = !a.side ? "" : flip ? (a.side === "OVER" ? "less" : "more") : sideTxt(a).toLowerCase();
+  const p = a.p == null ? null : flip ? 1 - a.p : a.p;
+  const m = !a.side ? null : (side === "more" ? a.mo : a.mu);
+  const pays = m != null ? ` · ${+m}x` : a.dk_over != null ? ` · ${amer(side === "more" ? a.dk_over : a.dk_under)}` : "";
+  return `<span>${n1(a.line)} ${side} <b>${pc0(p)}</b>${pays} <span class="muted">${a.source}${isTake(a) ? " · " + a.verdict : ""}</span></span>`;
+}
 function propRow(r){
   const d = r.proj != null && r.line != null ? r.proj - r.line : null;
   const flags = (r.conflicts && r.conflicts.length ? ' <span class="bad" title="Conflicts: tap for details">⚠</span>' : "") + staleBadge(r) + roleBadge(r);
@@ -1234,16 +1250,28 @@ function propRow(r){
     <td class="num ${d == null ? "" : diffCls(d, r.side, r.market === "saves" ? 0.5 : 0.15)}">${sgn1(d)}</td>
     <td class="l">${pickCell(r)}</td><td class="num"><b>${pc0(r.p)}</b></td></tr>` + detRow(6, propDetail(r));
 }
-let RANK_ALL = false;
+let RANK_ALL = false, RANK_SORT = store.get("gm_rank_sort", ["call", -1]);
+const rankDiff = r => r.proj != null && r.line != null ? r.proj - r.line : null;
+function rankHead(){
+  const th = (k, label, cls) => `<th class="${cls} sortable" data-rsort="${k}">${label}${RANK_SORT[0] === k ? `<span class="arr">${RANK_SORT[1] < 0 ? "▼" : "▲"}</span>` : ""}</th>`;
+  return `<thead><tr>${th("call", "Player", "l pin")}<th class="l">Prop</th>${th("proj", "Proj", "num")}${th("diff", "Diff", "num")}<th class="l">Pick</th>${th("p", "p", "num")}</tr></thead>`;
+}
 const RANK_N = 25;
 function renderRanked(rows){
   const onlyTake = $("#fRule").checked, mkF = $("#fMk").value, sideF = $("#fSide").value;
   const keep = r => r.primary && (!mkF || r.market === mkF) && (!sideF || r.side === sideF) && matchQ(r.name, r.team, r.opp) && (!onlyTake || isTake(r));
-  const prim = rows.filter(keep).sort((a, b) => isTake(b) - isTake(a) || (b.p ?? -1) - (a.p ?? -1));
+  const [rk, rd] = RANK_SORT;
+  const rv = r => rk === "diff" ? (rankDiff(r) == null ? -1e9 : Math.abs(rankDiff(r))) : rk === "proj" ? (r.proj ?? -1e9) : rk === "p" ? (r.p ?? -1) : null;
+  const prim = rows.filter(keep).sort((a, b) => rk === "call" ? (isTake(b) - isTake(a) || (b.p ?? -1) - (a.p ?? -1))
+    : ((rv(a) < rv(b) ? -1 : rv(a) > rv(b) ? 1 : 0) * rd || (b.p ?? -1) - (a.p ?? -1)));
   const shown = RANK_ALL ? prim : prim.slice(0, RANK_N);
-  $("#bRank").innerHTML = PICK_HEAD + "<tbody>" + (shown.map(propRow).join("") || `<tr class="empty"><td colspan="6">No props for this date yet. The build pulls Pick6 and DraftKings every 15 minutes; paste your board below to add yours.</td></tr>`) + "</tbody>";
+  $("#bRank").innerHTML = rankHead() + "<tbody>" + (shown.map(propRow).join("") || `<tr class="empty"><td colspan="6">No props for this date yet. The build pulls Pick6 and DraftKings every 15 minutes; paste your board below to add yours.</td></tr>`) + "</tbody>";
   $("#rankMore").innerHTML = prim.length > RANK_N ? `<button class="ghost more" id="rankMoreBtn">${RANK_ALL ? "Show top " + RANK_N : `Show all ${prim.length} props`}</button>` : "";
   if ($("#rankMoreBtn")) $("#rankMoreBtn").onclick = () => { RANK_ALL = !RANK_ALL; renderRanked(rows); };
+  $("#bRank").querySelectorAll("th[data-rsort]").forEach(h => h.onclick = () => {
+    const k = h.dataset.rsort; RANK_SORT = [k, RANK_SORT[0] === k ? -RANK_SORT[1] : -1];
+    store.set("gm_rank_sort", RANK_SORT); renderRanked(rows);
+  });
   const takes = rows.filter(isTake), nm = rows.filter(r => r.matched === false).length, c = (rows.sel || {}).counts || {};
   $("#nRank").textContent = `${takes.length} TAKE · ${c.near_miss ?? 0} near miss · ${prim.length} props${nm ? ` · ${nm} unmatched` : ""}`;
   renderPlays(takes, rows.sel || {plays: [], near: [], review: []});
@@ -1309,7 +1337,8 @@ function boardRowsWin(){
 const SHOW_ALL = {};
 function boardTable(id, mk, rows, opts = {}){
   const [key, dir] = SORT[mk] || ["prob", -1];
-  const val = r => key === "time" ? r.t : key === "line" ? (r.line ?? -1e9) : key === "diff" ? (r.diff ?? -1e9) : (r.prob ?? -1);
+  // Diff sorts by the size of the gap (projection vs line), whichever direction it points
+  const val = r => key === "time" ? r.t : key === "line" ? (r.line ?? -1e9) : key === "diff" ? (r.diff == null ? -1e9 : Math.abs(r.diff)) : (r.prob ?? -1);
   rows.sort((a, b) => (val(a) < val(b) ? -1 : val(a) > val(b) ? 1 : 0) * dir || (b.prob ?? -1) - (a.prob ?? -1) || (a.t < b.t ? -1 : 1));
   const total = rows.length, lim = opts.limit && !SHOW_ALL[mk] && total > opts.limit;
   if (lim) rows = rows.slice(0, opts.limit);

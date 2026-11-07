@@ -95,6 +95,19 @@ class SogSelect(unittest.TestCase):
         self.assertTrue(all(r["verdict"] == "PASS" for r in sel["review"]))
         self.assertEqual(sel["counts"]["needs_review"], 3)
 
+    def test_shows_the_main_line_not_a_more_only_alt(self):
+        # Jack Hughes, Nov 7: Pick6 main 3.5 (1x / 0.9x) and More-only alts up to 7.5 (10.1x). Nothing is kept, and
+        # the board used to show the alt with the highest p: "SOG 7.5 LESS 89%", a side Pick6 doesn't offer.
+        main = {**row(1, "Jack Hughes", 3.5, 0.545, side="UNDER", take=False), "mo": 1.0, "mu": 0.9, "mult": 0.9}
+        alts = [{**row(1, "Jack Hughes", ln, p, side="UNDER", take=False), "mo": m, "mu": 0.0, "mult": 0.0}
+                for ln, p, m in ((7.5, 0.895, 10.1), (6.5, 0.834, 5.0), (5.5, 0.752, 2.7))]
+        pp_row = {**row(1, "Jack Hughes", 3.5, 0.545, side="UNDER", take=False), "source": "PrizePicks", "mo": 1.0, "mu": 1.0}
+        rows = alts + [pp_row, main]
+        pb.select_sog(rows)
+        shown = [r for r in rows if r["primary"]]
+        self.assertEqual([(r["line"], r["source"]) for r in shown], [(3.5, "Pick6")])
+        self.assertTrue(all(r["verdict"] == "PASS" for r in rows))                 # display only: no call changes
+
     def test_deterministic_under_input_order(self):
         rows = [row(1, "A", 2.5, 0.60), row(2, "B", 1.5, 0.60, side="UNDER"), row(3, "C", 0.5, 0.56), row(1, "A", 1.5, 0.60)]
         a = names(pb.select_sog(copy.deepcopy(rows))["plays"])

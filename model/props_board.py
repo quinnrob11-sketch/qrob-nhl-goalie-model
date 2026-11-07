@@ -161,9 +161,29 @@ def legacy_choose(rows) -> list[dict]:
     return rows
 
 
+SRC_PREF = {"Pick6": 0, "PrizePicks": 1, "DraftKings": 2}
+
+
+def _both_ways(r) -> bool:
+    """A main line: More and Less both offered (not a More-only Pick6 alt, not a demon / goblin)."""
+    if r.get("alt") or r.get("priced"):
+        return False
+    if r.get("source") == "DraftKings":
+        return True
+    mo, mu = r.get("mo"), r.get("mu")
+    return mo not in (None, 0, 0.0) and mu not in (None, 0, 0.0)
+
+
+def main_line_key(r):
+    """Display order for a player's lines when none is kept: his main line (offered both ways), Pick6 first,
+    then PrizePicks, then DraftKings; then the stable tie-break. Display only: it never makes or removes a call.
+    (The old rule showed the highest-p line, which was often a More-only alt shown on its LESS side.)"""
+    return (not _both_ways(r), SRC_PREF.get(r.get("source"), 3), -float(r.get("p") or 0), float(r.get("line") or 0))
+
+
 def _main_index(rs):
-    """The line to show first when nothing is a TAKE: the one with p closest to the decision (highest p)."""
-    return max(range(len(rs)), key=lambda j: (rs[j].get("p") or 0, rs[j]["source"] == "Pick6"))
+    """The line to show first when nothing is a TAKE: the player's main line (main_line_key)."""
+    return min(range(len(rs)), key=lambda j: main_line_key(rs[j]))
 
 
 def legacy_conflicts(rows) -> list[dict]:
@@ -282,7 +302,7 @@ def select_sog(sog_rows, saves_takes=()) -> dict:
         groups.setdefault((r.get("player_id") or r["name"], r["game"]), []).append(r)
     for rs in groups.values():
         k = next((r for r in rs if id(r) in kept_ids), None)
-        main = k or max(rs, key=lambda r: (r.get("p") or 0, r.get("source") == "Pick6", -float(r.get("line") or 0)))
+        main = k or min(rs, key=main_line_key)
         for r in rs:
             r["primary"] = r is main
             if id(r) in kept_ids:
