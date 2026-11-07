@@ -133,6 +133,69 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   .board{max-height:none}
   .card{padding:12px}
 }
+/* ---------- compact pick rows: the row shows the pick; tap it for everything else ---------- */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.board tr.pk{cursor:pointer}
+.board tr.pk:hover td{background:var(--surface-2)}
+.board tr.det{display:none}
+.board tr.pk.open+tr.det{display:table-row}
+.board tr.pk.open td{border-bottom-color:transparent}
+.board tr.det td{background:var(--surface-2)!important;white-space:normal;padding:4px 12px 12px;text-align:left}
+.board tbody tr:nth-child(even) td{background:var(--surface)}
+.kv{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--text);line-height:1.5}
+.kv i{font-style:normal;color:var(--muted);margin-right:3px}
+.kv .wide{flex-basis:100%}
+.alts{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px dashed var(--border)}
+.tm{font-size:11px;color:var(--muted);font-weight:400;margin-left:5px}
+.tier{font-size:10.5px;font-weight:700;color:var(--text-2);margin-left:5px;text-transform:uppercase;letter-spacing:.02em}
+.sp.ghost{background:transparent;border:1px dashed var(--border);color:var(--text-2)}
+.passtxt{font-size:12px;color:var(--muted)}
+.lbl-s{display:none} .nw{white-space:nowrap}
+.m-pick{display:none}
+.more{display:block;width:100%;margin-top:8px}
+details.info{margin:-2px 0 8px}
+details.info>summary{font-size:12px;color:var(--muted);cursor:pointer;list-style:none;display:inline-block}
+details.info>summary::-webkit-details-marker{display:none}
+details.info>summary::before{content:"ⓘ ";}
+details.info[open]>summary{margin-bottom:4px}
+details.info>p{margin:0}
+#cardReview>summary,#statusBox>summary,.settings>summary{cursor:pointer;list-style:none}
+#cardReview>summary::-webkit-details-marker,#statusBox>summary::-webkit-details-marker,.settings>summary::-webkit-details-marker{display:none}
+#cardReview>summary h2{display:inline;margin:0}
+#cardReview>summary::after,#statusBox>summary::after{content:" ▸";color:var(--muted);font-size:12px}
+#cardReview[open]>summary::after,#statusBox[open]>summary::after{content:" ▾"}
+#cardReview[open]>summary{margin-bottom:8px}
+#statusBox{padding:8px 12px;margin-bottom:12px}
+#statusBox>summary{font-size:13px;color:var(--text-2)}
+#statusBox[open]>summary{margin-bottom:8px}
+#statusBox .statusbar{border:0;padding:0;background:none;margin-bottom:6px}
+.srcline{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;color:var(--text-2);margin:0 2px 10px}
+.srcline b{color:var(--text);font-weight:600}
+.src .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;background:var(--over)}
+.src.bad .dot{background:var(--under)}
+.src.bad{color:var(--under)}
+.settings{margin-top:8px;font-size:13px}
+.settings>summary{color:var(--text-2);font-size:12.5px}
+.settings>summary::before{content:"⚙ "}
+@media (max-width:760px){
+  /* iPhone Safari zooms into any field under 16px and stays zoomed: 16px fields never trigger it */
+  input,select,textarea,.board input.lin,.board select.gsel,input[type=search]{font-size:16px!important}
+  .board input.lin{width:58px;padding:4px 4px}
+  .board th,.board td{padding:8px 5px}
+  .board th:first-child,.board td:first-child{padding-left:8px}
+  .board td.l.pin{max-width:124px;white-space:normal}
+  .lbl-l{display:none} .lbl-s{display:inline}
+  .board .c-pick{display:none} .board .m-pick{display:block;margin-top:2px;white-space:nowrap}
+  .board .m-pick .sp{font-size:10px} .board .m-pick .passtxt{font-size:11px}
+  .board select.gsel{max-width:114px!important;padding:4px 2px}
+  .board .cell2{font-size:10.5px}
+  .board .tier{display:block;margin:2px 0 0}
+  .board td .sp{min-width:0;padding:1px 7px}
+  .board .tm{display:block;margin:1px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+  .board td.l.pin .cell2,.board td.l.pin>div{white-space:normal}
+  .board{border-radius:6px}
+  h2{font-size:16px}
+}
 </style>
 </head>
 <body>
@@ -140,13 +203,14 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   <h1>QRob Goalie Saves Model</h1>
   <div class="sub" id="meta"></div>
   <input type="search" id="q" class="search" placeholder="Search goalie or team (e.g. Hart, VGK)" aria-label="Search goalie or team" autocomplete="off">
-  <div class="row" style="margin-top:10px;font-size:13px;gap:10px;align-items:center">
+  <details class="settings"><summary>Pick'em payout <span id="dfsSum"></span></summary>
+  <div class="row" style="margin-top:8px;font-size:13px;gap:10px;align-items:center">
     <span class="muted">DFS pick'em entry:</span>
     <label style="flex-direction:row;align-items:center;gap:4px"><input type="number" id="dfsLegs" min="2" max="8" step="1" style="width:52px"> legs</label>
     <label style="flex-direction:row;align-items:center;gap:4px">paying <input type="number" id="dfsPay" min="1" step="0.25" style="width:64px">x</label>
     <span id="dfsBE" class="muted"></span>
     <label style="flex-direction:row;align-items:center;gap:4px"><input type="checkbox" id="dfsSub"> allow sub-1x sides</label>
-  </div>
+  </div></details>
 </header>
 <nav id="tabs">
   <button data-t="proj" class="on">Board</button>
@@ -163,8 +227,10 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 <main>
 <section id="proj" class="on">
   <div id="srcBar"></div>
-  <div class="statusbar" id="statusBar"></div>
-  <div id="feedBanner"></div>
+  <div id="alarmBox"></div><div id="feedAlert"></div>
+  <details class="card" id="statusBox"><summary>Data status</summary>
+    <div class="statusbar" id="statusBar"></div>
+    <div id="feedBanner"></div></details>
   <div id="preNote"></div>
   <div class="card" id="cardPlays" style="border:2px solid var(--accent)"><h2>Today's plays <span class="muted" id="nPlays" style="font-weight:400;font-size:13px"></span></h2>
     <p class="sub" style="margin:-4px 0 8px">Only TAKE legs: blended p 58%+ (saves: calibrated p 58%+ and a 2.5-save edge over / 3.0 under), at 1x or better, beating that multiplier's break-even, the player matched, and the model alone leaning the same way. SOG: <b>Lock</b> 62%+, <b>Strong</b> 58–62%, at most one line per player per game (ranked by tier, then p, then EV; a line that loses a teammate conflict falls back to his next-best line). Sub-1x discount sides never appear here. ⚠ = conflicts with another leg on the slate.</p>
@@ -172,9 +238,9 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   <div class="card" id="cardNear"><h2>Near miss (55–58%) <span class="muted" id="nNear" style="font-weight:400;font-size:13px"></span></h2>
     <p class="sub" style="margin:-4px 0 8px">SOG sides at 55–58% blended p, paying 1x or better, with the model alone leaning the same way. Never a TAKE; shown so a board with 0 plays still shows what came close.</p>
     <div id="nearBox"></div></div>
-  <div class="card" id="cardReview"><h2>Needs review <span class="muted" id="nReview" style="font-weight:400;font-size:13px"></span></h2>
+  <details class="card" id="cardReview"><summary><h2>Needs review</h2> <span class="muted" id="nReview" style="font-weight:400;font-size:13px"></span></summary>
     <p class="sub" style="margin:-4px 0 8px">Kept out of both play lists: role changes (old line → new line), and names that matched no player, more than one player, or a player on a different team than the board says.</p>
-    <div id="reviewBox"></div></div>
+    <div id="reviewBox"></div></details>
   <div class="filters card" style="padding:10px 12px">
     <label>Market<select id="fMk"><option value="">All</option><option value="saves">Saves</option><option value="sog">SOG</option><option value="points">Points</option><option value="win">Winners</option></select></label>
     <label>Side<select id="fSide"><option value="">Both</option><option>OVER</option><option>UNDER</option></select></label>
@@ -190,7 +256,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
   <div class="card" id="cardRank"><h2>Every prop: raw projections, one call each <span class="muted" id="nRank" style="font-weight:400;font-size:13px"></span></h2>
     <p class="sub" style="margin:-4px 0 8px">Every posted line ends in <b>TAKE MORE</b>, <b>TAKE LESS</b> or <b>PASS</b> with the reason. TAKE tiers: <b>Lock</b> 62%+, <b>Strong</b> 58–62%; 55–58% is PASS (near miss). <b>Blended p</b> = fitted weight × model + (1 − weight) × DraftKings no-vig on the same line (the weight is fitted by log loss on graded lines and shrunk when the model's record against the market is below break-even; Calibration tab). <b>Model p</b> = the calibrated model alone. <b>vs break-even</b> = blended p − the multiplier's break-even. A player's other lines are listed greyed under his main one (↳ alt). Lines: the Pick6 board the build pulls, DraftKings where Pick6 doesn't list the player, then yours.</p>
     <label class="chk" style="flex-direction:row;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="fRule"> TAKE only</label>
-    <div class="board"><table id="bRank"></table></div></div>
+    <div class="board"><table id="bRank"></table></div><div id="rankMore"></div></div>
   <div class="card" id="cardSaves"><h2>Saves <span class="muted" id="nSaves" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSaves"></table></div></div>
   <div class="card" id="cardSog"><h2>SOG raw projections <span class="muted" id="nSog" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSog"></table></div></div>
   <div class="card" id="cardPts"><h2>Points <span class="muted" id="nPts" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bPts"></table></div></div>
@@ -578,6 +644,7 @@ const STALE_MIN = D.stale_min ?? 20, SRC = D.sources || {};
 const lineAge = at => { const t = Date.parse(at || ""); return isNaN(t) ? null : (Date.now() - t) / 6e4; };
 const srcStale = s => !s || s.status === "error" || lineAge(s.fetched_at) == null || lineAge(s.fetched_at) > STALE_MIN;
 const rowSrc = r => r.source === "Pick6" ? SRC.pick6 : r.source === "DraftKings" ? SRC.dk : r.source === "PrizePicks" ? (PP_FETCHED_AT ? {status: "fresh", fetched_at: PP_FETCHED_AT} : SRC.pp) : null;
+const lineTm = at => { const t = new Date(at); return isNaN(t) ? "–" : ctFmt(t, {hour: "numeric", minute: "2-digit"}); };
 const lineCT = at => { const t = new Date(at); return isNaN(t) ? "–" : ctFmt(t, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}) + " CT"; };
 function staleBadge(r){
   const s = rowSrc(r); if (!s) return "";
@@ -587,9 +654,11 @@ function staleBadge(r){
 }
 function renderSources(){
   const one = (name, s) => {
-    if (!s) return `<span>${name}: <b>not reported</b></span>`;
-    const a = lineAge(s.fetched_at), cls = s.status === "fresh" && !srcStale(s) ? "fresh" : "bad";
-    return `<span>${name} lines <b>${s.fetched_at ? lineCT(s.fetched_at) : "never fetched"}</b>${a != null ? ` · <b>${Math.round(a)} min</b> old` : ""} <span class="pill src-${cls}" title="${s.error ? String(s.error).replace(/"/g, "'") : ""}">${s.status}${s.error && s.status !== "fresh" ? ": " + String(s.error).slice(0, 60) : ""}</span></span>`;
+    if (!s) return `<span class="src bad"><i class="dot"></i>${name} not reported</span>`;
+    const a = lineAge(s.fetched_at), ok = s.status === "fresh" && !srcStale(s);
+    const st = s.status === "error" ? (/403|block/i.test(s.error || "") ? "blocked" : "error") : s.status;
+    const tip = `${name}: ${st}${s.fetched_at ? ", fetched " + lineCT(s.fetched_at) : ""}${s.error ? " (" + String(s.error).replace(/"/g, "'") + ")" : ""}`;
+    return `<span class="src ${ok ? "ok" : "bad"}" title="${tip}"><i class="dot"></i>${name} ${s.fetched_at ? `<b>${lineTm(s.fetched_at)}</b> · ${Math.round(a)}m` : ""}${st !== "fresh" ? ` <b>${st}</b>` : ""}</span>`;
   };
   const ppS = PP_FETCHED_AT ? {status: "fresh", fetched_at: PP_FETCHED_AT, error: null, live: true} : SRC.pp;
   const stale = [["Pick6", SRC.pick6], ["DraftKings", SRC.dk], ...(ppS && ppS.status !== "error" ? [["PrizePicks", ppS]] : [])].filter(([, s]) => srcStale(s));
@@ -597,7 +666,7 @@ function renderSources(){
   $("#srcBar").innerHTML = (stale.length ? `<div class="note stale-note"><b>⚠ STALE LINES:</b> ${stale.map(([n, s]) => {
       const a = s && lineAge(s.fetched_at); return `${n} ${!s || !s.fetched_at ? "has no lines from any pull" : `lines are ${Math.round(a)} min old (fetched ${lineCT(s.fetched_at)}${s.status === "fallback" ? ", fallback: this build's pull failed" : ""})`}`; }).join("; ")}.
       Older than ${STALE_MIN} min: multipliers and prices may have moved. Check the line on the app before betting; affected rows are marked <span class="pill stale">STALE</span>.</div>` : "") +
-    `<div class="statusbar srcbar">${one("Pick6", SRC.pick6)}${one("DraftKings", SRC.dk)}${SRC.pp || PP_FETCHED_AT ? one(PP_FETCHED_AT ? "PrizePicks (your browser)" : "PrizePicks", ppS) : ""}<span>Build <b>${builtCT}</b>${isNaN(ba) ? "" : ` · <b>${Math.round(ba)} min</b> ago`}</span></div>`;
+    `<div class="srcline">${one("Pick6", SRC.pick6)}${one("DraftKings", SRC.dk)}${SRC.pp || PP_FETCHED_AT ? one("PrizePicks", ppS) : ""}<span>Built <b>${isNaN(builtAt) ? D.built : lineTm(builtAt)}</b>${isNaN(ba) ? "" : ` · ${Math.round(ba)}m ago`} CT</span></div>`;
 }
 const STALE = !isNaN(BUILD_AGE_H) && BUILD_AGE_H > 6 && (D.slate || []).some(g => g.date === TODAY_CT);
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
@@ -917,7 +986,7 @@ function boardRowsSaves(){
     return {t: r.g.start || "", time: ctStart(r.g), date: r.g.date, game: `${r.g.away} @ ${r.g.home}`,
       player: name, playerEdit: `<select class="gsel" data-st="${r.g.date}|${r.team}" title="Change the starter">${goalieOptions(r.team, r.gid)}</select>` +
         `<div class="cell2">${r.team} · ${r.confirmed ? '<span class="good">confirmed</span>' : '<span class="bad">unconfirmed</span>'}</div>`,
-      line: r.line, lineEdit: `<input class="lin" type="number" step="0.5" min="0" inputmode="decimal" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line"><div class="cell2">${lineSrcTxt(r)}</div>`,
+      line: r.line, lineEdit: `<input class="lin" type="number" step="0.5" min="0" inputmode="decimal" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line">`, src: lineSrcTxt(r),
       proj: r.proj, diff: r.line != null ? r.proj - r.line : null,
       side: r.d ? r.d.side : null, prob: r.d ? r.d.pShow : null, tier: r.d ? r.d.tier : null, capped: r.d ? r.d.capped : false,
       play: !!(r.d && r.d.play), noLine: r.line == null, unconf: !r.confirmed, q: [name, r.team, r.opp],
@@ -1128,51 +1197,64 @@ function propBoard(dateF){
 }
 const verdictPill = r => isTake(r) ? `<span class="sp ${r.side}">${r.verdict}</span>` : `<span class="pill PASS">PASS</span>`;
 const roleBadge = r => r.role_change ? ` <span class="pill LOW" title="Listed on a different line than his recent ice time${r.role_adjusted ? "; TOI adjusted (confirmed within 6 h, capped ±15%)" : "; not confirmed in the last 6 h, so TOI is unchanged"}">role ${r.role_change}${r.role_adjusted ? " · TOI adj" : ""}</span>` : "";
-function propCells(r, alt){
-  const edgeBE = r.p != null && r.be != null ? r.p - r.be : null;
-  return `<td class="l pin">${alt ? '<span class="muted">↳ alt</span> ' : ""}<b>${r.name}</b>${roleBadge(r)}${staleBadge(r)}<div class="cell2">${r.team || "?"}${r.opp ? " vs " + r.opp : ""}${r.conflicts && r.conflicts.length ? ` · <span class="bad" title="${r.conflicts.join("; ")}">⚠ conflicts: ${r.conflicts.join(", ")}</span>` : ""}</div></td>
-    <td class="l">${r.label}</td><td class="num">${n1(r.line)}</td>
-    <td class="l">${verdictPill(r)}${isTake(r) && r.tier ? ` <span class="pill ${r.tier === "Lock" ? "HIGH" : "MED"}">${r.tier}</span>` : ""}${!isTake(r) && r.reason ? `<div class="cell2">${r.tier === "Near miss" ? "near miss · " : ""}${r.reason}</div>` : ""}</td>
-    <td class="num"><b>${pc0(r.p)}</b></td><td class="num">${pc0(r.p_model != null && r.side ? (r.side === "OVER" ? r.p_model : 1 - r.p_model) : null)}</td>
-    <td class="num">${r.p_mkt != null && r.side ? pc0(r.side === "OVER" ? r.p_mkt : 1 - r.p_mkt) : "–"}</td>
-    <td class="num">${n1(r.proj)}</td><td class="num ${r.edge != null ? diffCls(r.side === "OVER" ? r.edge : -r.edge, r.side, r.market === "saves" ? 0.5 : 0.15) : ""}">${sgn1(r.edge)}</td>
-    <td class="num ${edgeBE == null ? "" : edgeBE > 0 ? "diff-sup" : "diff-con"}">${edgeBE == null ? "–" : (edgeBE > 0 ? "+" : "−") + (100 * Math.abs(edgeBE)).toFixed(1)}</td>
-    <td class="num">${r.mult != null ? r.mult + "x" : r.dk_over != null && r.side ? amer(r.side === "OVER" ? r.dk_over : r.dk_under) : `${r.mo ?? "–"}x/${r.mu ?? "–"}x`}</td>
-    <td class="l"><span class="muted" style="font-size:11px">${r.source}</span></td>
-    <td class="num c-time">${r.start ? ctFmt(new Date(r.start), {hour: "numeric", minute: "2-digit"}) : "–"}</td>`;
+// one compact row per pick: player, prop + line, projection, differential, pick, p. Tap it for the rest.
+const PICK_HEAD = `<thead><tr><th class="l pin">Player</th><th class="l">Prop</th><th class="num">Proj</th><th class="num">Diff</th><th class="l">Pick</th><th class="num">p</th></tr></thead>`;
+const detRow = (cols, html) => `<tr class="det"><td colspan="${cols}">${html}</td></tr>`;
+const kvList = pairs => `<div class="kv">${pairs.filter(([, v]) => v != null && v !== "" && v !== "–").map(([k, v, w]) => `<span${w ? ' class="wide"' : ""}><i>${k}</i>${v}</span>`).join("")}</div>`;
+function pickCell(r){
+  if (isTake(r)) return `<span class="sp ${r.side}">${sideTxt(r)}</span>${r.tier ? `<span class="tier">${r.tier}</span>` : ""}`;
+  if (r.tier === "Near miss" && r.side) return `<span class="sp ghost">${sideTxt(r)}</span><span class="tier">near</span>`;
+  return `<span class="passtxt">${r.side ? sideTxt(r).toLowerCase() + " · " : ""}pass</span>`;
 }
-const PROP_HEAD = `<thead><tr><th class="l pin">Player</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Call</th><th class="num">Blended p</th><th class="num">Model p</th><th class="num">Market p</th><th class="num">Proj</th><th class="num">Edge</th><th class="num">vs break-even</th><th class="num">Mult</th><th class="l">Source</th><th class="num c-time">CT</th></tr></thead>`;
+function propDetail(r){
+  const side = (x) => x != null && r.side ? (r.side === "OVER" ? x : 1 - x) : null;
+  const be = r.p != null && r.be != null ? r.p - r.be : null;
+  const alts = (r.alts || []).slice().sort((a, b) => a.line - b.line);
+  const why = !isTake(r) && r.reason ? r.reason.replace(/^needs review: /, "") : "";
+  return kvList([
+    ["", `${isTake(r) ? verdictPill(r) : `<b>PASS</b>`}${why ? ` <span class="muted">${why}</span>` : ""}`, true],
+    ["Model", pc0(side(r.p_model))], ["Market", r.p_mkt != null ? pc0(side(r.p_mkt)) : null],
+    ["vs break-even", be == null ? null : (be > 0 ? "+" : "−") + (100 * Math.abs(be)).toFixed(1) + " pts"],
+    ["Pays", r.mult != null || r.dk_over != null ? multCell(r) : r.mo != null ? `${r.mo}x / ${r.mu}x` : null],
+    ["Game", `${r.team || "?"}${r.opp ? " vs " + r.opp : ""}${r.start ? " · " + ctCell(r) + " CT" : ""}`],
+    ["Source", r.source + (r.fetched_at ? ` · ${lineTm(r.fetched_at)}` : "")], ["Role", r.role || null],
+    ["⚠ Conflicts", r.conflicts && r.conflicts.length ? r.conflicts.join(", ") : null, true]]) +
+    (alts.length ? `<div class="alts"><span><i>Other lines</i></span>${alts.map(a => `<span>${n1(a.line)} · ${pc0(a.p)}${a.side ? " " + sideTxt(a).toLowerCase() : ""}${isTake(a) ? " · " + a.verdict : ""}</span>`).join("")}</div>` : "");
+}
+const SHORT_LBL = {SOG: "SOG", Points: "PTS", Saves: "SV"};
+function propRow(r){
+  const d = r.proj != null && r.line != null ? r.proj - r.line : null;
+  const flags = (r.conflicts && r.conflicts.length ? ' <span class="bad" title="Conflicts: tap for details">⚠</span>' : "") + staleBadge(r) + roleBadge(r);
+  return `<tr class="pk${isTake(r) ? "" : " pass"}"><td class="l pin"><b>${r.name}</b><span class="tm">${r.team || ""}</span>${flags}</td>
+    <td class="l nw"><span class="lbl-l">${r.label}</span><span class="lbl-s">${SHORT_LBL[r.label] || r.label}</span> ${n1(r.line)}</td><td class="num">${n1(r.proj)}</td>
+    <td class="num ${d == null ? "" : diffCls(d, r.side, r.market === "saves" ? 0.5 : 0.15)}">${sgn1(d)}</td>
+    <td class="l">${pickCell(r)}</td><td class="num"><b>${pc0(r.p)}</b></td></tr>` + detRow(6, propDetail(r));
+}
+let RANK_ALL = false;
+const RANK_N = 25;
 function renderRanked(rows){
   const onlyTake = $("#fRule").checked, mkF = $("#fMk").value, sideF = $("#fSide").value;
   const keep = r => r.primary && (!mkF || r.market === mkF) && (!sideF || r.side === sideF) && matchQ(r.name, r.team, r.opp) && (!onlyTake || isTake(r));
   const prim = rows.filter(keep).sort((a, b) => isTake(b) - isTake(a) || (b.p ?? -1) - (a.p ?? -1));
-  const body = prim.map(r => `<tr class="${isTake(r) ? "" : "pass"}">${propCells(r, false)}</tr>` +
-    (r.alts || []).sort((a, b) => a.line - b.line).map(a => `<tr class="pass alt">${propCells(a, true)}</tr>`).join("")).join("");
-  $("#bRank").innerHTML = PROP_HEAD + "<tbody>" + (body || `<tr class="empty"><td colspan="13">No props for this date yet. The build pulls Pick6 and DraftKings every 15 minutes; paste your board below to add yours.</td></tr>`) + "</tbody>";
+  const shown = RANK_ALL ? prim : prim.slice(0, RANK_N);
+  $("#bRank").innerHTML = PICK_HEAD + "<tbody>" + (shown.map(propRow).join("") || `<tr class="empty"><td colspan="6">No props for this date yet. The build pulls Pick6 and DraftKings every 15 minutes; paste your board below to add yours.</td></tr>`) + "</tbody>";
+  $("#rankMore").innerHTML = prim.length > RANK_N ? `<button class="ghost more" id="rankMoreBtn">${RANK_ALL ? "Show top " + RANK_N : `Show all ${prim.length} props`}</button>` : "";
+  if ($("#rankMoreBtn")) $("#rankMoreBtn").onclick = () => { RANK_ALL = !RANK_ALL; renderRanked(rows); };
   const takes = rows.filter(isTake), nm = rows.filter(r => r.matched === false).length, c = (rows.sel || {}).counts || {};
-  $("#nRank").textContent = `${takes.length} TAKE · ${takes.filter(r => r.tier === "Lock").length} Lock · ${takes.filter(r => r.tier === "Strong").length} Strong · ${c.near_miss ?? 0} SOG near miss · ${rows.length} lines${nm ? ` · ${nm} unmatched` : ""}`;
+  $("#nRank").textContent = `${takes.length} TAKE · ${c.near_miss ?? 0} near miss · ${prim.length} props${nm ? ` · ${nm} unmatched` : ""}`;
   renderPlays(takes, rows.sel || {plays: [], near: [], review: []});
 }
 const multCell = r => r.mult != null ? r.mult + "x" : r.dk_over != null && r.side ? amer(r.side === "OVER" ? r.dk_over : r.dk_under) : "–";
 const ctCell = r => r.start ? ctFmt(new Date(r.start), {hour: "numeric", minute: "2-digit"}) : "–";
 const conflictTxt = r => r.conflicts && r.conflicts.length ? `<div class="cell2 bad">⚠ conflicts: ${r.conflicts.join(", ")}</div>` : "";
-const PLAY_HEAD = `<thead><tr><th class="l pin">Play</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Call</th><th class="num">p</th><th class="num">Model p</th><th class="num">Mult</th><th class="l">Source</th><th class="num">CT</th></tr></thead>`;
 // Today's plays = SOG Lock/Strong kept by selectSog + saves/points TAKEs; Near miss and Needs review are their own lists
 function renderPlays(takes, sel){
   takes = takes.slice().sort((a, b) => b.p - a.p || String(a.player_id ?? a.name).localeCompare(String(b.player_id ?? b.name)));
-  $("#playsBox").innerHTML = takes.length ? `<div class="board"><table>${PLAY_HEAD}<tbody>` +
-    takes.map(r => `<tr><td class="l pin"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span>${roleBadge(r)}${staleBadge(r)}${conflictTxt(r)}</td>
-      <td class="l">${r.label}</td><td class="num">${n1(r.line)}</td><td class="l">${verdictPill(r)} <span class="pill ${r.tier === "Lock" ? "HIGH" : "MED"}">${r.tier}</span></td>
-      <td class="num"><b>${pc0(r.p)}</b></td><td class="num">${pc0(r.pModelSide)}</td><td class="num">${multCell(r)}</td>
-      <td class="l"><span class="muted" style="font-size:11px">${r.source}</span></td><td class="num">${ctCell(r)}</td></tr>`).join("") + "</tbody></table></div>"
+  $("#playsBox").innerHTML = takes.length ? `<div class="board"><table>${PICK_HEAD}<tbody>${takes.map(propRow).join("")}</tbody></table></div>`
     : `<p class="muted" style="margin:0">No TAKE legs for this date yet.${sel.near.length ? ` ${sel.near.length} SOG near miss${sel.near.length === 1 ? "" : "es"} below.` : ""}</p>`;
   $("#nPlays").textContent = takes.length ? `${takes.length} leg${takes.length === 1 ? "" : "s"}, ranked by p` : "";
   const near = sel.near.slice().sort(sogRankCmp);
-  $("#nearBox").innerHTML = near.length ? `<div class="board"><table>${PLAY_HEAD}<tbody>` +
-    near.map(r => `<tr><td class="l pin"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span>${staleBadge(r)}${conflictTxt(r)}</td>
-      <td class="l">${r.label}</td><td class="num">${n1(r.line)}</td><td class="l"><span class="sp ${r.side}">${sideTxt(r)}</span> <span class="pill PASS">Near miss</span></td>
-      <td class="num"><b>${pc0(r.p)}</b></td><td class="num">${pc0(r.pModelSide)}</td><td class="num">${multCell(r)}</td>
-      <td class="l"><span class="muted" style="font-size:11px">${r.source}</span></td><td class="num">${ctCell(r)}</td></tr>`).join("") + "</tbody></table></div>"
+  $("#nearBox").innerHTML = near.length ? `<div class="board"><table>${PICK_HEAD}<tbody>${near.map(propRow).join("")}</tbody></table></div>`
     : `<p class="muted" style="margin:0">No SOG sides at 55–58% paying 1x or better.</p>`;
   $("#nNear").textContent = near.length ? `${near.length} line${near.length === 1 ? "" : "s"}, not plays` : "";
   // server-side review rows the Pick6 pull could not match (ambiguous names) are added to the client's own
@@ -1182,11 +1264,10 @@ function renderPlays(takes, sel){
   const byWho = {};
   for (const r of sel.review.concat(extra)) (byWho[(r.player_id ?? r.name) + "|" + (r.game ?? "") + "|" + (r.market || "")] ||= []).push(r);
   const rev = Object.values(byWho).map(rs => ({...(rs.find(r => r.primary) || rs[0]), nMore: rs.length - 1}));
-  $("#reviewBox").innerHTML = rev.length ? `<div class="board"><table><thead><tr><th class="l pin">Player</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Why</th><th class="num">p</th><th class="l">Source</th></tr></thead><tbody>` +
-    rev.map(r => `<tr class="pass"><td class="l pin"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team || "?"}</span>${r.role ? `<div class="cell2">now ${r.role}</div>` : ""}${r.nMore ? `<div class="cell2">+${r.nMore} more line${r.nMore === 1 ? "" : "s"}</div>` : ""}</td>
-      <td class="l">${r.label || String(r.market || "").toUpperCase()}</td><td class="num">${n1(r.line)}</td>
-      <td class="l">${String(r.reason || "").replace(/^needs review: /, "")}</td><td class="num">${r.p != null ? pc0(r.p) + " " + sideTxt(r) : "–"}</td>
-      <td class="l"><span class="muted" style="font-size:11px">${r.source || "Pick6"}</span></td></tr>`).join("") + "</tbody></table></div>"
+  $("#reviewBox").innerHTML = rev.length ? `<div class="board"><table><thead><tr><th class="l pin">Player</th><th class="l">Prop</th><th class="l">Why</th></tr></thead><tbody>` +
+    rev.map(r => `<tr class="pass"><td class="l pin"><b>${r.name}</b><span class="tm">${r.team || "?"}</span>${r.nMore ? `<div class="cell2">+${r.nMore} more line${r.nMore === 1 ? "" : "s"}</div>` : ""}</td>
+      <td class="l">${r.label || String(r.market || "").toUpperCase()} ${n1(r.line)}</td>
+      <td class="l" style="white-space:normal">${String(r.reason || "").replace(/^needs review: /, "")}${r.role ? ` <span class="muted">· now ${r.role}</span>` : ""}</td></tr>`).join("") + "</tbody></table></div>"
     : `<p class="muted" style="margin:0">Nothing needs review.</p>`;
   const nLines = rev.reduce((t, r) => t + 1 + r.nMore, 0);
   $("#nReview").textContent = rev.length ? `${rev.length} player${rev.length === 1 ? "" : "s"} · ${nLines} line${nLines === 1 ? "" : "s"}` : "";
@@ -1221,25 +1302,38 @@ function boardRowsWin(){
   }
   return out;
 }
+const SHOW_ALL = {};
 function boardTable(id, mk, rows, opts = {}){
   const [key, dir] = SORT[mk] || ["prob", -1];
   const val = r => key === "time" ? r.t : key === "line" ? (r.line ?? -1e9) : key === "diff" ? (r.diff ?? -1e9) : (r.prob ?? -1);
   rows.sort((a, b) => (val(a) < val(b) ? -1 : val(a) > val(b) ? 1 : 0) * dir || (b.prob ?? -1) - (a.prob ?? -1) || (a.t < b.t ? -1 : 1));
+  const total = rows.length, lim = opts.limit && !SHOW_ALL[mk] && total > opts.limit;
+  if (lim) rows = rows.slice(0, opts.limit);
+  const wrap = $(id).closest(".board");
+  let mb = wrap.nextElementSibling && wrap.nextElementSibling.classList.contains("moreBox") ? wrap.nextElementSibling : null;
+  if (!mb){ mb = document.createElement("div"); mb.className = "moreBox"; wrap.after(mb); }
+  mb.innerHTML = opts.limit && total > opts.limit ? `<button class="ghost more">${SHOW_ALL[mk] ? "Show top " + opts.limit : `Show all ${total}`}</button>` : "";
+  if (mb.firstChild) mb.firstChild.onclick = () => { SHOW_ALL[mk] = !SHOW_ALL[mk]; renderBoard(); };
   const th = (k, label, cls = "num") => `<th class="${cls} sortable" data-sort="${k}">${label}${key === k ? `<span class="arr">${dir < 0 ? "▼" : "▲"}</span>` : ""}</th>`;
   const neutral = opts.neutral ?? 0.15;
-  const body = rows.map(r => `<tr class="${r.play ? "" : "pass"}">
-      <td class="num c-time">${r.time || "–"}</td>
-      <td class="l c-game">${r.game}</td>
-      <td class="l pin">${r.playerEdit ?? `<b>${r.player}</b>${r.sub ? ` <span class="muted" style="font-size:11px">${r.sub}</span>` : ""}`}<div class="cell2 m-only">${r.time || ""} · ${r.game}</div></td>
+  const cols = opts.win ? 5 : 6;
+  const body = rows.map(r => {
+    const diffTd = `<td class="num ${r.diff == null ? "" : opts.win ? (Math.abs(r.diff) < 1 ? "diff-neu" : r.diff > 0 ? "diff-sup" : "diff-con") : diffCls(r.diff, r.side, neutral)}">${r.diff == null ? "–" : sgn1(r.diff) + (opts.win ? " pts" : "")}</td>`;
+    const pick = r.noLine ? '<span class="passtxt">needs a line</span>' : r.play ? `${sidePill(r.side)}${r.tier ? `<span class="tier">${r.tier}</span>` : ""}` : `<span class="passtxt">${r.side ? String(r.side).toLowerCase() + " · " : ""}pass</span>`;
+    const det = kvList([
+      ["", r.call ? `${verdictPill(r.call)}${!isTake(r.call) && r.call.reason ? ` <span class="muted">${r.call.reason}</span>` : ""}` : r.play ? tierPill(r.tier, r.capped) : "PASS", true],
+      ["Game", `${r.game}${r.time ? " · " + r.time : ""}`], ["Tier", r.play && r.tier ? r.tier : null],
+      ["Starter", r.unconf ? "unconfirmed" : null], ["Capped", r.capped ? "shown as 60% (65%+ saves calls have hit 46%)" : null],
+      ["Line from", r.src || null]]);
+    return `<tr class="pk ${r.play ? "" : "pass"}">
+      <td class="l pin">${r.playerEdit ?? `<b>${r.player}</b>${r.sub ? `<span class="tm">${r.sub}</span>` : ""}`}</td>
       <td class="num">${r.lineEdit ?? r.lineTxt ?? n1(r.line)}</td>
-      <td class="num">${r.projTxt ?? n1(r.proj)}</td>
-      <td class="num ${r.diff == null ? "" : opts.win ? (Math.abs(r.diff) < 1 ? "diff-neu" : r.diff > 0 ? "diff-sup" : "diff-con") : diffCls(r.diff, r.side, neutral)}">${r.diff == null ? "–" : sgn1(r.diff) + (opts.win ? " pts" : "")}</td>
-      <td class="l">${sidePill(opts.win ? r.player : r.side)}</td>
-      <td class="num"><b>${pc0(r.prob)}</b></td>
-      <td class="l">${r.noLine ? '<span class="muted">needs a line</span>' : r.play ? tierPill(r.tier, r.capped) : `<span class="pill PASS">PASS</span>${r.unconf ? ' <span class="muted" style="font-size:11px">unconfirmed</span>' : ""}${r.capped ? tierPill("", true) : ""}`}</td>
-      ${opts.win ? "" : `<td class="l">${r.call ? verdictPill(r.call) + (isTake(r.call) ? "" : `<div class="cell2">${r.call.reason}</div>`) : '<span class="muted">–</span>'}</td>`}</tr>`).join("");
-  $(id).innerHTML = `<thead><tr>${th("time", "Time (CT)").replace('<th class="', '<th class="c-time ')}<th class="l c-game">Game</th><th class="l pin">${opts.win ? "Pick" : "Player"}</th>${th("line", "Line")}<th class="num">Proj</th>${th("diff", "Diff")}<th class="l">Side</th>${th("prob", "Prob")}<th class="l">Tier</th>${opts.win ? "" : '<th class="l">Call</th>'}</tr></thead><tbody>` +
-    (body || `<tr class="empty"><td colspan="10">No ${opts.label || "lines"} match these filters${D.slate.length ? "" : " (no games in this build yet)"}.</td></tr>`) + "</tbody>";
+      <td class="num">${r.projTxt ?? n1(r.proj)}</td>${diffTd}
+      ${opts.win ? "" : `<td class="l c-pick">${pick}</td>`}
+      <td class="num"><b>${pc0(r.prob)}</b>${r.capped ? '<span class="capped">cap</span>' : ""}${opts.win ? "" : `<div class="m-pick">${pick}</div>`}</td></tr>` + detRow(cols, det);
+  }).join("");
+  $(id).innerHTML = `<thead><tr><th class="l pin">${opts.win ? "Pick" : "Player"}</th>${th("line", "Line")}<th class="num">Proj</th>${th("diff", "Diff")}${opts.win ? "" : '<th class="l c-pick">Pick</th>'}${th("prob", "p")}</tr></thead><tbody>` +
+    (body || `<tr class="empty"><td colspan="${cols}">No ${opts.label || "lines"} match these filters${D.slate.length ? "" : " (no games in this build yet)"}.</td></tr>`) + "</tbody>";
   $(id).querySelectorAll("th[data-sort]").forEach(h => h.onclick = () => {
     const k = h.dataset.sort; SORT[mk] = [k, SORT[mk] && SORT[mk][0] === k ? -SORT[mk][1] : (k === "time" ? 1 : -1)];
     store.set("gm_sort", SORT); renderBoard();
@@ -1262,7 +1356,7 @@ function renderBoard(){
   $("#cardSog").style.display = !mkF || mkF === "sog" ? "" : "none";
   $("#cardWin").style.display = (!mkF || mkF === "win") && !sideF ? "" : "none";
   $("#cardPts").style.display = !mkF || mkF === "points" ? "" : "none";
-  boardTable("#bPts", "points", Pt, {label: "points lines", neutral: 0.1});
+  boardTable("#bPts", "points", Pt, {label: "points lines", neutral: 0.1, limit: 15});
   boardTable("#bSaves", "saves", S, {label: "goalies"});
   $("#bSaves").querySelectorAll("input[data-line]").forEach(i => i.onchange = () => {
     const v = i.value.trim();
@@ -1276,7 +1370,7 @@ function renderBoard(){
     STARTER[s.dataset.st] = +s.value; store.set("gm_starter", STARTER); renderSlate(); renderSlip(); renderWinners(); renderGoalies();
   });
   // raw projections only: SOG plays come from selectSog (Today's plays / Near miss), so no tier pills here
-  boardTable("#bSog", "sog", K.map(r => ({...r, play: false})), {label: "SOG lines"});
+  boardTable("#bSog", "sog", K.map(r => ({...r, play: false})), {label: "SOG lines", limit: 15});
   boardTable("#bWin", "win", Wn, {win: true, label: "games"});
   const cnt = (rows, h) => `${rows.length} shown · ${rows.filter(r => r.play).length} plays` +
     (h ? ` · <span class="warn-inline">${h} play${h === 1 ? "" : "s"} below ${Math.round(100 * minP)}% hidden (lower the minimum to see ${h === 1 ? "it" : "them"})</span>` : "");
@@ -1294,7 +1388,8 @@ function renderStatus(){
     `Starters confirmed <b>${conf}/${night.length}</b>${dateF ? ` <span class="muted">(${dateF})</span>` : ""}`,
     STALE ? `<span class="warn">⚠ Stale: built ${BUILD_AGE_H.toFixed(1)} h ago on a game day. Wait for the next build before betting.</span>` : "",
     `<span>${SRC_PILLS}</span>`,
-    alarms.length ? `<div class="alarms">${alarms.map(a => `<div>${a}</div>`).join("")}</div>` : ""].filter(Boolean).join(" ");
+    ].filter(Boolean).join(" ");
+  $("#alarmBox").innerHTML = alarms.length ? `<div class="statusbar"><div class="alarms">${alarms.map(a => `<div>${a}</div>`).join("")}</div></div>` : "";
   renderFeeds(); renderSources();
 }
 setInterval(() => { try { renderSources(); } catch (e) {} }, 30000);   // ages keep counting while the page is open
@@ -1309,10 +1404,19 @@ function renderFeeds(){
     `Board match rate <b>${bc.match_rate != null ? pct(bc.match_rate, 0) : "–"}</b>${bc.modeled ? ` of ${bc.modeled} modeled lines` : ""}`,
     dkUn ? `<span class="warn-inline">${dkUn}</span>` : "",
     `Rosters: ${D.rosters_status || "–"}`, `Live scores: ${(D.live || {}).status || "–"}`];
-  $("#feedBanner").innerHTML = (bad ? `<div class="note" style="border-color:var(--under);background:var(--under-bg)"><b>⚠ Pick6 board missing: ${st}.</b> The board below falls back to DraftKings lines and anything you paste. ${st.startsWith("parse failed") ? "The page changed shape: save it (File → Save Page As, HTML only) as model/tests/fixtures/pick6.html so the parser can be fixed against it." : st.startsWith("blocked") ? "DraftKings refused the build server's request." : ""}</div>` : "") +
-    `<p class="sub" style="margin:4px 0 10px">${parts.filter(Boolean).join(" · ")}</p>`;
+  $("#feedAlert").innerHTML = (bad ? `<div class="note" style="border-color:var(--under);background:var(--under-bg)"><b>⚠ Pick6 board missing: ${st}.</b> The board below falls back to DraftKings lines and anything you paste. ${st.startsWith("parse failed") ? "The page changed shape: save it (File → Save Page As, HTML only) as model/tests/fixtures/pick6.html so the parser can be fixed against it." : st.startsWith("blocked") ? "DraftKings refused the build server's request." : ""}</div>` : "");
+  $("#feedBanner").innerHTML = `<p class="sub" style="margin:0">${parts.filter(Boolean).join(" · ")}</p>`;
 }
 $("#liveAll").oninput = renderLive;
+document.addEventListener("click", e => {
+  const tr = e.target.closest(".board tr.pk");
+  if (!tr || e.target.closest("input,select,textarea,a,button,label")) return;
+  tr.classList.toggle("open");
+});
+document.querySelectorAll("#proj .card > p.sub:not([id]), #proj > p#boardKey").forEach(p => {
+  const d = document.createElement("details"); d.className = "info"; d.innerHTML = "<summary>How this works</summary>";
+  p.replaceWith(d); d.appendChild(p);
+});
 ["#fMk","#fSide","#fMinP","#f60","#fPlays"].forEach(s => $(s).oninput = renderBoard);
 $("#fRule").checked = !!store.get("gm_rule_only", false);
 $("#fRule").oninput = () => { store.set("gm_rule_only", $("#fRule").checked); renderBoard(); };
@@ -1577,6 +1681,7 @@ function initDfs(){
   const upd = () => {
     DFS.legs = Math.max(2, +$("#dfsLegs").value || 2); DFS.payout = Math.max(1, +$("#dfsPay").value || 3); DFS.sub1x = $("#dfsSub").checked;
     store.set("gm_dfs", DFS);
+    $("#dfsSum").textContent = `· ${DFS.legs} legs at ${DFS.payout}x`;
     $("#dfsBE").textContent = `→ per-leg break-even ${pct(dfsBE(1),1)} at 1x (${pct(dfsBE(0.9),1)} at 0.9x, ${pct(dfsBE(0.8),1)} at 0.8x)`;
   };
   ["#dfsLegs","#dfsPay","#dfsSub"].forEach(s => $(s).onchange = () => { upd(); renderSlate(); renderSOG(); renderSlip(); renderGoalies(); });
