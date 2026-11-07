@@ -29,10 +29,14 @@ Your betting rules (shots and points at 58%+ at 1x or better) are unchanged. The
   - A 0-row parse shows a red banner instead of an empty board.
   - DraftKings shots, points and saves lines fill in players Pick6 doesn't list.
 - **Refresh** (updated 2026-11-05).
-  - Builds run every 15 minutes from 9 AM to 1:45 AM CT, dispatched by `.github/workflows/ticker.yml`. GitHub's cron is best effort and on Nov 5 dropped most scheduled runs, so cron is only a backup.
+  - Builds run every 15 minutes from 9 AM to 1:45 AM CT, dispatched by `.github/workflows/ticker.yml`. GitHub's cron is best effort and on Nov 5 dropped most scheduled runs, so cron is only a backup. The ticker runs around the clock and only sleeps outside board hours: on Nov 6 and 7 the cron runs meant to restart it at 9 AM were dropped.
   - Every build pulls Pick6 and DraftKings (saves, shots, points) fresh. `model/data/odds_cache.json` and `model/data/pick6_cache.json` are the last good pulls, used only when a pull fails. They are shown as **fallback** with their original fetch time.
   - The dashboard shows each source's fetch time in CT, its age and its status (fresh, fallback or error). Lines older than 20 minutes (`sources.STALE_MIN`) get a STALE warning and row badges.
   - Every successful build is committed (`model/publish.sh`), even when only timestamps changed, so Vercel deploys it.
+- **PrizePicks** (2026-11-07). The build reads shots and points props from `api.prizepicks.com/projections` (the same request as the goalie saves feed) onto the board as a third line source: standard lines only, priced as 1x legs, each player matched within his team, with its own fetch time and status. `model/data/pp_cache.json` is the labelled fallback.
+  - PrizePicks answers cloud servers (the GitHub build) with HTTP 403 and refuses other websites' browser requests, and the model does not work around that.
+  - The working path: open the projections link in your own browser tab, copy the page and paste it into the board box. The page parses the JSON, including goalie saves.
+  - The lines flow in on their own on any build or browser pull that PrizePicks lets through.
 - **Slate day** (`model/slate.py`). The slate is today in America/Chicago until all of today's games are FINAL. The old build used the UTC date, which dropped tonight's games after 6–7 PM CT. Started games show in a Live & final list with the stat so far and HIT/MISS.
 - **Leg log** (`model/data/legs.csv`).
   - Every displayed leg is stored: build time, playerId, team, line, side, multiplier, model p, market p, blended p, verdict, role change.

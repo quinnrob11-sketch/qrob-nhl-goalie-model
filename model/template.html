@@ -203,6 +203,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
     <p style="margin:0 0 10px"><span id="srcStatus"></span> <button class="ghost" id="ppRefresh">↻ Refresh PrizePicks</button></p>
     <details class="card" id="boardBox" style="margin:0 0 12px;padding:10px 12px">
       <summary><b>Paste or upload a PrizePicks / Pick6 board</b> <span class="muted" id="boardCount"></span></summary>
+      <p class="sub"><b>PrizePicks:</b> open <a href="https://api.prizepicks.com/projections?league_id=8&amp;per_page=1000&amp;single_stat=true" target="_blank" rel="noopener">the PrizePicks NHL projections</a> in your own browser tab, select all, copy, and paste it here. Shots, points and goalie saves come in (standard lines only, each player matched within his team). The build tries the same link, but PrizePicks refuses cloud servers.</p>
       <p class="sub">One prop per line, <b>with the player's team</b> (players are matched by name within their team, never by name alone; a row without a team is left out as UNMATCHED). CSV: <code>name,team,market,line,over mult,under mult</code> (e.g. <code>Igor Shesterkin,NYR,saves,25.5,1,0.9</code>). Text works too: <code>Auston Matthews TOR SOG 3.5 1x/0.85x</code>. The build also pulls the Pick6 board itself; a pasted line replaces the pulled one for that player and market. Market defaults to saves for goalies and SOG for skaters; multipliers default to 1x. These lines are priced as DFS legs at their per-side multipliers (break-even = payout^(−1/legs) ÷ multiplier) on the Projections and SOG tabs, ahead of DraftKings, and a goalie with a saves prop on your board counts as a posted starter.</p>
       <div class="row" style="margin-bottom:8px"><label>Book<select id="boardBook"><option>Pick6</option><option>PrizePicks</option></select></label>
         <label>File<input type="file" id="boardFile" accept=".csv,.txt,text/plain,text/csv"></label></div>
@@ -576,7 +577,7 @@ const BUILD_AGE_H = (Date.now() - builtAt) / 36e5;
 const STALE_MIN = D.stale_min ?? 20, SRC = D.sources || {};
 const lineAge = at => { const t = Date.parse(at || ""); return isNaN(t) ? null : (Date.now() - t) / 6e4; };
 const srcStale = s => !s || s.status === "error" || lineAge(s.fetched_at) == null || lineAge(s.fetched_at) > STALE_MIN;
-const rowSrc = r => r.source === "Pick6" ? SRC.pick6 : r.source === "DraftKings" ? SRC.dk : null;
+const rowSrc = r => r.source === "Pick6" ? SRC.pick6 : r.source === "DraftKings" ? SRC.dk : r.source === "PrizePicks" ? (PP_FETCHED_AT ? {status: "fresh", fetched_at: PP_FETCHED_AT} : SRC.pp) : null;
 const lineCT = at => { const t = new Date(at); return isNaN(t) ? "–" : ctFmt(t, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}) + " CT"; };
 function staleBadge(r){
   const s = rowSrc(r); if (!s) return "";
@@ -590,12 +591,13 @@ function renderSources(){
     const a = lineAge(s.fetched_at), cls = s.status === "fresh" && !srcStale(s) ? "fresh" : "bad";
     return `<span>${name} lines <b>${s.fetched_at ? lineCT(s.fetched_at) : "never fetched"}</b>${a != null ? ` · <b>${Math.round(a)} min</b> old` : ""} <span class="pill src-${cls}" title="${s.error ? String(s.error).replace(/"/g, "'") : ""}">${s.status}${s.error && s.status !== "fresh" ? ": " + String(s.error).slice(0, 60) : ""}</span></span>`;
   };
-  const stale = [["Pick6", SRC.pick6], ["DraftKings", SRC.dk]].filter(([, s]) => srcStale(s));
+  const ppS = PP_FETCHED_AT ? {status: "fresh", fetched_at: PP_FETCHED_AT, error: null, live: true} : SRC.pp;
+  const stale = [["Pick6", SRC.pick6], ["DraftKings", SRC.dk], ...(ppS && ppS.status !== "error" ? [["PrizePicks", ppS]] : [])].filter(([, s]) => srcStale(s));
   const ba = (Date.now() - builtAt) / 6e4;
   $("#srcBar").innerHTML = (stale.length ? `<div class="note stale-note"><b>⚠ STALE LINES:</b> ${stale.map(([n, s]) => {
       const a = s && lineAge(s.fetched_at); return `${n} ${!s || !s.fetched_at ? "has no lines from any pull" : `lines are ${Math.round(a)} min old (fetched ${lineCT(s.fetched_at)}${s.status === "fallback" ? ", fallback: this build's pull failed" : ""})`}`; }).join("; ")}.
       Older than ${STALE_MIN} min: multipliers and prices may have moved. Check the line on the app before betting; affected rows are marked <span class="pill stale">STALE</span>.</div>` : "") +
-    `<div class="statusbar srcbar">${one("Pick6", SRC.pick6)}${one("DraftKings", SRC.dk)}<span>Build <b>${builtCT}</b>${isNaN(ba) ? "" : ` · <b>${Math.round(ba)} min</b> ago`}</span></div>`;
+    `<div class="statusbar srcbar">${one("Pick6", SRC.pick6)}${one("DraftKings", SRC.dk)}${SRC.pp || PP_FETCHED_AT ? one(PP_FETCHED_AT ? "PrizePicks (your browser)" : "PrizePicks", ppS) : ""}<span>Build <b>${builtCT}</b>${isNaN(ba) ? "" : ` · <b>${Math.round(ba)} min</b> ago`}</span></div>`;
 }
 const STALE = !isNaN(BUILD_AGE_H) && BUILD_AGE_H > 6 && (D.slate || []).some(g => g.date === TODAY_CT);
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
@@ -670,6 +672,26 @@ function takeTeam(ln){
 const boardFor = (market, pid) => pid == null ? null : (BOARD.rows || []).find(r => r.market === market && r.player_id === pid) || null;
 const multTxt = (o, u) => `${o}x / ${u}x`;
 let ppLive = {state: "idle"};
+// PrizePicks /projections -> shots / points / saves props, each matched within its team (mirrors prizepicks.parse_props)
+const PP_STATS = {"Shots On Goal": "sog", "Shots": "sog", "Player Shots": "sog", "Points": "points", "Goalie Saves": "saves"};
+function ppProps(js){
+  const players = {}, out = [];
+  for (const inc of js.included || []) if (inc.type === "new_player" || inc.type === "player") players[inc.id] = inc.attributes || {};
+  for (const p of js.data || []){
+    const a = p.attributes || {}, market = PP_STATS[a.stat_type];
+    if (!market || a.line_score == null) continue;
+    if ((a.odds_type || "standard").toLowerCase() !== "standard" || a.is_promo || a.flash_sale_line_score != null) continue;
+    const rel = p.relationships || {}, ref = ((rel.new_player || rel.player || {}).data) || {};
+    const pl = players[ref.id] || {}, name = pl.name || pl.display_name;
+    if (!name) continue;
+    let team = String(pl.team || pl.team_abbreviation || "").toUpperCase(); team = PP_TEAM_FIX[team] || team || null;
+    const m = team ? matchPlayer(name, team, null, market === "saves" ? "G" : null) : {id: null, status: "UNMATCHED", reason: "no team"};
+    out.push({name, key: nameKey(name), market, line: +a.line_score, mo: 1, mu: 1, book: "PrizePicks", team: m.team || team,
+              player_id: m.id, match: m.status, reason: m.reason, date: a.start_time ? etDate(a.start_time) : null});
+  }
+  return out;
+}
+let PP_PROPS = [], PP_FETCHED_AT = null;                 // this browser's live PrizePicks shots / points lines (when PrizePicks lets the pull through)
 function parsePP(js){
   const players = {};
   for (const inc of js.included || []) if (inc.type === "new_player" || inc.type === "player") players[inc.id] = inc.attributes || {};
@@ -709,13 +731,14 @@ async function pullPrizePicksLive(){
   try {
     const r = await fetch("https://api.prizepicks.com/projections?league_id=8&per_page=1000&single_stat=true", {signal: ctl.signal});
     if (!r.ok) throw new Error("HTTP " + r.status);
-    const rows = parsePP(await r.json());
+    const js = await r.json(), rows = parsePP(js);
     D.pp = rows; buildPP();
+    PP_PROPS = ppProps(js).filter(r => r.market !== "saves" && r.match === "MATCHED"); PP_FETCHED_AT = new Date().toISOString();
     ppLive = {state: "ok", n: rows.length, at: new Date().toLocaleTimeString([], {hour: "numeric", minute: "2-digit"})};
   } catch (e){
     ppLive = {state: "fail", err: e.name === "AbortError" ? "timed out" : (e.message === "Failed to fetch" || e.name === "TypeError") ? "blocked by PrizePicks for other websites" : e.message};
   } finally { clearTimeout(timer); }
-  renderSlate(); renderSlip(); renderWinners(); renderSOG(); if (typeof renderStarters === "function" && $("#gStart")) renderStarters();
+  renderSlate(); renderSlip(); renderWinners(); renderSOG(); renderSources(); if (typeof renderStarters === "function" && $("#gStart")) renderStarters();
 }
 // DraftKings (via The Odds API): same idea, a posted saves line = expected starter
 const DK = {};
@@ -1086,7 +1109,13 @@ function selectSog(sog, savesTakes){
 }
 function propBoard(dateF){
   const mine = clientLines(), own = new Set(mine.map(l => l.market + "|" + l.player_id));
-  const server = (D.board && D.board.rows || []).filter(r => r.market !== "saves" && !own.has(r.market + "|" + r.player_id)).map(r => ({...r, conflicts: null}));
+  const liveAt = PP_PROPS.length ? new Date().toISOString() : null;
+  for (const b of PP_PROPS){
+    const g = gameOf(b.team, b.date || $("#dateF").value || D.slate_day) || gameOf(b.team);
+    if (g && !own.has(b.market + "|" + b.player_id)) mine.push({name: b.name, player_id: b.player_id, team: b.team, game: g.id, date: g.date, market: b.market,
+      line: b.line, mo: 1, mu: 1, source: "PrizePicks", fetched_at: PP_FETCHED_AT || liveAt});
+  }
+  const server = (D.board && D.board.rows || []).filter(r => r.market !== "saves" && !own.has(r.market + "|" + r.player_id) && !(PP_PROPS.length && r.source === "PrizePicks")).map(r => ({...r, conflicts: null}));
   let rows = server.map(r => r.p_raw != null || r.p_blend != null ? finishRow(r) : r)
     .concat(mine.map(l => finishRow(scoreSkaterLine(l)))).concat(savesBoardRows());
   rows = rows.filter(r => !dateF || r.date === dateF);
@@ -1846,7 +1875,11 @@ function boardRefresh(msg){
 }
 $("#boardFile").onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { $("#boardText").value = rd.result; }; rd.readAsText(f); };
 $("#boardImport").onclick = () => {
-  const rows = parseBoard($("#boardText").value, $("#boardBook").value);
+  const txt = $("#boardText").value.trim();
+  let rows;
+  if (txt.startsWith("{")){
+    try { rows = ppProps(JSON.parse(txt)); } catch (e){ boardRefresh(`That isn't PrizePicks JSON (${e.message}). Copy the whole page from the projections link.`); return; }
+  } else rows = parseBoard(txt, $("#boardBook").value);
   const keep = (BOARD.rows || []).filter(r => !rows.some(x => x.key === r.key && x.market === r.market));
   BOARD = {rows: keep.concat(rows), at: new Date().toISOString()}; store.set("gm_board", BOARD);
   const un = rows.filter(r => r.match !== "MATCHED");

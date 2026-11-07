@@ -8,7 +8,7 @@ git config user.name >/dev/null || git config user.name "github-actions[bot]"
 git add index.html
 for p in model/data/calls model/data/real_line_log.csv model/data/dk_prices.csv model/output/tracking.json \
          model/output/calibration.json model/data/legs.csv model/data/rosters.json model/data/odds_cache.json \
-         model/data/pick6_cache.json model/data/moneypuck; do
+         model/data/pick6_cache.json model/data/pp_cache.json model/data/moneypuck; do
   [ -e "$p" ] && git add "$p"
 done
 git add -A model/data/pick6_failed.html 2>/dev/null || true

@@ -5,7 +5,7 @@ and feeds the dashboard's source bar (Pick6 and DraftKings fetch times, fresh / 
 import datetime as dt
 
 STALE_MIN = 20          # a source (and its rows) is STALE when its lines are older than this many minutes
-SOURCE_KEY = {"Pick6": "pick6", "DraftKings": "dk"}
+SOURCE_KEY = {"Pick6": "pick6", "DraftKings": "dk", "PrizePicks": "pp"}
 
 
 def _ts(x):
