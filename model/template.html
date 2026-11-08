@@ -583,7 +583,7 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
 <section id="logic">
   <div class="card"><h2>Formula</h2>
     <p><code>exp_SA = LG × (TeamSA/LG)<sup>a</sup> × (OppSF/LG)<sup>b</sup> × home × playoff × b2b × opponent b2b × exp(−gs × logit(win prob))</code>, the game-script multiplier capped at ±12%.</p>
-    <p><code>saves ~ Normal(mean = exp_SA × share × sv, var = sv²(μ + μ²/K) + μ·sv(1−sv)), μ = exp_SA × share</code>: shots against vary like a negative binomial and each shot is saved with probability sv, so heavier workloads (underdogs) get a wider spread. P(hit) is then calibrated on graded real lines (side-split, no intercept), blended 60/40 with the no-vig DraftKings price when both sides are posted, and a play needs that probability above the price's break-even + 2%.</p>
+    <p><code>saves ~ Normal(mean = exp_SA × share × sv, var = sv²(μ + μ²/K) + μ·sv(1−sv)), μ = exp_SA × share</code>: shots against vary like a negative binomial and each shot is saved with probability sv, so heavier workloads (underdogs) get a wider spread. P(hit) is then calibrated on graded real lines (side-split, no intercept), blended with the market's no-vig price at a weight fitted on graded lines (Calibration tab); whether it is a play follows the rules under <b>How picks work</b>.</p>
     <p><code>Projected saves = exp_SA × time-in-net share × save% + rolling bias</code> &nbsp; <code>Edge = Projected − Line</code></p>
     <p class="sub">The rolling bias is the recent mean of (actual saves − this projection), half-life 30 days, shrunk by 20 starts, added after game script. It is the same number on the slate and in the frozen call.</p>
     <div class="tbl"><table id="parT"></table></div>
@@ -660,6 +660,8 @@ function tier(e){ e = Math.abs(e); return e >= 2.5 ? "HIGH" : e >= 1.5 ? "MED" :
 const MARGIN = 0.02;
 const DIST = Object.assign({nb_k: 30, gs: 0.025, gs_cap: 0.12, sd_floor: 5.5}, D.dist || {});
 const CAL = (D.calib && D.calib.markets) || {};
+// this build's shots chance is the 50/50 mean blend (props_board.score_lines; calibrate's markets.sog.live), not the fitted blend
+const SOG_MB = (((CAL.sog || {}).live || {}).kind === "mean_blend") || ((D.board && D.board.rows) || []).some(r => r.mean_blend);
 const RULE = Object.assign({margin: 0.02, margin_sog: 0.03, sog_gap: 0.15, sog_gap_ev: 0.05, blend_w: 0.6,
   alarm_share: 0.75, alarm_min_plays: 2, saves_cap_at: 0.65, saves_cap_to: 0.60, take_p: 0.58, near_miss_p: 0.55,
   lock_p: 0.62, min_mult: 1, saves_edge_over: 2.5, saves_edge_under: 3.0, saves_take_p: 0.58,
@@ -728,7 +730,7 @@ function verdictFor(mk, pOver, pModelOver, line, proj, mo, mu, matched = true, c
   let reason = null, near = false;
   if (!matched) reason = "unmatched player";
   else if (mk === "saves" && !confirmed) reason = "starter not confirmed";
-  else if (hasVal(mult) && +mult === 0) reason = `${side === "OVER" ? "MORE" : "LESS"} not offered on this line`;
+  else if ((!hasVal(mult) && !hasVal(pr)) || (hasVal(mult) && +mult === 0)) reason = `${side === "OVER" ? "MORE" : "LESS"} not offered on this line`;
   else if (hasVal(mult) && +mult < RULE.min_mult - 1e-9 && !DFS.sub1x) reason = `pays ${+mult}x`;
   else if (hasVal(pr) && !RULE.priced_takes) reason = "sportsbook price: no edge over the book's own odds";
   else if (mk === "saves" && side === "OVER" && !RULE.saves_take_overs) reason = "saves overs: no edge (they lost at every threshold)";
@@ -747,7 +749,7 @@ function verdictFor(mk, pOver, pModelOver, line, proj, mo, mu, matched = true, c
 const isTake = r => String(r.verdict || "").startsWith("TAKE");
 // ---------- player matching (mirrors model/players.py): (name, team, game) -> one NHL playerId or UNMATCHED ----------
 const PM_SUFFIX = new Set(["jr", "sr", "ii", "iii", "iv"]);
-const PM_NICK = [["mike","michael","mikey"],["jake","jacob","jakob"],["bill","william","will","willy"],["bob","robert","rob","bobby"],["tony","anthony"],["zach","zack","zachary","zak"],["nick","nicholas","nicolas","nik","niko","nikolai"],["alex","alexander","alexandre","aleksander","sasha"],["matt","matthew","mathew","matthias","mat"],["josh","joshua"],["cam","cameron"],["tim","timothy"],["tom","thomas","tommy"],["dan","daniel","danny"],["chris","christopher"],["jon","jonathan","john","johnny"],["joe","joseph","joey"],["ben","benjamin"],["sam","samuel"],["max","maxim","maxime","maximilian"],["mitch","mitchell"],["pat","patrick"],["greg","gregory"],["fred","frederik","frederick"],["vince","vincent"],["phil","phillip","philip"],["ed","edward","eddie"],["andy","andrew","drew"],["steve","steven","stephen"],["jeff","jeffrey"],["ken","kenneth"],["evgeny","evgeni","yevgeni"],["dmitri","dmitry"],["artemi","artemiy"],["ilya","ilia"]];
+const PM_NICK = [["mike","michael","mikey"],["jake","jacob","jakob"],["bill","william","will","willy"],["bob","robert","rob","bobby"],["tony","anthony"],["zach","zack","zachary","zak"],["nick","nicholas","nicolas","nik","niko","nikolai"],["alex","alexander","alexandre","aleksander","sasha"],["matt","matthew","mathew","matthias","mat"],["josh","joshua"],["cam","cameron"],["tim","timothy"],["tom","thomas","tommy"],["dan","daniel","danny"],["chris","christopher"],["jon","jonathan","john","johnny"],["joe","joseph","joey"],["ben","benjamin"],["sam","samuel"],["max","maxim","maxime","maximilian"],["mitch","mitchell"],["pat","patrick"],["greg","gregory"],["fred","frederik","frederick"],["vince","vincent"],["phil","phillip","philip"],["ed","edward","eddie"],["andy","andrew","drew"],["steve","steven","stephen"],["jeff","jeffrey"],["ken","kenneth"],["evgeny","evgeni","yevgeni","evgenii","yevgeny"],["yegor","egor"],["dmitri","dmitry"],["artemi","artemiy"],["ilya","ilia"]];
 const PM_NICKIX = {}; PM_NICK.forEach((g, i) => g.forEach(n => PM_NICKIX[n] = i));
 const PM_TEAMFIX = {LA:"LAK", NJ:"NJD", SJ:"SJS", TB:"TBL", MON:"MTL", WAS:"WSH", CLB:"CBJ", NAS:"NSH", UTAH:"UTA", VEG:"VGK", CAL:"CGY", LV:"VGK", ARI:"UTA", UTH:"UTA"};
 const pmTeam = t => { t = String(t || "").toUpperCase().trim(); return PM_TEAMFIX[t] || t; };
@@ -1079,13 +1081,24 @@ function slateRows(){
         po = pOverSaves(dist.proj, dist.sd, line);
         // DFS legs (PrizePicks / your board / your line) price at their multiplier and blend with DraftKings when DK has the same line
         const dkSame = dk && dk.goalie_id === gid && +dk.line === +line ? novig(dk.over, dk.under) : null;
-        const opt = lineSrc === "dk" ? {over: dk.over, under: dk.under} : lineSrc === "board" ? {multOver: bd.mo, multUnder: bd.mu, mkt: dkSame} : {multOver: 1, multUnder: 1, mkt: dkSame};
+        // the market price as props_board.market_quote takes it: DraftKings on this line, else the other books' mean
+        const [mq, mqSrc] = mktQuote("saves", gid, line, dkSame, g.date);
+        const opt = lineSrc === "dk" ? {over: dk.over, under: dk.under} : lineSrc === "board" ? {multOver: bd.mo, multUnder: bd.mu, mkt: mq} : {multOver: 1, multUnder: 1, mkt: mq};
         d = decide("saves", po, opt);
+        d.mktSrc = d.pMkt == null ? null : lineSrc === "dk" ? "DraftKings" : mqSrc;
         if (!confirmed){ d.play = false; d.tier = "PASS"; }
       }
       const edge = line != null ? dist.proj - line : null;
-      rows.push({g, team, opp, gid, side, b2b, oppB2b, ...pr, sa: dist.saGs, saRaw: pr.sa, proj: dist.proj, sd: dist.sd,
-                 pWin: wp.p, pWinSrc: wp.src, key, line, lineSrc, pp, dk, bd, df: st.df || DF[g.date + "|" + team], src: st.src, confirmed, edge, po, d});
+      const row = {g, team, opp, gid, side, b2b, oppB2b, ...pr, sa: dist.saGs, saRaw: pr.sa, proj: dist.proj, sd: dist.sd,
+                 pWin: wp.p, pWinSrc: wp.src, key, line, lineSrc, pp, dk, bd, df: st.df || DF[g.date + "|" + team], src: st.src, confirmed, edge, po, d, call: null};
+      // a play is the TAKE verdict (pricing.verdict) on the side shown; decide() above only prices the line
+      if (d){
+        row.call = demoteCached(verdictFor("saves", d.side === "OVER" ? d.p : 1 - d.p, d.pModel, line, dist.proj,
+          lineSrc === "dk" ? null : lineSrc === "board" ? bd.mo : 1, lineSrc === "dk" ? null : lineSrc === "board" ? bd.mu : 1,
+          gid != null && gid > 0, confirmed, lineSrc === "dk" ? {over: dk.over, under: dk.under} : {}, d.pMkt), savesSrc(row), d.pMkt != null);
+        d.play = isTake(row.call) && row.call.side === d.side; d.tier = d.play ? row.call.tier : "PASS";
+      }
+      rows.push(row);
     }
   }
   rows.alarm = alarmByDate(rows.map(r => ({date: r.g.date, d: r.d})));
@@ -1198,10 +1211,7 @@ function boardRowsSaves(){
       proj: r.proj, diff: r.line != null ? r.proj - r.line : null,
       side: r.d ? r.d.side : null, prob: r.d ? r.d.pShow : null, tier: r.d ? r.d.tier : null, capped: r.d ? r.d.capped : false,
       play: !!(r.d && r.d.play), noLine: r.line == null, unconf: !r.confirmed, q: [name, r.team, r.opp],
-      call: r.d ? demoteCached(verdictFor("saves", r.d.side === "OVER" ? r.d.p : 1 - r.d.p, r.d.pModel, r.line, r.proj,
-                             r.lineSrc === "dk" ? null : r.lineSrc === "board" ? r.bd.mo : 1, r.lineSrc === "dk" ? null : r.lineSrc === "board" ? r.bd.mu : 1,
-                             r.gid != null && r.gid > 0, r.confirmed, r.lineSrc === "dk" ? {over: r.dk.over, under: r.dk.under} : {}, r.d.pMkt),
-                             savesSrc(r), r.d.pMkt != null) : null};
+      call: r.call};
   });
 }
 const callOf = (mk, x, pl) => x.d ? verdictFor(mk, x.d.side === "OVER" ? x.d.p : 1 - x.d.p, x.d.pModel, x.L.line, x.proj,
@@ -1213,10 +1223,11 @@ function boardRowsPts(){
     for (const pl of D.sog.players[team] || []){
       const x = ptsDecision(g, team, opp, home, pl);
       if (!x.d) continue;
+      const call = callOf("points", x, pl), play = isTake(call) && call.side === x.d.side;
       out.push({t: g.start || "", time: ctStart(g), date: g.date, game: `${g.away} @ ${g.home}`, player: pl.name,
                 sub: [team, pl.pos, roleTxt(pl)].filter(Boolean).join(" · "), team, opp, mk: "points", d: x.d, src: x.L.src,
-                line: x.L.line, proj: x.proj, diff: x.proj - x.L.line, side: x.d.side, prob: x.d.pShow, tier: x.d.tier, capped: false,
-                play: x.d.play, q: [pl.name, team, opp], call: callOf("points", x, pl)});
+                line: x.L.line, proj: x.proj, diff: x.proj - x.L.line, side: x.d.side, prob: x.d.pShow, tier: play ? call.tier : "PASS", capped: false,
+                play, q: [pl.name, team, opp], call});
     }
   return out;
 }
@@ -1240,14 +1251,14 @@ function scoreSkaterLine(l){
   const home = g.home === pl.team, opp = home ? g.away : g.home, blk = pts ? D.points : D.sog;
   const proj = liveProj(pts ? pl.p60 : pl.r60, pts ? (pl.ptoi ?? pl.toi) : pl.toi, blk.opp[opp] ?? 1, (blk.team || {})[pl.team] ?? 1, home, playedYday(pl.team, g.date), playedYday(opp, g.date), prm);
   const po = nbOver(proj, l.line, prm, pl.pos);
-  let [mkt, msrc] = mktQuote(l.market, pl.id, l.line, dkById(pts ? D.dk_points : D.dk_sog, pl.id, l.line));
+  let [mkt, msrc] = mktQuote(l.market, pl.id, l.line, dkById(pts ? D.dk_points : D.dk_sog, pl.id, l.line, g.date), g.date);
   // shots: the 50/50 mean-space blend with the market's implied mean, priced at this line (props_board.score_lines)
   const mb = {};
   if (!pts && RULE.sog_mean_w > 0){
-    const [muM, src] = sogMarketMean(playerQuotes("sog", pl.id), prm, pl.pos);
+    const [muM, src] = sogMarketMean(playerQuotes("sog", pl.id, g.date), prm, pl.pos);
     if (muM != null){
       const muB = (1 - RULE.sog_mean_w) * proj + RULE.sog_mean_w * muM;
-      Object.assign(mb, {mean_blend: true, mu_mkt: muM, p_blend: nbOver(muB, l.line, prm, pl.pos)});
+      Object.assign(mb, {mean_blend: true, mu_mkt: muM, mu_src: src, p_blend: nbOver(muB, l.line, prm, pl.pos)});
       if (mkt == null){ mkt = nbOver(muM, l.line, prm, pl.pos); msrc = `${src} (other line)`; }
     } else Object.assign(mb, {mean_blend: true, mu_mkt: null, p_blend: po});
   }
@@ -1263,7 +1274,7 @@ function finishRow(r){
   // DraftKings fallback lines carry DK's own odds (dk_over / dk_under) instead of DFS multipliers
   const v = verdictFor(r.market, pb, pm, r.line, r.proj, r.mo, r.mu, r.matched !== false, r.confirmed !== false, {over: r.dk_over, under: r.dk_under}, r.p_mkt);
   const why = cachedReason(r, r.p_mkt != null);
-  if (why && isTake(v)) Object.assign(v, {verdict: "PASS", tier: "", reason: why});
+  if (why && (isTake(v) || v.tier === "Near miss")) Object.assign(v, {verdict: "PASS", tier: "", reason: why});   // not a near miss either
   return {...r, p_model: pm, p_blend: pb, w, ...v, cached: !!why};
 }
 // a line or market price this build reused from an earlier pull is never a TAKE (props_board._cached_reason); lines you
@@ -1277,7 +1288,7 @@ function cachedReason(r, priced){
 }
 function demoteCached(v, src, priced){
   const why = cachedReason(src, priced);
-  if (why && isTake(v)) Object.assign(v, {verdict: "PASS", tier: "", reason: why});
+  if (why && (isTake(v) || v.tier === "Near miss")) Object.assign(v, {verdict: "PASS", tier: "", reason: why});
   return v;
 }
 // a saves line's source as cachedReason reads it: the build's Pick6 board, DraftKings, PrizePicks, or yours
@@ -1308,7 +1319,7 @@ function savesBoardRows(){
     const v = demoteCached(verdictFor("saves", pOver, d.pModel, r.line, r.proj, mo, mu, r.gid != null && r.gid > 0, r.confirmed,
                          isDK ? {over: r.dk.over, under: r.dk.under} : {}, d.pMkt), savesSrc(r), d.pMkt != null);
     return {name, player_id: r.gid, team: r.team, opp: r.opp, game: r.g.id, date: r.g.date, start: r.g.start, market: "saves", label: "Saves",
-            line: r.line, mo, mu, source: src, proj: r.proj, p_model: d.pModel, p_mkt: d.pMkt, p_blend: pOver, matched: true, confirmed: r.confirmed,
+            line: r.line, mo, mu, source: src, proj: r.proj, p_model: d.pModel, p_mkt: d.pMkt, mkt_src: d.mktSrc, p_blend: pOver, matched: true, confirmed: r.confirmed,
             capped: d.capped, ...v};
   });
 }
@@ -1524,7 +1535,9 @@ const bookKey = s => { const b = bookName(s); return BOOKS.includes(b) ? b : "Yo
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 const pc1 = x => x == null || isNaN(x) ? "–" : (100 * x).toFixed(1) + "%";
 // a chance printed beside its bar: one decimal for both when whole percents would read the same (57.6% vs 58%)
-const pcPair = (p, need) => p != null && need != null && pc0(p) === pc0(need) && Math.abs(p - need) > 1e-9 ? [pc1(p), pc1(need)] : [pc0(p), pc0(need)];
+const pc2 = x => x == null || isNaN(x) ? "–" : (100 * x).toFixed(2) + "%";
+const pcPair = (p, need) => p == null || need == null || Math.abs(p - need) <= 1e-9 || pc0(p) !== pc0(need) ? [pc0(p), pc0(need)]
+  : pc1(p) !== pc1(need) ? [pc1(p), pc1(need)] : [pc2(p), pc2(need)];
 // the edge in percentage points from the chance and needs as printed (one decimal), so chance − needs = edge on screen
 const edgePts = v => (Math.round(1000 * v.p) - Math.round(1000 * v.needs)) / 10;
 const edgeTx = v => { const e = edgePts(v); return !e ? "0.0" : (e > 0 ? "+" : "−") + Math.abs(e).toFixed(1); };
@@ -1546,7 +1559,8 @@ const isBookRow = r => bookName(r.source) === "DraftKings";
 const dkPrices = r => hasVal(r.dk_over) || hasVal(r.dk_under) ? {over: r.dk_over, under: r.dk_under}
   : r.market === "saves" ? (DK[r.date + "|" + r.team] || {}) : {};
 function offered(r, side){
-  if (isBookRow(r)){ const pr = dkPrices(r)[side === "OVER" ? "over" : "under"]; return hasVal(pr) ? {kind: "book", price: +pr} : null; }
+  if (isBookRow(r) || r.priced){ const pr = (r.priced ? {over: r.dk_over, under: r.dk_under} : dkPrices(r))[side === "OVER" ? "over" : "under"];
+    return hasVal(pr) ? {kind: "book", price: +pr} : null; }
   const m = side === "OVER" ? r.mo : r.mu;
   if (!hasVal(m)) return {kind: "dfs", mult: 1};
   return +m > 0 ? {kind: "dfs", mult: +m} : null;
@@ -1577,7 +1591,8 @@ function afterCheck(r){
   if (AFTER.has(r)) return AFTER.get(r);
   let a = null;
   if (r.p_blend != null && r.line != null){
-    const u = verdictFor(r.market, r.p_blend, r.p_model, r.line, r.proj, r.mo, r.mu, true, r.confirmed !== false, {over: r.dk_over, under: r.dk_under}, r.p_mkt);
+    const u = demoteCached(verdictFor(r.market, r.p_blend, r.p_model, r.line, r.proj, r.mo, r.mu, true, r.confirmed !== false, {over: r.dk_over, under: r.dk_under}, r.p_mkt),
+      r, r.p_mkt != null);
     const x = {...r, ...u, matched: true, role_change: null, team_mismatch: false};
     const [t, note] = r.market === "sog" ? sogClass(x) : [isTake(x) ? "Strong" : x.tier, ""];
     a = {could: t in SOG_RANK, reason: u.reason || note || ""};
@@ -1631,7 +1646,7 @@ function noneWhy(rows){
   const all = [...c].sort((a, b) => b[1] - a[1]), top = all.filter(([k]) => NONE_TX[k]).slice(0, 3);
   const rest = all.reduce((s, [, n]) => s + n, 0) - top.reduce((s, [, n]) => s + n, 0);
   const parts = top.map(([k, n]) => { const t = NONE_TX[k][n === 1 ? 1 : 0]; return `${n} ${typeof t === "function" ? t() : t}`; })
-    .concat(rest ? [`${rest} ${top.length ? "more" : ""} fail${rest === 1 ? "s" : ""} other checks`.replace("  ", " ")] : []);
+    .concat(rest ? [`${rest} ${top.length ? "more" : ""} ${rest === 1 ? "doesn't" : "don't"} qualify`.replace("  ", " ")] : []);
   return parts.length > 1 ? parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1] : parts[0] || "";
 }
 // the verdict in plain English, one line
@@ -1673,7 +1688,9 @@ function sumTx(r, v){
 function factsTx(r, v){
   const S = v ? v.side : r.side, sideP = x => x == null || !S ? null : S === "OVER" ? +x : 1 - x;
   const src = r.mkt_src || "DraftKings", w = r.w ?? blendW((CAL[r.market] || {}).cal);
-  const mw = RULE.sog_mean_w, msrc = esc(String(src).replace(/ \(other line\)$/, ""));
+  // the market's expected shots come from mu_src (DraftKings' line nearest 50/50, else the other books), which can differ
+  // from the book that priced this exact line (mkt_src)
+  const mw = RULE.sog_mean_w, msrc = esc(String(r.mu_src || src).replace(/ \(other line\)$/, ""));
   const from = r.mean_blend ? (r.mu_mkt == null ? "the model alone (no market price)" : `${Math.round(100 * (1 - mw))}% model + ${Math.round(100 * mw)}% ${msrc}, in expected shots`)
     : r.p_mkt == null ? "the model alone" : w >= 1 ? "model" : w <= 0 ? `${esc(src)} no‑vig` : `${Math.round(100 * w)}% model + ${Math.round(100 * (1 - w))}% ${esc(src)}`;
   const kv = [["Chance from", from], ["Model alone", pc0(sideP(r.p_model))],
@@ -2218,7 +2235,7 @@ function renderLegs(){
   if (!L.n){ $("#resLegs").innerHTML = '<p class="muted">No graded legs yet: the leg log starts with this build, and legs grade once their games are final.</p>'; return; }
   const table = (title, obj) => `<h3>${title}</h3><div class="tbl"><table><thead><tr><th class="l"></th><th class="num">Record</th><th class="num">Hit %</th><th class="num">Predicted</th></tr></thead><tbody>` +
     Object.entries(obj || {}).map(([k, r]) => `<tr><td class="l">${k}</td>${recCells(r)}</tr>`).join("") + "</tbody></table></div>";
-  $("#resLegs").innerHTML = Object.entries(M).map(([mk, x]) => `<div class="card" style="margin:8px 0"><h2>${{sog: "SOG", points: "Points", saves: "Saves"}[mk] || mk} <span class="muted" style="font-weight:400;font-size:13px">${x.all.n} graded legs</span></h2>
+  $("#resLegs").innerHTML = Object.entries(M).map(([mk, x]) => `<div class="card" style="margin:8px 0"><h2>${{sog: "SOG", points: "Points", saves: "Saves"}[mk] || mk} <span class="muted" style="font-weight:400;font-size:13px">${x.all.n} playable graded legs</span></h2>
     <div class="grid2">${table("Reliability (blended p)", x.reliability)}${table("TAKE legs (rule-passing)", {all: x.takes, ...Object.fromEntries(Object.entries(x.takes_by_side).map(([k, v]) => ["TAKE " + (k === "OVER" ? "MORE" : "LESS"), v]))})}</div>
     <div class="grid3">${table("By side", {MORE: x.by_side.OVER, LESS: x.by_side.UNDER})}${table("By line", x.by_line)}${table("By multiplier", x.by_mult)}</div>
     <p class="sub">Model's side where it disagreed with the market: ${x.model_vs_market && x.model_vs_market.n ? `${x.model_vs_market.hit}-${x.model_vs_market.miss} (${pct(x.model_vs_market.pct)})` : "none graded yet"}.</p></div>`).join("");
@@ -2278,7 +2295,7 @@ function renderBacktest(){
     return `<div class="stat"><div class="k">${lab} · live rule at DK prices</div><div class="v">${r.n ? sgnP(r.roi_dk, r.roi_dk_se, false) : "–"}</div><div class="s">${r.n} picks · ${hitTxt(r)}${r.roi_dk_se != null ? `<br>ROI ± ${(100 * r.roi_dk_se).toFixed(1)}` : ""}<br>real DFS legs: ${r.real_n || 0}${r.real_n ? ` · ROI ${sgnP(r.roi_real)}` : ""}</div></div>`; };
   $("#btStats").innerHTML = card("Shots on goal", K) + card("Points", PT) + card("Saves", S);
   const ruleT = m => { const R = m && m.rule;
-    if (!R) return `<tbody><tr><td class="muted">Not enough graded lines yet.</td></tr></tbody>`;
+    if (!R) return `<tbody><tr><td class="muted">${m ? "No rule record in this build." : "Not enough graded lines yet."}</td></tr></tbody>`;
     const sc = m.scores || {}, dk = sc["DK no-vig"], raw = sc["raw model"], live = sc["mean blend 50/50 (live)"] || sc["blend fitted (new)"];
     const ll = x => x && x.logloss != null ? x.logloss.toFixed(4) : "–";
     return `<thead><tr><th class="l">Picks</th><th>n</th><th>Record · hit %</th><th>ROI at DK</th><th>1x leg (hyp.)</th><th>Real DFS</th></tr></thead><tbody>` +
@@ -2460,9 +2477,12 @@ function renderLogic(){
     ["Back-to-back multiplier", P.b2b], ["Opponent back-to-back multiplier", P.opp_b2b ?? 1], ["League time-in-net share", pct(D.lg_share)],
     ["Game script: shots × exp(−gs × logit(win prob)), gs", DIST.gs], ["Shots dispersion (NegBin size K)", DIST.nb_k], ["Minimum saves spread (sd floor)", DIST.sd_floor],
     ["Game-script cap", `±${pct(DIST.gs_cap ?? .12, 0)}`], ["League average half-life (team-games)", P.lg_half_life ?? 693],
-    ["Saves calibration", calTxt(CAL.saves)], ["SOG calibration", calTxt(CAL.sog)],
-    ["Market blend", `final = ${RULE.blend_w} × model + ${fmt(1 - RULE.blend_w, 1)} × no-vig price (both prices posted)`],
-    ["Play rule", `final P > break-even + ${pct(RULE.margin ?? MARGIN, 0)}, EV ≥ ${pct(RULE.margin ?? MARGIN, 0)}`], ["DFS per-leg break-even", `${pct(dfsBE(1),1)} at 1x (${DFS.legs} legs at ${DFS.payout}x)`]];
+    ["Saves calibration", calTxt(CAL.saves)], [SOG_MB ? "SOG calibration (reference only: shots use the blend below)" : "SOG calibration", calTxt(CAL.sog)],
+    ["Market blend", [SOG_MB ? `shots: ${Math.round(100 * (1 - RULE.sog_mean_w))}/${Math.round(100 * RULE.sog_mean_w)} model projection and market's expected shots` : "",
+      ...["points", "saves", ...(SOG_MB ? [] : ["sog"])].map(mk => { const w = blendW((CAL[mk] || {}).cal); return `${{sog: "shots", points: "points", saves: "saves"}[mk]}: ${fmt(w, 2)} × calibrated model + ${fmt(1 - w, 2)} × no-vig price`; })]
+      .filter(Boolean).join("; ")],
+    ["Play rule", `TAKE: a pick'em side at ${RULE.min_mult}x+, the market's side at ${pc0(RULE.mkt_min)}+, a chance of ${pc0(takeP("sog"))}+ (shots) / ${pc0(takeP("points"))}+ (points, saves) that beats break-even; see How picks work`],
+    ["DFS per-leg break-even", `${pct(dfsBE(1),1)} at 1x (${DFS.legs} legs at ${DFS.payout}x)`]];
   $("#parT").innerHTML = `<tbody>${rows.map(r => `<tr><td class="l">${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</tbody>`;
   // the rules as verdictFor / selectSog apply them, with this build's settings (model/pricing.py)
   const tp = mk => pc0(takeP(mk)), one = takeP("sog") === takeP("points") && takeP("points") === takeP("saves");
@@ -2472,15 +2492,16 @@ function renderLogic(){
   const tierGroups = {}; for (const mk of ["sog", "points", "saves"]) (tierGroups[`${takeP(mk)}|${lockP(mk)}`] ||= []).push(mk);
   const tiers = Object.values(tierGroups), tiersTx = tiers.length === 1 ? tierTx("sog") : tiers.map(g => `${g.map(k => MKN[k]).join(" and ")}: ${tierTx(g[0])}`).join("; ");
   // markets where this build's blend gives the market all of the weight: there Chance is the market's no-vig price
-  const mktOnly = ["sog", "points", "saves"].filter(mk => !(mk === "sog" && RULE.sog_mean_w > 0) && CAL[mk] && CAL[mk].cal && blendW(CAL[mk].cal) <= 0).map(mk => MKN[mk]);
-  const mw = RULE.sog_mean_w;
+  const mktOnly = ["sog", "points", "saves"].filter(mk => !(mk === "sog" && SOG_MB) && CAL[mk] && CAL[mk].cal && blendW(CAL[mk].cal) <= 0).map(mk => MKN[mk]);
+  const mw = SOG_MB ? RULE.sog_mean_w : 0;
   const never = [!RULE.priced_takes ? "sportsbook-priced lines (DraftKings odds are shown for information: the model has no edge over the book's own price)" : "",
-    "lines with no market price on the same line (model-only picks have not won)", !RULE.saves_take_overs ? "saves overs (they lost at every threshold)" : "",
+    mw > 0 ? "shots lines when no book prices the player at any line, and points and saves lines with no market price on the same line (model-only picks have not won)"
+      : "lines with no market price on the same line (model-only picks have not won)", !RULE.saves_take_overs ? "saves overs (they lost at every threshold)" : "",
     `points unders at ${RULE.points_under_max}+ (the model is overconfident there)`,
     `shots-on-goal sides paying under ${RULE.min_mult}x${DFS.sub1x ? "" : `, and points and saves sides under ${RULE.min_mult}x unless you allow them in ⚙ Pick'em`}`].filter(Boolean);
   $("#ruleList").innerHTML = [
     `Every line ends in one call: <b>TAKE MORE</b>, <b>TAKE LESS</b> or <b>PASS</b>. Tap a row for the reason in plain English, the numbers behind it and his other lines.`,
-    `A <b>TAKE</b> needs all of these: a pick'em price (Pick6, PrizePicks or a line you type) paying <b>${RULE.min_mult}x or better</b> on that side; the market's own no-vig probability for the side at <b>${pc0(RULE.mkt_min)}+</b> on the same line; a chance of <b>${one ? tp("sog") : `${tp("sog")} (shots), ${tp("points")} (points), ${tp("saves")} (saves)`}+</b> that also beats the price's break-even (${pc1(dfsBE(1))} at 1x on your ${DFS.legs}-pick ${DFS.payout}x entry); the player matched to his NHL id; ${RULE.sog_model_agree ? "and the model alone leaning the same way" : "for points and saves, the model alone leaning the same way"}; and a line and price from this build's own pulls (a reused board is never a play).`,
+    `A <b>TAKE</b> needs all of these: a pick'em price (Pick6, PrizePicks or a line you type) paying <b>${RULE.min_mult}x or better</b> on that side; ${mw > 0 ? `the market's probability for the side at <b>${pc0(RULE.mkt_min)}+</b> on that line (its no-vig price there; for shots on a line no book posts, the market's expected shots from his other lines, priced at this one)` : `the market's own no-vig probability for the side at <b>${pc0(RULE.mkt_min)}+</b> on the same line`}; a chance of <b>${one ? tp("sog") : `${tp("sog")} (shots), ${tp("points")} (points), ${tp("saves")} (saves)`}+</b> that also beats the price's break-even (${pc1(dfsBE(1))} at 1x on your ${DFS.legs}-pick ${DFS.payout}x entry); the player matched to his NHL id; ${RULE.sog_model_agree ? "and the model alone leaning the same way" : "for points and saves, the model alone leaning the same way"}; and a line and price from this build's own pulls (a reused board is never a play).`,
     `<b>Chance</b>${mw > 0 ? ` for shots on goal = the model's projection and the market's expected shots (read from DraftKings' line nearest 50/50, else the other books) averaged ${Math.round(100 * (1 - mw))}/${Math.round(100 * mw)}, then priced at the line; for points and saves it is` : " ="} the calibrated model blended with the market's no-vig price on the same line, by a weight fitted on graded lines (Calibration tab)${mktOnly.length ? `; this build gives the market all of the weight for ${mktOnly.join(" and ")}, so there Chance is the market's no-vig price` : ""}. A line with no market price shows the model alone and is never a play. <b>Needs</b> = the bar or the price's break-even, whichever is higher; <b>edge</b> = chance minus needs, in percentage points. <b>Proj</b> is the model's projection and <b>Diff</b> = projection − line (red when it points against the side).`,
     `Never a play: ${never.join("; ")}.`,
     `Saves also need a confirmed starter and a projection <b>${RULE.saves_edge_over}+</b> saves past the line on overs, <b>${RULE.saves_edge_under}+</b> on unders.`,
@@ -2677,24 +2698,24 @@ function dkMkt(list, name, team, date, line, pid){
 }
 // the market's no-vig P(over) on this line and its source (props_board.market_quote): DraftKings, else the mean of the
 // other books that price the same line
-function mktQuote(mk, pid, line, dk){
+function mktQuote(mk, pid, line, dk, date){
   if (dk != null) return [dk, "DraftKings"];
-  const bs = (D.books || []).filter(r => r.market === mk && r.player_id === pid && +r.line === +line)
+  const bs = (D.books || []).filter(r => r.market === mk && r.player_id === pid && r.date === date && +r.line === +line)
     .map(r => [r.book || "book", novig(r.over, r.under)]).filter(b => b[1] != null);
   return bs.length ? [bs.reduce((a, b) => a + b[1], 0) / bs.length, bs.length === 1 ? bs[0][0] : `${bs.length} books`] : [null, null];
 }
 // DraftKings' no-vig on exactly this player-line, matched by NHL id only (props_board._dk_index): a DraftKings name the
 // odds matcher couldn't tie to one player is skipped, never matched by name; the last row for a line wins
-function dkById(list, pid, line){
+function dkById(list, pid, line, date){
   let r = null;
-  for (const x of list || []) if (x.player_id != null && x.player_id === pid && +x.line === +line) r = x;
+  for (const x of list || []) if (x.player_id != null && x.player_id === pid && x.date === date && +x.line === +line) r = x;
   return r ? novig(r.over, r.under) : null;
 }
 // every line a book prices for the player tonight, [line, no-vig P(over), source]: DraftKings first (props_board._player_quotes)
-function playerQuotes(mk, pid){
+function playerQuotes(mk, pid, date){
   const out = [];
-  for (const r of (mk === "points" ? D.dk_points : D.dk_sog) || []){ const nv = novig(r.over, r.under); if (r.player_id === pid && nv != null) out.push([+r.line, nv, "DraftKings"]); }
-  for (const r of D.books || []){ const nv = novig(r.over, r.under); if (r.market === mk && r.player_id === pid && nv != null) out.push([+r.line, nv, r.book || "book"]); }
+  for (const r of (mk === "points" ? D.dk_points : D.dk_sog) || []){ const nv = novig(r.over, r.under); if (r.player_id === pid && r.date === date && nv != null) out.push([+r.line, nv, "DraftKings"]); }
+  for (const r of D.books || []){ const nv = novig(r.over, r.under); if (r.market === mk && r.player_id === pid && r.date === date && nv != null) out.push([+r.line, nv, r.book || "book"]); }
   return out;
 }
 // the NB mean whose P(over line) is pTarget, with the model's dispersion (sog.implied_mean: the same bisection)

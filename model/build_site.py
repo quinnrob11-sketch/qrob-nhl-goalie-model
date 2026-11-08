@@ -502,7 +502,7 @@ def main():
                        "team": r.get("team"), "over": r.get("over"), "under": r.get("under"), "fetched_at": r.get("fetched_at")} for r in odds.points_rows],
         # the other sportsbooks' two-sided lines (odds.OTHER_BOOKS, same request, no extra credits): the market
         # reference where DraftKings doesn't price a player's line, and logged for a forward consensus check
-        "books": [{"market": r["market"], "player_id": r.get("player_id"), "line": r["line"], "book": r["book"],
+        "books": [{"market": r["market"], "player_id": r.get("player_id"), "date": r.get("date"), "line": r["line"], "book": r["book"],
                    "over": r.get("over"), "under": r.get("under")} for r in odds.book_rows if r.get("match") == "MATCHED"],
         "odds_books": odds.books_used,
         "rosters": {t: [[p["id"], p["first"], p["last"], p["pos"]] for p in ps] for t, ps in R.teams.items() if t in teams},

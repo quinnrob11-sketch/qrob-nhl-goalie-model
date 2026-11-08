@@ -802,13 +802,23 @@ def grade_legs(sb, gb):
     final = set(int(g) for g in sb.game_id.unique())
     _backfill_leg_prices(rows)
     for r in rows:
-        if r.get("result") or r["market"] not in ("sog", "points", "saves"):
+        if r["market"] not in ("sog", "points", "saves"):
             continue
         try:
             gid, pid = int(r["game"]), int(r["player_id"])
         except ValueError:
             continue
-        if gid not in final:
+        if r.get("result") in ("HIT", "MISS", "PUSH"):
+            # NHL stat corrections: a graded leg whose box-score stat has since changed is re-graded
+            v = stat.get((gid, pid, r["market"]))
+            try:
+                old = int(float(r.get("actual")))
+            except (TypeError, ValueError):
+                continue
+            if v is not None and v != old:
+                r["actual"], r["result"] = v, _result(r["side"], v, float(r["line"]))
+            continue
+        if r.get("result") or gid not in final:
             continue
         v = stat.get((gid, pid, r["market"]))
         if v is None:

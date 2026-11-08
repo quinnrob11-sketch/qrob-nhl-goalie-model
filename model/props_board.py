@@ -35,36 +35,36 @@ def _skaters(payload):
 
 
 def _dk_index(payload):
-    """(market, player_id, line) -> DK row, for the market price of a DFS leg."""
+    """(market, player_id, date, line) -> DK row, for the market price of a DFS leg in that day's game."""
     out = {}
     for mk, key in (("sog", "dk_sog"), ("points", "dk_points"), ("saves", "dk")):
         for r in payload.get(key) or []:
             pid = r.get("player_id", r.get("goalie_id"))
             if pid is not None and r.get("line") is not None:
-                out[(mk, int(pid), float(r["line"]))] = r
+                out[(mk, int(pid), r.get("date"), float(r["line"]))] = r
     return out
 
 
 def _books_index(payload):
-    """(market, player_id, line) -> [(book, no-vig P(over))] from the other sportsbooks (payload["books"])."""
+    """(market, player_id, date, line) -> [(book, no-vig P(over))] from the other sportsbooks (payload["books"])."""
     out = {}
     for r in payload.get("books") or []:
         pid, nv = r.get("player_id"), pricing.novig(r.get("over"), r.get("under"))
         if pid is not None and r.get("line") is not None and nv is not None:
-            out.setdefault((r["market"], int(pid), float(r["line"])), []).append((r.get("book"), nv))
+            out.setdefault((r["market"], int(pid), r.get("date"), float(r["line"])), []).append((r.get("book"), nv))
     return out
 
 
-def market_quote(dk, books, mk, pid, line):
+def market_quote(dk, books, mk, pid, line, date):
     """The market's no-vig P(over) on this exact player-line and where it came from. DraftKings first: it is
     the reference the rules were backtested on. Otherwise the mean no-vig of the other books that price the same
     line (they would otherwise leave the model alone, and model-only picks have not won)."""
-    q = dk.get((mk, pid, line))
+    q = dk.get((mk, pid, date, line))
     if q:
         nv = pricing.novig(q.get("over"), q.get("under"))
         if nv is not None:
             return nv, "DraftKings"
-    bs = books.get((mk, pid, line)) or []
+    bs = books.get((mk, pid, date, line)) or []
     if bs:
         return sum(p for _, p in bs) / len(bs), (bs[0][0] if len(bs) == 1 else f"{len(bs)} books")
     return None, None
@@ -101,18 +101,18 @@ def _prm(payload, mk):
 
 
 def _player_quotes(payload, books_rows=None):
-    """(market, player_id) -> [(line, no-vig P(over), source)] for every line a book prices for the player tonight:
+    """(market, player_id, date) -> [(line, no-vig P(over), source)] for every line a book prices for the player that day:
     DraftKings first, then the other books (payload["books"])."""
     out = {}
     for mk, key in (("sog", "dk_sog"), ("points", "dk_points")):
         for r in payload.get(key) or []:
             nv = pricing.novig(r.get("over"), r.get("under"))
             if r.get("player_id") is not None and nv is not None:
-                out.setdefault((mk, int(r["player_id"])), []).append((float(r["line"]), nv, "DraftKings"))
+                out.setdefault((mk, int(r["player_id"]), r.get("date")), []).append((float(r["line"]), nv, "DraftKings"))
     for r in payload.get("books") or []:
         nv = pricing.novig(r.get("over"), r.get("under"))
         if r.get("player_id") is not None and nv is not None and r.get("market") in ("sog", "points"):
-            out.setdefault((r["market"], int(r["player_id"])), []).append((float(r["line"]), nv, r.get("book") or "book"))
+            out.setdefault((r["market"], int(r["player_id"]), r.get("date")), []).append((float(r["line"]), nv, r.get("book") or "book"))
     return out
 
 
@@ -197,15 +197,15 @@ def score_lines(payload, lines) -> list[dict]:
         cal = calib.get(mk, {}).get("cal")
         # DraftKings fallback lines, and PrizePicks demons / goblins (non-standard payouts), carry their own odds
         over_p, under_p = (r.get("over"), r.get("under")) if r["source"] == "DraftKings" or r.get("priced") else (None, None)
-        mkt, mkt_src = market_quote(dk, books, mk, r["player_id"], float(r["line"]))
-        mu_mkt = None
+        mkt, mkt_src = market_quote(dk, books, mk, r["player_id"], float(r["line"]), g["date"])
+        mu_mkt, msrc = None, None
         if mk == "sog" and pricing.SOG_MEAN_W > 0:
             # shots on goal: blend in mean space. The market's price (any line it posts) becomes an expected-shots
             # number, averaged with the model's projection, then priced at THIS line with the model's dispersion.
             # No Platt for SOG: fitted on DK main lines it distorted every other line (ladder rungs shown at 12%
             # hit 5%). Without any market price the raw model stands (and the rule then PASSes: no market support).
             pos = (sk.get(r["player_id"]) or {}).get("pos")
-            mu_mkt, msrc = sog_market_mean(pquotes.get(("sog", int(r["player_id"]))), sprm, pos)
+            mu_mkt, msrc = sog_market_mean(pquotes.get(("sog", int(r["player_id"]), g["date"])), sprm, pos)
             line = float(r["line"])
             if mu_mkt is not None:
                 mu_b = (1 - pricing.SOG_MEAN_W) * proj + pricing.SOG_MEAN_W * mu_mkt
@@ -224,13 +224,13 @@ def score_lines(payload, lines) -> list[dict]:
         # a line or a market price reused from an earlier build (this build's pull failed) is never a TAKE: paired
         # with tonight's other numbers it can show an edge that no longer exists
         stale_src = _cached_reason(r, cached, pk is not None)
-        if stale_src and str(v.get("verdict", "")).startswith("TAKE"):
-            v.update(verdict="PASS", tier="", reason=stale_src)
+        if stale_src and (str(v.get("verdict", "")).startswith("TAKE") or v.get("tier") == "Near miss"):
+            v.update(verdict="PASS", tier="", reason=stale_src)      # a reused line is not a near miss either
         # probabilities ship at full precision: the page re-decides every row from them (finishRow), and a value
         # rounded onto a bar (61.996% -> 62.00%) would turn a near miss into a TAKE there but not here
         row.update(proj=round(proj, 3), p_raw=po, p_model=pm, p_mkt=pk, p_blend=pb, w=pricing.blend_w(cal),
                    dk_over=over_p, dk_under=under_p, confirmed=confirmed,
-                   mkt_src=mkt_src if pk is not None else None, mu_mkt=mu_mkt,
+                   mkt_src=mkt_src if pk is not None else None, mu_mkt=mu_mkt, mu_src=msrc if mu_mkt is not None else None,
                    mean_blend=mk == "sog" and pricing.SOG_MEAN_W > 0, cached=bool(stale_src), **v)
         out.append(row)
     return out

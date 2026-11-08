@@ -153,12 +153,36 @@ class Board(unittest.TestCase):
                         self.assertEqual(r["verdict"], "PASS")
                         if str(x.get("verdict", "")).startswith("TAKE"):     # a TAKE when fresh says why it isn't now
                             self.assertIn("cached", r["reason"])
-                self.assertFalse(any(r.get("cached") for r in b["plays"]))
+                # no reused row is a TAKE or a near miss, and every line that was a TAKE when fresh is out of the plays
+                self.assertFalse(any(r.get("cached") and (str(r.get("verdict", "")).startswith("TAKE") or r.get("tier") == "Near miss")
+                                     for r in b["rows"]))
+                fresh_takes = {(x["name"], x["line"], x["source"]) for x in a["rows"] if str(x.get("verdict", "")).startswith("TAKE")}
+                cached_keys = {(r["name"], r["line"], r["source"]) for r in b["rows"] if r.get("cached")}
+                self.assertTrue(fresh_takes & cached_keys, src)
+                self.assertFalse({(r["name"], r["line"], r["source"]) for r in b["plays"]} & cached_keys)
                 self.assertTrue(any(r.get("cached") for r in b["rows"]), src)
             self.assertTrue(any(str(r.get("verdict", "")).startswith("TAKE") for r in a["rows"] if r["market"] == "sog"))
             self.assertFalse(any(r.get("cached") for r in a["rows"]))
         finally:
             pricing.SOG_TAKE_P = old_bar
+
+    def test_reused_board_is_not_a_near_miss(self):
+        # the same line, with the bar just above its chance: a near miss when fresh, a plain cached pass when reused
+        import pricing
+        old = pricing.SOG_TAKE_P
+        try:
+            mk = [{**DK_ROW, "over": -200, "under": 160}]
+            r0 = next(r for r in self.board(ISO(NOW), ISO(NOW), extra_dk=mk)["rows"] if r["source"] == "Pick6" and r["line"] == 2.5)
+            pricing.SOG_TAKE_P = r0["p"] + 0.01                          # p is within NEAR_BAND of the bar
+            a = next(r for r in self.board(ISO(NOW), ISO(NOW), extra_dk=mk)["rows"] if r["source"] == "Pick6" and r["line"] == 2.5)
+            self.assertEqual(a["tier"], "Near miss")
+            b = self.board(ISO(NOW), ISO(NOW), {"pick6": {"status": "fallback"}}, extra_dk=mk)
+            r = next(x for x in b["rows"] if x["source"] == "Pick6" and x["line"] == 2.5)
+            self.assertEqual((r["verdict"], r["tier"], r["cached"]), ("PASS", "", True))
+            self.assertIn("cached", r["reason"])
+            self.assertNotIn((r["name"], r["line"]), [(x["name"], x["line"]) for x in b["near_miss"]])
+        finally:
+            pricing.SOG_TAKE_P = old
 
 
 class Publish(unittest.TestCase):

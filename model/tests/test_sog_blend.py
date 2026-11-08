@@ -95,5 +95,43 @@ class Blend(unittest.TestCase):
         self.assertEqual(r["verdict"], "PASS"); self.assertEqual(r["reason"], "pays 0.8x")
 
 
+class Dates(unittest.TestCase):
+    """A market quote belongs to one game: a later game's line is never priced from tonight's quote."""
+    def test_later_game_takes_no_quote_from_tonight(self):
+        pl = payload(PLAYERS, [{**dk(10, "M. Marner", 2.5, -300, 230), "date": "2026-11-03"}])
+        pl["sog"]["params"] = PRM.to_dict()
+        pl["slate"].append({"id": 2, "date": "2026-11-04", "start": "2099-01-02T00:00:00Z", "home": "TOR", "away": "FLA", "state": "FUT"})
+        pl["books"] = [{"market": "sog", "player_id": 10, "date": "2026-11-03", "line": 3.5, "book": "FanDuel", "over": 110, "under": -140}]
+        tonight, later = p6(10, "Mitch Marner", "TOR", 2.5), {**p6(10, "Mitch Marner", "TOR", 2.5), "game": 2, "date": "2026-11-04"}
+        later35 = {**p6(10, "Mitch Marner", "TOR", 3.5), "game": 2, "date": "2026-11-04"}
+        a, b, c = pb.score_lines(pl, [tonight, later, later35])
+        self.assertIsNotNone(a["p_mkt"]); self.assertEqual(a["mkt_src"], "DraftKings")
+        for r in (b, c):
+            self.assertIsNone(r["p_mkt"]); self.assertIsNone(r["mu_mkt"])
+            self.assertEqual(r["verdict"], "PASS"); self.assertTrue(r["reason"].startswith("no market price"))
+
+
+class OneSided(unittest.TestCase):
+    def test_more_only_priced_line_is_never_a_less(self):
+        # a PrizePicks demon priced More-only (+200, no Less): even when Less is the likely side, it is not offered
+        v = pricing.verdict("sog", 0.10, 0.10, 4.5, 2.0, None, None, 200, None, p_mkt_over=0.10)
+        self.assertEqual((v["side"], v["verdict"]), ("UNDER", "PASS"))
+        self.assertEqual(v["reason"], "LESS not offered on this line")
+
+
+class NoPlatt(unittest.TestCase):
+    def test_sog_chance_ignores_the_platt_calibration(self):
+        # a strongly non-identity SOG calibration in the payload must not move the shots chance (it does move points)
+        pl = payload(PLAYERS, [dk(10, "M. Marner", 2.5, -200, 160)], cal={"a": 0.4, "b": 0.3, "b_under": 0.3, "w": 0.5})
+        pl["sog"]["params"] = PRM.to_dict()
+        r = pb.score_lines(pl, [p6(10, "Mitch Marner", "TOR", 2.5)])[0]
+        mu_m = sog.implied_mean(pricing.novig(-200, 160), 2.5, PRM, "F")
+        mu = 0.5 * r["proj"] + 0.5 * mu_m                       # proj on the row is rounded to 3 decimals
+        self.assertAlmostEqual(r["p_blend"], sog.p_over(mu, 2.5, sog.size_for(mu, PRM, "F")), places=3)
+        self.assertEqual(r["p_model"], r["p_raw"])               # the model alone is the raw model, not calibrated
+        platt = pricing.platt(r["p_raw"], {"a": 0.4, "b": 0.3, "b_under": 0.3})
+        self.assertGreater(abs(platt - r["p_raw"]), 0.05)        # the calibration would have moved it a lot
+
+
 if __name__ == "__main__":
     unittest.main()

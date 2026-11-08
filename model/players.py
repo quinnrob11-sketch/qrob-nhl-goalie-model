@@ -44,9 +44,9 @@ NICK = [{"mike", "michael", "mikey"}, {"jake", "jacob", "jakob"}, {"bill", "will
         {"sam", "samuel"}, {"max", "maxim", "maxime", "maximilian"}, {"jt", "jt"}, {"jj", "jj"},
         {"mitch", "mitchell"}, {"pat", "patrick"}, {"greg", "gregory"}, {"fred", "frederik", "frederick"},
         {"vince", "vincent"}, {"phil", "phillip", "philip"}, {"ed", "edward", "eddie"}, {"andy", "andrew", "drew"},
-        {"steve", "steven", "stephen"}, {"jeff", "jeffrey"}, {"ken", "kenneth"}, {"evgeny", "evgeni", "yevgeni"},
+        {"steve", "steven", "stephen"}, {"jeff", "jeffrey"}, {"ken", "kenneth"}, {"evgeny", "evgeni", "yevgeni", "evgenii", "yevgeny"},
         {"dmitri", "dmitry"}, {"nikita", "nikita"}, {"artemi", "artemiy"}, {"ilya", "ilia"},
-        {"yegor", "egor"}, {"evgenii", "yevgeny", "evgeny"}]
+        {"yegor", "egor"}]
 _NICK = {n: i for i, grp in enumerate(NICK) for n in grp}
 GERMAN = {"ü": "ue", "ö": "oe", "ä": "ae", "Ü": "Ue", "Ö": "Oe", "Ä": "Ae", "ß": "ss"}
 

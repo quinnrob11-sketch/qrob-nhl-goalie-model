@@ -242,7 +242,8 @@ def verdict(market: str, p_over: float, p_model_over: float, line: float, proj: 
         reason = "unmatched player"
     elif market == "saves" and not confirmed:
         reason = "starter not confirmed"
-    elif mult not in (None, "") and float(mult) == 0:
+    elif (mult in (None, "") and price in (None, "")) or (mult not in (None, "") and float(mult) == 0):
+        # no multiplier and no price on this side: not offered (a More-only PrizePicks demon has no LESS)
         reason = f"{'MORE' if side == 'OVER' else 'LESS'} not offered on this line"
     elif mult not in (None, "") and float(mult) < MIN_MULT - 1e-9:
         reason = f"pays {float(mult):g}x"
