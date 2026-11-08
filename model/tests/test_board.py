@@ -31,13 +31,16 @@ class Verdicts(unittest.TestCase):
         return props_board.build(payload(PLAYERS, dk), rows)
 
     def test_best_line_only_take(self):
-        b = self.build([p6(10, "Mitch Marner", "TOR", 2.5), p6(10, "Mitch Marner", "TOR", 3.5), p6(10, "Mitch Marner", "TOR", 1.5, mo=0.8)])
-        m = [r for r in b["rows"] if r["player_id"] == 10]
+        # DraftKings prices Marner at 2.5 (no-vig over 63%) and 3.5 (53%): only the 2.5 has the market's support
+        dk = [{"name": "M. Marner", "teams": ["TOR", "FLA"], "date": "2026-11-03", "line": ln, "over": o, "under": u,
+               "player_id": 10, "team": "TOR"} for ln, o, u in ((2.5, -200, 160), (3.5, -130, 100))]
+        b = self.build([p6(10, "Mitch Marner", "TOR", 2.5), p6(10, "Mitch Marner", "TOR", 3.5), p6(10, "Mitch Marner", "TOR", 1.5, mo=0.8)], dk)
+        m = [r for r in b["rows"] if r["player_id"] == 10 and r["source"] == "Pick6"]
         takes = [r for r in m if r["verdict"].startswith("TAKE")]
         self.assertEqual(len(takes), 1)
-        self.assertEqual(takes[0]["line"], 2.5)                      # highest EV that passes at >= 1x (p 77% vs 60%)
+        self.assertEqual(takes[0]["line"], 2.5)
         alt = next(r for r in m if r["line"] == 3.5)
-        self.assertEqual(alt["verdict"], "PASS"); self.assertIn("alt line", alt["reason"])
+        self.assertEqual(alt["verdict"], "PASS"); self.assertIn("market only 53%", alt["reason"])
         self.assertIn("0.8x", next(r for r in m if r["line"] == 1.5)["reason"])
 
     def test_every_pass_has_a_reason_and_plays_match_table(self):
@@ -92,20 +95,38 @@ class Verdicts(unittest.TestCase):
 
 class Rule(unittest.TestCase):
     def test_reasons(self):
-        self.assertEqual(pricing.verdict("sog", .60, .58, 2.5, 3.0, 0.8, 1.2)["reason"], "pays 0.8x")
-        self.assertEqual(pricing.verdict("sog", .40, .42, 2.5, 2.0, 1.7, 0.0)["reason"], "LESS not offered on this line")
-        self.assertEqual(pricing.verdict("sog", .56, .56, 2.5, 3.0, 1, 1)["reason"], "56% near miss")
-        self.assertEqual(pricing.verdict("sog", .60, .6, 2.5, 3.0, 1, 1, matched=False)["reason"], "unmatched player")
-        t = pricing.verdict("sog", .63, .6, 2.5, 3.0, 1, 1)
-        self.assertEqual((t["verdict"], t["tier"]), ("TAKE MORE", "Lock"))
-        self.assertEqual(pricing.verdict("sog", .40, .41, 2.5, 2.0, 1, 1)["verdict"], "TAKE LESS")
+        v = lambda *a, mk=.6, **k: pricing.verdict(*a, p_mkt_over=mk, **k)
+        self.assertEqual(v("sog", .60, .58, 2.5, 3.0, 0.8, 1.2)["reason"], "pays 0.8x")
+        self.assertEqual(v("sog", .40, .42, 2.5, 2.0, 1.7, 0.0)["reason"], "LESS not offered on this line")
+        nm = v("sog", .56, .56, 2.5, 3.0, 1, 1, mk=.56)
+        self.assertEqual((nm["reason"], nm["tier"]), ("56% near miss", "Near miss"))
+        self.assertEqual(v("sog", .60, .6, 2.5, 3.0, 1, 1, matched=False)["reason"], "unmatched player")
+        t = v("sog", .63, .6, 2.5, 3.0, 1, 1)
+        self.assertEqual((t["verdict"], t["tier"], round(t["p_mkt_side"], 2)), ("TAKE MORE", "Lock", .6))
+        self.assertEqual(v("sog", .40, .41, 2.5, 2.0, 1, 1, mk=.42)["verdict"], "TAKE LESS")
+
+    def test_market_support_and_blocks(self):
+        # no market quote: model-only picks have not won (SOG 52-54% at 1x, points' own leans 56.6%)
+        self.assertTrue(pricing.verdict("sog", .70, .70, 2.5, 3.4, 1, 1)["reason"].startswith("no market price"))
+        # the market prices the line but leans only 52% our way
+        r = pricing.verdict("points", .60, .80, 0.5, 0.9, 1, 1, p_mkt_over=.52)
+        self.assertEqual((r["verdict"], r["reason"], r["tier"]), ("PASS", "market only 52% on this side", ""))
+        # a line priced at the sportsbook's own odds is never a TAKE
+        self.assertEqual(pricing.verdict("points", .70, .72, 0.5, 0.9, None, None, -150, 120, p_mkt_over=.6)["reason"],
+                         "sportsbook price: no edge over the book's own odds")
+        # points 1.5+ unders are blocked; 0.5 unders are not
+        self.assertIn("unders", pricing.verdict("points", .30, .30, 1.5, 0.6, 1, 1, p_mkt_over=.35)["reason"])
+        self.assertEqual(pricing.verdict("points", .38, .30, 0.5, 0.4, 1, 1, p_mkt_over=.40)["verdict"], "TAKE LESS")
+        # a side failing the market check is not a near miss
+        self.assertEqual(pricing.verdict("sog", .56, .56, 2.5, 3.0, 1, 1, p_mkt_over=.50)["tier"], "")
 
     def test_saves_edges(self):
-        self.assertIn("edge +2.0 < 2.5", pricing.verdict("saves", .62, .6, 25.5, 27.5, 1, 1)["reason"])
-        self.assertEqual(pricing.verdict("saves", .62, .6, 25.5, 28.1, 1, 1)["verdict"], "TAKE MORE")
-        self.assertIn("< 3", pricing.verdict("saves", .38, .4, 25.5, 22.8, 1, 1)["reason"])    # under needs 3.0
-        self.assertEqual(pricing.verdict("saves", .38, .4, 25.5, 22.4, 1, 1)["verdict"], "TAKE LESS")
-        self.assertEqual(pricing.verdict("saves", .62, .6, 25.5, 28.1, 1, 1, confirmed=False)["reason"], "starter not confirmed")
+        v = lambda *a, mk=.6, **k: pricing.verdict(*a, p_mkt_over=mk, **k)
+        self.assertEqual(v("saves", .62, .6, 25.5, 28.1, 1, 1)["reason"], "saves overs: no edge (they lost at every threshold)")
+        self.assertIn("< 3", v("saves", .38, .4, 25.5, 22.8, 1, 1, mk=.4)["reason"])    # under needs 3.0
+        self.assertEqual(v("saves", .38, .4, 25.5, 22.4, 1, 1, mk=.41)["verdict"], "TAKE LESS")
+        self.assertTrue(pricing.verdict("saves", .38, .4, 25.5, 22.4, 1, 1)["reason"].startswith("no market price"))
+        self.assertEqual(v("saves", .62, .6, 25.5, 28.1, 1, 1, confirmed=False)["reason"], "starter not confirmed")
 
 
 if __name__ == "__main__":

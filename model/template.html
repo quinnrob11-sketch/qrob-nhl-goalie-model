@@ -492,7 +492,13 @@ const DIST = Object.assign({nb_k: 30, gs: 0.025, gs_cap: 0.12, sd_floor: 5.5}, D
 const CAL = (D.calib && D.calib.markets) || {};
 const RULE = Object.assign({margin: 0.02, margin_sog: 0.03, sog_gap: 0.15, sog_gap_ev: 0.05, blend_w: 0.6,
   alarm_share: 0.75, alarm_min_plays: 2, saves_cap_at: 0.65, saves_cap_to: 0.60, take_p: 0.58, near_miss_p: 0.55,
-  lock_p: 0.62, min_mult: 1, saves_edge_over: 2.5, saves_edge_under: 3.0, saves_take_p: 0.58}, D.pricing || {});
+  lock_p: 0.62, min_mult: 1, saves_edge_over: 2.5, saves_edge_under: 3.0, saves_take_p: 0.58,
+  mkt_min: 0.55, near_band: 0.03, sog_take_p: 0.58, sog_lock_p: 0.62, priced_takes: false, saves_take_overs: false,
+  points_under_max: 1.0}, D.pricing || {});
+// the TAKE bar, Lock tier and near-miss band per market (pricing.take_p / lock_p / near_p)
+const takeP = mk => mk === "saves" ? RULE.saves_take_p : mk === "sog" ? RULE.sog_take_p : RULE.take_p;
+const lockP = mk => mk === "sog" ? RULE.sog_lock_p : RULE.lock_p;
+const nearP = mk => takeP(mk) - RULE.near_band;
 const DFS = Object.assign({legs: 2, payout: 3, sub1x: false}, store.get("gm_dfs", {}));
 const hasVal = v => v !== undefined && v !== null && v !== "" && !isNaN(+v);
 const impliedP = o => !hasVal(o) ? null : (+o < 0 ? -o / (-o + 100) : 100 / (+o + 100));
@@ -537,26 +543,35 @@ function decide(market, pOverRaw, o = {}){
 // ---------- TAKE / PASS verdict (mirrors pricing.verdict) ----------
 // TAKE only if: blended p >= 58% (saves: calibrated p >= 58% and an edge of 2.5 over / 3.0 under), the side
 // pays >= 1x, p beats that multiplier's break-even, the player is matched, and the model ALONE leans the same way.
-function verdictFor(mk, pOver, pModelOver, line, proj, mo, mu, matched = true, confirmed = true, price = {}){
+// mirrors pricing.verdict: a TAKE needs a DFS side at >= 1x (never a sportsbook's own price), the market's own
+// probability for the side >= RULE.mkt_min on this line (pMktOver = no-vig P(over) here), p >= the market's bar,
+// beating break-even, a matched player, the model agreeing, and no market block (saves overs, points 1.5+ unders)
+function verdictFor(mk, pOver, pModelOver, line, proj, mo, mu, matched = true, confirmed = true, price = {}, pMktOver = null){
   const side = pOver >= .5 ? "OVER" : "UNDER", p = side === "OVER" ? pOver : 1 - pOver, pm = side === "OVER" ? pModelOver : 1 - pModelOver;
+  const pk = hasVal(pMktOver) ? (side === "OVER" ? +pMktOver : 1 - pMktOver) : null;
   const mult = side === "OVER" ? mo : mu, pr = side === "OVER" ? price.over : price.under;
   const be = hasVal(pr) ? impliedP(pr) : hasVal(mult) ? dfsBE(+mult) : null;
   const ev = hasVal(pr) ? p * profitU(pr) - (1 - p) : be ? p / be - 1 : null;
   const edge = proj == null ? null : (side === "OVER" ? proj - line : line - proj);
-  const need = mk === "saves" ? RULE.saves_take_p : RULE.take_p, P = Math.round(100 * p) + "%";
-  let reason = null;
+  const need = takeP(mk), P = Math.round(100 * p) + "%";
+  let reason = null, near = false;
   if (!matched) reason = "unmatched player";
   else if (mk === "saves" && !confirmed) reason = "starter not confirmed";
   else if (hasVal(mult) && +mult === 0) reason = `${side === "OVER" ? "MORE" : "LESS"} not offered on this line`;
   else if (hasVal(mult) && +mult < RULE.min_mult - 1e-9 && !DFS.sub1x) reason = `pays ${+mult}x`;
+  else if (hasVal(pr) && !RULE.priced_takes) reason = "sportsbook price: no edge over the book's own odds";
+  else if (mk === "saves" && side === "OVER" && !RULE.saves_take_overs) reason = "saves overs: no edge (they lost at every threshold)";
+  else if (mk === "points" && side === "UNDER" && line >= RULE.points_under_max - 1e-9) reason = `points ${+line} unders: the model is overconfident here`;
   else if (mk === "saves" && (edge == null || edge < (side === "OVER" ? RULE.saves_edge_over : RULE.saves_edge_under) - 1e-9))
     reason = edge == null ? "no projection" : `edge ${sgn1(edge)} < ${side === "OVER" ? RULE.saves_edge_over : RULE.saves_edge_under}`;
-  else if (p < need - 1e-9) reason = p >= RULE.near_miss_p - 1e-9 ? `${P} near miss` : `${P} < ${Math.round(100 * need)}%`;
+  else if (pk == null) reason = "no market price on this line (model-only picks have not won)";
+  else if (pk < RULE.mkt_min - 1e-9) reason = `market only ${Math.round(100 * pk)}% on this side`;
+  else if (p < need - 1e-9){ near = p >= need - RULE.near_band - 1e-9; reason = near ? `${P} near miss` : `${P} < ${Math.round(100 * need)}%`; }
   else if (be != null && p <= be) reason = `${P} doesn't beat break-even ${pct(be)}`;
   else if (pm <= .5) reason = `model alone ${Math.round(100 * pm)}% disagrees (market-driven)`;
   const take = reason === null;
-  return {side, p, pModelSide: pm, be, ev, edge, mult: hasVal(mult) ? +mult : null, verdict: take ? `TAKE ${side === "OVER" ? "MORE" : "LESS"}` : "PASS",
-    tier: take ? (p >= RULE.lock_p - 1e-9 ? "Lock" : "Strong") : (mk !== "saves" && matched && p >= RULE.near_miss_p - 1e-9 && p < need - 1e-9 ? "Near miss" : ""), reason: reason || ""};
+  return {side, p, pModelSide: pm, pMktSide: pk, be, ev, edge, mult: hasVal(mult) ? +mult : null, verdict: take ? `TAKE ${side === "OVER" ? "MORE" : "LESS"}` : "PASS",
+    tier: take ? (p >= lockP(mk) - 1e-9 ? "Lock" : "Strong") : (near ? "Near miss" : ""), reason: reason || ""};
 }
 const isTake = r => String(r.verdict || "").startsWith("TAKE");
 // ---------- player matching (mirrors model/players.py): (name, team, game) -> one NHL playerId or UNMATCHED ----------
@@ -995,10 +1010,13 @@ function boardRowsSaves(){
       side: r.d ? r.d.side : null, prob: r.d ? r.d.pShow : null, tier: r.d ? r.d.tier : null, capped: r.d ? r.d.capped : false,
       play: !!(r.d && r.d.play), noLine: r.line == null, unconf: !r.confirmed, q: [name, r.team, r.opp],
       call: r.d ? verdictFor("saves", r.d.side === "OVER" ? r.d.p : 1 - r.d.p, r.d.pModel, r.line, r.proj,
-                             r.lineSrc === "board" ? r.bd.mo : 1, r.lineSrc === "board" ? r.bd.mu : 1, r.gid != null && r.gid > 0, r.confirmed) : null};
+                             r.lineSrc === "dk" ? null : r.lineSrc === "board" ? r.bd.mo : 1, r.lineSrc === "dk" ? null : r.lineSrc === "board" ? r.bd.mu : 1,
+                             r.gid != null && r.gid > 0, r.confirmed, r.lineSrc === "dk" ? {over: r.dk.over, under: r.dk.under} : {}, r.d.pMkt) : null};
   });
 }
-const callOf = (mk, x, pl) => x.d ? verdictFor(mk, x.d.side === "OVER" ? x.d.p : 1 - x.d.p, x.d.pModel, x.L.line, x.proj, x.L.src === "DK" ? 1 : (x.L.mo ?? 1), x.L.src === "DK" ? 1 : (x.L.mu ?? 1)) : null;
+const callOf = (mk, x, pl) => x.d ? verdictFor(mk, x.d.side === "OVER" ? x.d.p : 1 - x.d.p, x.d.pModel, x.L.line, x.proj,
+  x.L.src === "DK" ? null : (x.L.mo ?? 1), x.L.src === "DK" ? null : (x.L.mu ?? 1), true, true,
+  x.L.src === "DK" ? {over: x.L.over, under: x.L.under} : {}, x.d.pMkt) : null;
 function boardRowsSog(){
   const out = [];
   for (const g of D.slate) for (const [team, opp, home] of [[g.away, g.home, false], [g.home, g.away, true]])
@@ -1053,7 +1071,7 @@ function finishRow(r){
   const c = (CAL[r.market] || {}).cal, pm = r.p_raw != null ? platt(r.p_raw, c, r.line) : r.p_model;
   const w = blendW(c), pb = r.p_mkt == null ? pm : w * pm + (1 - w) * r.p_mkt;
   // DraftKings fallback lines carry DK's own odds (dk_over / dk_under) instead of DFS multipliers
-  const v = verdictFor(r.market, pb, pm, r.line, r.proj, r.mo, r.mu, r.matched !== false, r.confirmed !== false, {over: r.dk_over, under: r.dk_under});
+  const v = verdictFor(r.market, pb, pm, r.line, r.proj, r.mo, r.mu, r.matched !== false, r.confirmed !== false, {over: r.dk_over, under: r.dk_under}, r.p_mkt);
   return {...r, p_model: pm, p_blend: pb, w, ...v};
 }
 function clientLines(){
@@ -1074,8 +1092,10 @@ function savesBoardRows(){
   return slateRows().filter(r => r.line != null && r.d).map(r => {
     const name = (G[r.gid] || {}).name || "?", d = r.d, pOver = d.side === "OVER" ? d.p : 1 - d.p;
     const src = r.lineSrc === "manual" ? "your line" : r.lineSrc === "board" ? (r.bd.auto ? "Pick6" : r.bd.book + " (yours)") : r.lineSrc === "dk" ? "DraftKings" : "PrizePicks";
-    const mo = r.lineSrc === "board" ? r.bd.mo : 1, mu = r.lineSrc === "board" ? r.bd.mu : 1;
-    const v = verdictFor("saves", pOver, d.pModel, r.line, r.proj, mo, mu, r.gid != null && r.gid > 0, r.confirmed);
+    // a DraftKings line is priced at DraftKings' odds, never as a free 1x pick'em leg
+    const isDK = r.lineSrc === "dk", mo = isDK ? null : r.lineSrc === "board" ? r.bd.mo : 1, mu = isDK ? null : r.lineSrc === "board" ? r.bd.mu : 1;
+    const v = verdictFor("saves", pOver, d.pModel, r.line, r.proj, mo, mu, r.gid != null && r.gid > 0, r.confirmed,
+                         isDK ? {over: r.dk.over, under: r.dk.under} : {}, d.pMkt);
     return {name, player_id: r.gid, team: r.team, opp: r.opp, game: r.g.id, date: r.g.date, start: r.g.start, market: "saves", label: "Saves",
             line: r.line, mo, mu, source: src, proj: r.proj, p_model: d.pModel, p_mkt: d.pMkt, p_blend: pOver, matched: true, confirmed: r.confirmed,
             capped: d.capped, ...v};
@@ -1085,8 +1105,11 @@ function savesBoardRows(){
 const SRC_PREF = {"Pick6": 0, "PrizePicks": 1, "DraftKings": 2};
 const bothWays = r => !(r.alt || r.priced) && (String(r.source).startsWith("DraftKings") ||
   (r.mo != null && +r.mo !== 0 && r.mu != null && +r.mu !== 0));
+// a one-sided ladder rung: how far its offered multiplier is from 1x (|ln m|); 0 for lines offered both ways
+const ladderDist = r => { if (bothWays(r)) return 0; const m = [r.mo, r.mu].filter(x => x != null && +x > 0).map(Number);
+  return m.length ? Math.min(...m.map(x => Math.abs(Math.log(x)))) : 99; };
 function mainCmp(a, b){
-  const k = r => [bothWays(r) ? 0 : 1, SRC_PREF[r.source] ?? 3, -(+(r.p ?? 0)), +(r.line ?? 0)];
+  const k = r => [bothWays(r) ? 0 : 1, SRC_PREF[r.source] ?? 3, ladderDist(r), -(+(r.p ?? 0)), +(r.line ?? 0)];
   const x = k(a), y = k(b);
   for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
   return 0;
@@ -1134,9 +1157,10 @@ function sogClass(r){
   if (r.mult != null && +r.mult === 0) return [null, r.reason || "side not offered"];
   if (r.mult != null && +r.mult < RULE.min_mult - 1e-9) return ["discount", `pays ${+r.mult}x`];
   if (r.mult == null && r.be != null && +r.be > dfsBE(RULE.min_mult) + 1e-9) return ["discount", `DK price break-even ${(100 * r.be).toFixed(1)}% (worse than 1x)`];
-  if (isTake(r)) return [r.p >= RULE.lock_p - 1e-9 ? "Lock" : "Strong", ""];
+  if (isTake(r)) return [r.p >= lockP("sog") - 1e-9 ? "Lock" : "Strong", ""];
   const agrees = (r.pModelSide ?? r.p_model_side ?? 0) > 0.5;
-  if (r.p >= RULE.near_miss_p - 1e-9 && r.p < RULE.take_p - 1e-9 && agrees) return ["Near miss", `${Math.round(100 * r.p)}% near miss`];
+  // near miss = the verdict's own flag: every check met except p, within RULE.near_band of the bar
+  if (r.tier === "Near miss" && agrees) return ["Near miss", `${Math.round(100 * r.p)}% near miss`];
   return [null, r.reason || ""];
 }
 function sogRankCmp(a, b){
@@ -1180,7 +1204,7 @@ function selectSog(sog, savesTakes){
       Object.assign(r, {verdict: "PASS", tier: "", reason: r.sog_tier === "review" ? "needs review: " + note : (note || r.reason || "")});
     }
   }
-  const disc = sog.filter(r => r.sog_tier === "discount" && (r.p ?? 0) >= RULE.near_miss_p - 1e-9);
+  const disc = sog.filter(r => r.sog_tier === "discount" && (r.p ?? 0) >= nearP("sog") - 1e-9);
   return {plays: kept.filter(r => r.sog_section === "plays"), near: kept.filter(r => r.sog_section === "near"),
           review: sog.filter(r => r.sog_section === "review"),
           counts: {rows: sog.length, lock: kept.filter(r => r.sog_tier === "Lock").length, strong: kept.filter(r => r.sog_tier === "Strong").length,

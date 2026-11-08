@@ -25,6 +25,7 @@ import data
 import engine
 import fit_sa
 import moneypuck
+import prices as dkp
 import pricing
 import prizepicks
 import saves_dist
@@ -193,10 +194,10 @@ def _real_lines(ev: pd.DataFrame) -> pd.DataFrame:
     log["key"] = log.player.map(prizepicks.name_key)
     log["book_rank"] = log.book.map({"DraftKings": 0, "PrizePicks": 1, "Pick6": 2}).fillna(3)
     prices = pd.read_csv(os.path.join(HERE, "data", "dk_prices.csv"))
-    prices = prices[prices.market == "saves"].copy()
+    prices = dkp.last_pregame(prices[prices.market == "saves"].copy())
     prices["key"] = prices.name.map(prizepicks.name_key)
     prices["line"] = prices.line.astype(float)
-    prices = prices.sort_values("snap").drop_duplicates(["date", "key", "line"], keep="last")
+    prices = prices.drop_duplicates(["date", "key", "line"], keep="last")
     log = log.merge(prices[["date", "key", "line", "over", "under"]], on=["date", "key", "line"], how="left")
     ev = ev.copy()
     ev["date"] = ev.date.dt.strftime("%Y-%m-%d")
@@ -208,7 +209,7 @@ def _real_lines(ev: pd.DataFrame) -> pd.DataFrame:
     m["went_over"] = m.actual > m.line
     m["edge"] = m.proj - m.line
     m["p_over"] = [saves_dist.p_over(p, s, ln) for p, s, ln in zip(m.proj, m.sd, m.line)]
-    m["wk"] = pd.to_datetime(m.date).dt.isocalendar().week.astype(int)
+    m["wk"] = calibrate.week_key(m.date)
     # walk-forward side-split calibration: each week uses only earlier weeks
     p_cal = np.array(m.p_over, float)
     order = np.argsort(m.wk.values, kind="mergesort")

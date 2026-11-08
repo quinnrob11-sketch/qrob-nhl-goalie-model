@@ -45,7 +45,8 @@ NICK = [{"mike", "michael", "mikey"}, {"jake", "jacob", "jakob"}, {"bill", "will
         {"mitch", "mitchell"}, {"pat", "patrick"}, {"greg", "gregory"}, {"fred", "frederik", "frederick"},
         {"vince", "vincent"}, {"phil", "phillip", "philip"}, {"ed", "edward", "eddie"}, {"andy", "andrew", "drew"},
         {"steve", "steven", "stephen"}, {"jeff", "jeffrey"}, {"ken", "kenneth"}, {"evgeny", "evgeni", "yevgeni"},
-        {"dmitri", "dmitry"}, {"nikita", "nikita"}, {"artemi", "artemiy"}, {"ilya", "ilia"}]
+        {"dmitri", "dmitry"}, {"nikita", "nikita"}, {"artemi", "artemiy"}, {"ilya", "ilia"},
+        {"yegor", "egor"}, {"evgenii", "yevgeny", "evgeny"}]
 _NICK = {n: i for i, grp in enumerate(NICK) for n in grp}
 GERMAN = {"ü": "ue", "ö": "oe", "ä": "ae", "Ü": "Ue", "Ö": "Oe", "Ä": "Ae", "ß": "ss"}
 
@@ -179,7 +180,9 @@ def from_box(skaters, goalies=None, season=None) -> dict:
     if not frames:
         return out
     for r in pd.concat(frames).drop_duplicates("id", keep="last").itertuples():
-        parts = str(r.name).split(" ", 1)
+        nm = str(r.name)
+        m = re.match(r"^\s*([^\s.]+)\.\s*(.+)$", nm)      # "J. Kulich" and "J.Kulich" (no space after the initial)
+        parts = [m.group(1), m.group(2)] if m else nm.split(" ", 1)
         first, last = (parts[0], parts[1]) if len(parts) == 2 else ("", parts[0])
         out.setdefault(team_code(r.team), []).append(_player(r.id, first.rstrip("."), last, r.pos))
     return out

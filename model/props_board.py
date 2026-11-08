@@ -18,6 +18,8 @@ flag the one kept. "Today's plays" is exactly the TAKE rows.
 """
 from __future__ import annotations
 
+import math
+
 import pricing
 import saves_dist
 import slate as slate_mod
@@ -43,6 +45,31 @@ def _dk_index(payload):
     return out
 
 
+def _books_index(payload):
+    """(market, player_id, line) -> [(book, no-vig P(over))] from the other sportsbooks (payload["books"])."""
+    out = {}
+    for r in payload.get("books") or []:
+        pid, nv = r.get("player_id"), pricing.novig(r.get("over"), r.get("under"))
+        if pid is not None and r.get("line") is not None and nv is not None:
+            out.setdefault((r["market"], int(pid), float(r["line"])), []).append((r.get("book"), nv))
+    return out
+
+
+def market_quote(dk, books, mk, pid, line):
+    """The market's no-vig P(over) on this exact player-line and where it came from. DraftKings first: it is
+    the reference the rules were backtested on. Otherwise the mean no-vig of the other books that price the same
+    line (they would otherwise leave the model alone, and model-only picks have not won)."""
+    q = dk.get((mk, pid, line))
+    if q:
+        nv = pricing.novig(q.get("over"), q.get("under"))
+        if nv is not None:
+            return nv, "DraftKings"
+    bs = books.get((mk, pid, line)) or []
+    if bs:
+        return sum(p for _, p in bs) / len(bs), (bs[0][0] if len(bs) == 1 else f"{len(bs)} books")
+    return None, None
+
+
 def candidate_lines(payload, pick6_rows, now=None) -> tuple[list[dict], dict]:
     """Pick6 rows, plus DK lines for (player, market) pairs Pick6 doesn't list. Started games removed."""
     games = {g["id"]: g for g in payload["slate"]}
@@ -66,13 +93,49 @@ def candidate_lines(payload, pick6_rows, now=None) -> tuple[list[dict], dict]:
     return out, drops
 
 
+def _prm(payload, mk):
+    blk = payload.get(mk) if mk == "points" else payload["sog"]
+    if not blk or "params" not in blk:
+        return None
+    return sog.SogParams(**{k: tuple(v) if isinstance(v, list) else v for k, v in blk["params"].items() if k in sog.SogParams.__dataclass_fields__})
+
+
+def _player_quotes(payload, books_rows=None):
+    """(market, player_id) -> [(line, no-vig P(over), source)] for every line a book prices for the player tonight:
+    DraftKings first, then the other books (payload["books"])."""
+    out = {}
+    for mk, key in (("sog", "dk_sog"), ("points", "dk_points")):
+        for r in payload.get(key) or []:
+            nv = pricing.novig(r.get("over"), r.get("under"))
+            if r.get("player_id") is not None and nv is not None:
+                out.setdefault((mk, int(r["player_id"])), []).append((float(r["line"]), nv, "DraftKings"))
+    for r in payload.get("books") or []:
+        nv = pricing.novig(r.get("over"), r.get("under"))
+        if r.get("player_id") is not None and nv is not None and r.get("market") in ("sog", "points"):
+            out.setdefault((r["market"], int(r["player_id"])), []).append((float(r["line"]), nv, r.get("book") or "book"))
+    return out
+
+
+def sog_market_mean(quotes, prm, pos):
+    """The market's view of a player's shots as a negative-binomial mean: from DraftKings' line whose no-vig is
+    nearest 50% (the most informative number), else the other books' mean implied mean. (mu, source) or (None, None)."""
+    if not quotes or prm is None:
+        return None, None
+    dk = [q for q in quotes if q[2] == "DraftKings"]
+    if dk:
+        line, nv, _ = min(dk, key=lambda q: abs(q[1] - 0.5))
+        return sog.implied_mean(nv, line, prm, pos), "DraftKings"
+    mus = [m for m in (sog.implied_mean(nv, line, prm, pos) for line, nv, _ in quotes) if m is not None]
+    return (sum(mus) / len(mus), quotes[0][2] if len({q[2] for q in quotes}) == 1 else f"{len({q[2] for q in quotes})} books") if mus else (None, None)
+
+
 def _skater_p(payload, pl, g, mk, line):
     team = pl["team"]; opp = g["away"] if team == g["home"] else g["home"]
     blk = payload.get(mk) if mk == "points" else payload["sog"]
     rate, toi_k = ("p60", "ptoi") if mk == "points" else ("r60", "toi")
     if rate not in pl or "params" not in blk:
         return None, None
-    prm = sog.SogParams(**{k: tuple(v) if isinstance(v, list) else v for k, v in blk["params"].items() if k in sog.SogParams.__dataclass_fields__})
+    prm = _prm(payload, mk)
     b2b, ob2b = tracker._b2b(payload, team, g["date"]), tracker._b2b(payload, opp, g["date"])
     mean = float(sog.live_proj(pl[rate], pl.get(toi_k, pl.get("toi")), blk.get("opp", {}).get(opp, 1),
                                blk.get("team", {}).get(team, 1), team == g["home"], b2b, ob2b, prm))
@@ -98,6 +161,9 @@ def score_lines(payload, lines) -> list[dict]:
     sk = _skaters(payload)
     games = {g["id"]: g for g in payload["slate"]}
     dk = _dk_index(payload)
+    books = _books_index(payload)
+    pquotes = _player_quotes(payload)
+    sprm = _prm(payload, "sog")
     out = []
     for r in lines:
         g = games[r["game"]]; mk = r["market"]
@@ -128,17 +194,35 @@ def score_lines(payload, lines) -> list[dict]:
             row.update(verdict="PASS", reason="no projection", side=None, p=None)
             out.append(row); continue
         cal = calib.get(mk, {}).get("cal")
-        q = dk.get((mk, r["player_id"], float(r["line"])))
         # DraftKings fallback lines, and PrizePicks demons / goblins (non-standard payouts), carry their own odds
         over_p, under_p = (r.get("over"), r.get("under")) if r["source"] == "DraftKings" or r.get("priced") else (None, None)
-        mkt = pricing.novig(q.get("over"), q.get("under")) if q else None
-        pb, pm, pk = pricing.final_p_over(po, cal, market_p=mkt, line=r["line"])
+        mkt, mkt_src = market_quote(dk, books, mk, r["player_id"], float(r["line"]))
+        mu_mkt = None
+        if mk == "sog" and pricing.SOG_MEAN_W > 0:
+            # shots on goal: blend in mean space. The market's price (any line it posts) becomes an expected-shots
+            # number, averaged with the model's projection, then priced at THIS line with the model's dispersion.
+            # No Platt for SOG: fitted on DK main lines it distorted every other line (ladder rungs shown at 12%
+            # hit 5%). Without any market price the raw model stands (and the rule then PASSes: no market support).
+            pos = (sk.get(r["player_id"]) or {}).get("pos")
+            mu_mkt, msrc = sog_market_mean(pquotes.get(("sog", int(r["player_id"]))), sprm, pos)
+            line = float(r["line"])
+            if mu_mkt is not None:
+                mu_b = (1 - pricing.SOG_MEAN_W) * proj + pricing.SOG_MEAN_W * mu_mkt
+                pb = sog.p_over(mu_b, line, sog.size_for(mu_b, sprm, pos))
+                pk = mkt if mkt is not None else sog.p_over(mu_mkt, line, sog.size_for(mu_mkt, sprm, pos))
+                mkt_src = mkt_src if mkt is not None else f"{msrc} (other line)"
+            else:
+                pb, pk = po, None
+            pm = po
+        else:
+            pb, pm, pk = pricing.final_p_over(po, cal, market_p=mkt, line=r["line"])
         # a DraftKings fallback line is priced at DraftKings' own odds: a -200 favourite needs 67%, it is not a free 1x leg
         v = pricing.verdict(mk, pb, pm, r["line"], proj, r.get("mo"), r.get("mu"), over_p, under_p,
-                            matched=row["matched"], confirmed=confirmed)
+                            matched=row["matched"], confirmed=confirmed, p_mkt_over=pk)
         v["p_model_side"] = v.pop("p_model")
         row.update(proj=round(proj, 3), p_raw=round(po, 4), p_model=round(pm, 4), p_mkt=None if pk is None else round(pk, 4),
                    p_blend=round(pb, 4), w=pricing.blend_w(cal), dk_over=over_p, dk_under=under_p, confirmed=confirmed,
+                   mkt_src=mkt_src if pk is not None else None, mu_mkt=None if mu_mkt is None else round(mu_mkt, 3),
                    **{k: (round(x, 4) if isinstance(x, float) else x) for k, x in v.items()})
         out.append(row)
     return out
@@ -174,11 +258,21 @@ def _both_ways(r) -> bool:
     return mo not in (None, 0, 0.0) and mu not in (None, 0, 0.0)
 
 
+def _ladder_dist(r) -> float:
+    """How far a one-sided rung's offered multiplier is from 1x (|ln m|); 0 for lines offered both ways."""
+    if _both_ways(r):
+        return 0.0
+    m = [float(x) for x in (r.get("mo"), r.get("mu")) if x not in (None, "") and float(x) > 0]
+    return min(abs(math.log(x)) for x in m) if m else 99.0
+
+
 def main_line_key(r):
     """Display order for a player's lines when none is kept: his main line (offered both ways), Pick6 first,
-    then PrizePicks, then DraftKings; then the stable tie-break. Display only: it never makes or removes a call.
+    then PrizePicks, then DraftKings; if every line is a one-sided ladder rung, the rung whose offered
+    multiplier is closest to 1x; then the stable tie-break. Display only: it never makes or removes a call.
     (The old rule showed the highest-p line, which was often a More-only alt shown on its LESS side.)"""
-    return (not _both_ways(r), SRC_PREF.get(r.get("source"), 3), -float(r.get("p") or 0), float(r.get("line") or 0))
+    return (not _both_ways(r), SRC_PREF.get(r.get("source"), 3), _ladder_dist(r), -float(r.get("p") or 0),
+            float(r.get("line") or 0))
 
 
 def _main_index(rs):
@@ -244,9 +338,10 @@ def sog_class(r) -> tuple[str | None, str]:
         return "discount", f"DK price break-even {100 * float(r['be']):.1f}% (worse than 1x)"
     p = float(r["p"])
     if _is_take(r):
-        return ("Lock" if p >= pricing.LOCK_P - 1e-9 else "Strong"), ""
+        return ("Lock" if p >= pricing.lock_p("sog") - 1e-9 else "Strong"), ""
     agrees = (r.get("p_model_side") or 0) > 0.5
-    if pricing.NEAR_MISS_P - 1e-9 <= p < pricing.TAKE_P - 1e-9 and agrees:
+    # near miss = the verdict's own flag: every check met except p, which is within NEAR_BAND of the bar
+    if r.get("tier") == "Near miss" and agrees:
         return "Near miss", f"{100 * p:.0f}% near miss"
     return None, r.get("reason") or ""
 
@@ -317,7 +412,7 @@ def select_sog(sog_rows, saves_takes=()) -> dict:
             if k is not None and r["sog_tier"] in SOG_TIER_RANK and not note.startswith("conflict"):
                 note = f"alt line (best is {k['line']:g} {_sidetxt(k).lower()})"
             r.update(verdict="PASS", tier="", reason=("needs review: " + note) if r["sog_tier"] == "review" else (note or r.get("reason") or ""))
-    disc = [r for r in sog_rows if r["sog_tier"] == "discount" and (r.get("p") or 0) >= pricing.NEAR_MISS_P - 1e-9]
+    disc = [r for r in sog_rows if r["sog_tier"] == "discount" and (r.get("p") or 0) >= pricing.near_p("sog") - 1e-9]
     return {"plays": [r for r in kept if r["sog_section"] == "plays"], "near": [r for r in kept if r["sog_section"] == "near"],
             "review": [r for r in sog_rows if r["sog_section"] == "review"],
             "counts": {"rows": len(sog_rows), "lock": sum(r["sog_tier"] == "Lock" for r in kept),

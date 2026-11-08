@@ -451,10 +451,12 @@ def grade(years, today: dt.date | None = None):
     # DraftKings rows logged without a price (calls frozen before prices were stored): take the
     # last pre-game price for that exact line from the price history
     if os.path.exists(PRICES):
+        import pandas as pd
+        import prices as dkp
         pr = {}
-        with open(PRICES, newline="") as f:
-            for q in csv.DictReader(f):
-                pr[(q["market"], q["date"], prizepicks.name_key(q["name"]), float(q["line"]))] = q
+        # the last snapshot taken before puck drop (dkp.last_pregame), never an in-game price
+        for q in dkp.last_pregame(pd.read_csv(PRICES)).to_dict("records"):
+            pr[(q["market"], q["date"], prizepicks.name_key(q["name"]), float(q["line"]))] = q
         for r in log:
             if r.get("book") == "DraftKings" and r["market"] in ("saves", "sog", "points") and r.get("price") in (None, "") and r.get("line"):
                 q = pr.get((r["market"], r["date"], prizepicks.name_key(r["player"]), float(r["line"])))
@@ -678,7 +680,8 @@ if __name__ == "__main__":
 # ---------- every displayed leg (audit item 8) ----------
 LEGS = os.path.join(HERE, "data", "legs.csv")
 LEG_FIELDS = ["date", "game", "built", "player_id", "name", "team", "opp", "market", "line", "source", "mo", "mu",
-              "side", "mult", "p_model", "p_mkt", "p_blend", "p", "verdict", "tier", "reason", "role_change", "result", "actual"]
+              "side", "mult", "p_model", "p_mkt", "p_blend", "p", "verdict", "tier", "reason", "role_change", "result", "actual",
+              "price_over", "price_under", "be", "ev", "mkt_src"]
 
 
 def _read_legs():
@@ -713,7 +716,10 @@ def log_legs(board_rows, built: str):
              "mo": b.get("mo"), "mu": b.get("mu"), "side": b["side"], "mult": b.get("mult"),
              "p_model": b.get("p_model"), "p_mkt": b.get("p_mkt"), "p_blend": b.get("p_blend"), "p": b.get("p"),
              "verdict": b.get("verdict"), "tier": b.get("tier"), "reason": b.get("reason"),
-             "role_change": b.get("role_change") or "", "result": "", "actual": ""}
+             "role_change": b.get("role_change") or "", "result": "", "actual": "",
+             # the price the leg was offered at (DraftKings odds; DFS legs use mult), so ROI can be computed
+             "price_over": b.get("dk_over"), "price_under": b.get("dk_under"), "be": b.get("be"), "ev": b.get("ev"),
+             "mkt_src": b.get("mkt_src") or ""}
         k = _leg_key(r)
         if k in idx:
             if cur[idx[k]].get("result"):
@@ -727,16 +733,39 @@ def log_legs(board_rows, built: str):
     return n
 
 
+def _backfill_leg_prices(rows):
+    """DraftKings legs logged before prices were stored: fill price_over / price_under from the price history
+    (the last snapshot before puck drop), so their ROI can be computed. Never overwrites a logged price."""
+    need = [r for r in rows if r.get("source") == "DraftKings" and r.get("price_over") in (None, "") and r.get("price_under") in (None, "")]
+    if not need or not os.path.exists(PRICES):
+        return 0
+    import pandas as pd
+    import prices as dkp
+    pr = {}
+    for q in dkp.last_pregame(pd.read_csv(PRICES)).to_dict("records"):
+        pr[(q["market"], q["date"], prizepicks.name_key(q["name"]), float(q["line"]))] = q
+    n = 0
+    for r in need:
+        q = pr.get((r["market"], r["date"], prizepicks.name_key(r["name"]), float(r["line"])))
+        if q:
+            r["price_over"], r["price_under"] = q["over"], q["under"]
+            n += 1
+    return n
+
+
 def grade_legs(sb, gb):
     """Fill result / actual for logged legs whose game is in the box scores, by playerId."""
     rows = _read_legs()
     if not rows:
         return rows
     stat = {}
-    for d, col, mk in ((sb, "shots_on_goal", "sog"), (sb, "points", "points"), (gb, "saves", "saves")):
+    # a goalie who dressed but never played (toi 00:00) is VOID, not 0 saves
+    gbp = gb[gb["toi"].astype(str).str.strip().isin(["00:00", "0:00", "", "nan", "None"]) == False] if "toi" in gb else gb
+    for d, col, mk in ((sb, "shots_on_goal", "sog"), (sb, "points", "points"), (gbp, "saves", "saves")):
         for gid, pid, v in d[["game_id", "player_id", col]].itertuples(index=False):
             stat[(int(gid), int(pid), mk)] = int(v)
     final = set(int(g) for g in sb.game_id.unique())
+    _backfill_leg_prices(rows)
     for r in rows:
         if r.get("result") or r["market"] not in ("sog", "points", "saves"):
             continue
@@ -762,14 +791,71 @@ def _disagree(x):
     return {"n": len(x), "hit": hit, "miss": len(x) - hit, "pct": round(hit / len(x), 4) if x else None}
 
 
+def _num(x):
+    try:
+        v = float(x)
+        return None if v != v else v
+    except (TypeError, ValueError):
+        return None
+
+
+def _leg_return(r) -> float | None:
+    """Realized return per unit of one graded leg at the price it was offered: a DraftKings leg at its odds; a
+    DFS leg at its multiplier against the 2-pick 3x payout (hit x m / 0.577 - 1, the per-leg approximation)."""
+    hit = r["result"] == "HIT"
+    price = _num(r.get("price_over") if r["side"] == "OVER" else r.get("price_under"))
+    if price is not None:
+        return pricing.profit(price) if hit else -1.0
+    m = _num(r.get("mult"))
+    if m is None or m <= 0:
+        return None
+    return (m / pricing.dfs_break_even(1.0) if hit else 0.0) - 1.0
+
+
+def playable_legs(rows):
+    """The legs a person could actually have bet, once each: graded; the side offered at >= 1x (DFS) or priced
+    at the sportsbook's odds; on the game's last pre-game board (a leg whose last snapshot is older than the
+    game's latest build had left the board: its line moved or the source dropped it); one per date / player /
+    market / line / side (a DFS source preferred over DraftKings when both showed it)."""
+    g = [r for r in rows if r.get("result") in ("HIT", "MISS")]
+    last = {}
+    for r in rows:
+        last[r["game"]] = max(last.get(r["game"], ""), str(r.get("built") or ""))
+    ok = []
+    for r in g:
+        if str(r.get("built") or "") != last.get(r["game"]):
+            continue
+        priced = _num(r.get("price_over") if r["side"] == "OVER" else r.get("price_under")) is not None or r.get("source") == "DraftKings"
+        m = _num(r.get("mult"))
+        if not priced and (m is None or m < pricing.MIN_MULT - 1e-9):
+            continue
+        ok.append(r)
+    pref = {"Pick6": 0, "PrizePicks": 1}
+    best = {}
+    for r in ok:
+        k = (r["date"], str(r["player_id"]), r["market"], float(r["line"]), r["side"])
+        if k not in best or pref.get(r["source"], 2) < pref.get(best[k]["source"], 2):
+            best[k] = r
+    return list(best.values())
+
+
 def legs_summary(rows=None) -> dict:
-    """Reliability of the blended probability and records by side, line, multiplier and rule-passing legs."""
-    rows = [r for r in (rows if rows is not None else _read_legs()) if r.get("result") in ("HIT", "MISS")]
+    """Records a person could have bet (playable_legs): reliability of the shown probability and records by
+    side, line, price and TAKE legs, with units and ROI at the price offered. Unplayable sides (not offered,
+    sub-1x), duplicates across sources and legs that had left the board are excluded; the counts are reported."""
+    allrows = rows if rows is not None else _read_legs()
+    graded = [r for r in allrows if r.get("result") in ("HIT", "MISS")]
+    rows = playable_legs(allrows)
     def rec(x):
         h = sum(r["result"] == "HIT" for r in x)
+        rets = [v for v in (_leg_return(r) for r in x) if v is not None]
         return {"n": len(x), "hit": h, "miss": len(x) - h, "pct": round(h / len(x), 4) if x else None,
-                "pred": round(sum(float(r["p"]) for r in x) / len(x), 4) if x else None}
-    out = {"n": len(rows), "by_market": {}}
+                "se": round(math.sqrt(h / len(x) * (1 - h / len(x)) / len(x)), 4) if x else None,
+                "pred": round(sum(float(r["p"]) for r in x) / len(x), 4) if x else None,
+                "units": round(sum(rets), 2) if rets else None, "roi": round(sum(rets) / len(rets), 4) if rets else None}
+    out = {"n": len(rows), "graded": len(graded), "excluded": len(graded) - len(rows),
+           "basis": "playable legs: offered at >= 1x or at a sportsbook price, on the last pre-game board, once each",
+           "by_market": {}}
     for mk in ("sog", "points", "saves"):
         x = [r for r in rows if r["market"] == mk and r.get("p") not in (None, "")]
         if not x:
@@ -781,7 +867,8 @@ def legs_summary(rows=None) -> dict:
                 buckets[f"{int(lo * 100)}-{min(int(hi * 100), 100)}"] = rec(b)
         mult = {}
         for r in x:
-            mult.setdefault(str(r.get("mult") or "1"), []).append(r)
+            m = _num(r.get("mult"))
+            mult.setdefault("DraftKings odds" if r.get("source") == "DraftKings" or m is None else f"{m:g}x", []).append(r)
         out["by_market"][mk] = {
             "all": rec(x), "reliability": buckets,
             "by_side": {s: rec([r for r in x if r["side"] == s]) for s in ("OVER", "UNDER")},

@@ -10,13 +10,16 @@ from tests.test_board import PLAYERS, p6, payload
 
 
 def row(pid, name, line, p, side="OVER", mult=1.0, team="TOR", ev=None, take=None, pms=None, **kw):
-    """A scored SOG row as score_lines + finish leave it."""
-    take = p >= pricing.TAKE_P if take is None else take
+    """A scored SOG row as score_lines + finish leave it (tier 'Near miss' where pricing.verdict would set it:
+    a DFS side at >= 1x whose p is within NEAR_BAND of the bar)."""
+    take = p >= pricing.take_p("sog") if take is None else take
     sd = "MORE" if side == "OVER" else "LESS"
+    near = (not take) and mult is not None and mult >= pricing.MIN_MULT and pricing.near_p("sog") - 1e-9 <= p < pricing.take_p("sog")
     return {"name": name, "player_id": pid, "team": team, "opp": "FLA" if team == "TOR" else "TOR", "game": 1,
             "market": "sog", "label": "SOG", "line": line, "side": side, "p": p, "p_model_side": pms if pms is not None else p,
             "mult": mult, "ev": ev if ev is not None else (p * (1 + mult) - 1 if mult else None), "matched": True,
-            "verdict": f"TAKE {sd}" if take else "PASS", "reason": "" if take else "below 58%", "tier": "", "source": "Pick6", **kw}
+            "verdict": f"TAKE {sd}" if take else "PASS", "reason": "" if take else "below 58%",
+            "tier": "Near miss" if near else "", "source": "Pick6", **kw}
 
 
 def names(xs):
@@ -43,11 +46,13 @@ class SogSelect(unittest.TestCase):
         self.assertEqual(sel["counts"]["hidden_discounts"], 3)
         self.assertIn("pays 0.9x", rows[1]["reason"])
 
-    def test_dk_priced_side_needs_a_1x_break_even(self):
-        # DraftKings fallback rows have no multiplier: a price worse than a 1x leg (57.7%) is a hidden discount
-        rows = [{**row(5, "E", 1.5, 0.60, mult=None), "be": 0.60}, {**row(6, "F", 1.5, 0.565, mult=None, team="FLA"), "be": 0.52}]
+    def test_dk_priced_rows_are_never_listed(self):
+        # DraftKings fallback rows (no multiplier, priced at DK's own odds) are info only: never a play or a near
+        # miss (pricing.verdict PASSes them); a price worse than a 1x leg also counts as a hidden discount
+        rows = [{**row(5, "E", 1.5, 0.60, mult=None, take=False), "be": 0.60},
+                {**row(6, "F", 1.5, 0.565, mult=None, team="FLA"), "be": 0.52}]
         sel = pb.select_sog(rows)
-        self.assertEqual((sel["plays"], names(sel["near"])), ([], [("F", 1.5, "OVER")]))
+        self.assertEqual((sel["plays"], sel["near"]), ([], []))
         self.assertEqual(sel["counts"]["hidden_discounts"], 1)
         self.assertIn("worse than 1x", rows[0]["reason"])
 
@@ -107,6 +112,14 @@ class SogSelect(unittest.TestCase):
         shown = [r for r in rows if r["primary"]]
         self.assertEqual([(r["line"], r["source"]) for r in shown], [(3.5, "Pick6")])
         self.assertTrue(all(r["verdict"] == "PASS" for r in rows))                 # display only: no call changes
+
+    def test_all_ladder_player_shows_the_rung_nearest_1x(self):
+        # Michael McCarron, Nov 8: only More-only Pick6 rungs (no line offered both ways). The board showed
+        # 'SOG 4.5 LESS 92%' (a side Pick6 doesn't offer); it should show the rung paying closest to 1x.
+        rungs = [{**row(9, "Michael McCarron", ln, p, side="UNDER", take=False), "mo": m, "mu": 0.0, "mult": 0.0}
+                 for ln, p, m in ((4.5, 0.92, 4.8), (2.5, 0.70, 1.6), (1.5, 0.48, 1.05), (0.5, 0.20, 0.6))]
+        pb.select_sog(rungs)
+        self.assertEqual([r["line"] for r in rungs if r["primary"]], [1.5])
 
     def test_deterministic_under_input_order(self):
         rows = [row(1, "A", 2.5, 0.60), row(2, "B", 1.5, 0.60, side="UNDER"), row(3, "C", 0.5, 0.56), row(1, "A", 1.5, 0.60)]

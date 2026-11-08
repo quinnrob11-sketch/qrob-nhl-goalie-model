@@ -59,6 +59,19 @@ class SogParams:
     disp_edges: tuple = (1.5, 2.5, 3.5)
     disp_f: tuple = (8.0, 7.5, 9.0, 5.0)
     disp_d: tuple = (14.0, 17.5, 7.0, 7.0)
+    # shot-attempt rate (SOG model only; points keeps w_att = 0): rate = (1 - w_att) x SOG rate
+    #   + w_att x (attempts per minute, half-life att_hl games, prior k_att minutes at position SOG rate / conv)
+    #           x (player's SOG per attempt, half-life conv_hl games, prior k_conv attempts at conv_f / conv_d)
+    w_att: float = 0.0
+    att_hl: float = 30.0
+    k_att: float = 100.0
+    conv_hl: float = 120.0
+    k_conv: float = 200.0
+    conv_f: float = 0.5095    # league SOG / attempt, forwards (previous season)
+    conv_d: float = 0.4069    # defence
+    # second TOI half-life: exp TOI = toi_lam x (half-life toi_hl) + (1 - toi_lam) x (half-life toi_hl2)
+    toi_hl2: float = 0.0
+    toi_lam: float = 1.0
 
     def to_dict(self):
         return asdict(self)
@@ -86,6 +99,26 @@ def _minutes(toi: pd.Series) -> pd.Series:
     return parts[0] + parts[1] / 60.0
 
 
+ATT_EVENTS = ("SHOT", "GOAL", "MISSED_SHOT", "BLOCKED_SHOT")
+_PBP_GAMES: set = set()
+
+
+def attempts(years) -> pd.DataFrame:
+    """Individual shot attempts (iCF: on goal + missed + blocked, all strengths, no shootout) per player-game from
+    play-by-play. event_player_1 is the shooter on all four event types (BLOCKED_SHOT: player 2 is the blocker)."""
+    out = []
+    for y in years:
+        p = data.fetch("pbp", y)
+        if not p:
+            continue
+        e = pd.read_parquet(p, columns=["event_type", "event_player_1_id", "game_id", "period_type"])
+        _PBP_GAMES.update(e.game_id.unique().tolist())
+        e = e[e.event_type.isin(ATT_EVENTS) & (e.period_type != "SHOOTOUT") & e.event_player_1_id.notna()]
+        out.append(e.groupby(["game_id", e.event_player_1_id.astype("int64").rename("player_id")]).size()
+                   .rename("icf").reset_index())
+    return pd.concat(out, ignore_index=True) if out else pd.DataFrame(columns=["game_id", "player_id", "icf"])
+
+
 def load(years):
     frames = []
     for y in years:
@@ -97,6 +130,9 @@ def load(years):
         s["season"] = y
         frames.append(s)
     s = pd.concat(frames, ignore_index=True)
+    s = s.merge(attempts(years), on=["game_id", "player_id"], how="left")
+    s["has_pbp"] = s.game_id.isin(_PBP_GAMES)
+    s["icf"] = s.icf.fillna(0.0)
     s["toi_min"] = _minutes(s.toi)
     s["pos"] = np.where(s.position == "D", "D", "F")
     s["game_type"] = s.game_id.astype(str).str[4:6].map({"02": "R", "03": "P"})
@@ -117,6 +153,13 @@ class State:
         self.tdec = 0.5 ** (1 / p.toi_hl)
         self.shots = defaultdict(D)   # player -> decayed shots (weight = minutes)
         self.toi = defaultdict(D)     # player -> decayed TOI per game
+        self.toi2 = defaultdict(D)    # player -> decayed TOI per game, long half-life (toi_hl2)
+        self.att = defaultdict(D)     # player -> decayed shot attempts (weight = minutes)
+        self.conv = defaultdict(D)    # player -> decayed SOG (weight = attempts)
+        self.use_att = stat == "shots_on_goal" and p.w_att > 0
+        self.adec = 0.5 ** (1 / p.att_hl)
+        self.cdec = 0.5 ** (1 / p.conv_hl)
+        self.t2dec = 0.5 ** (1 / p.toi_hl2) if p.toi_hl2 > 0 else 0.0
         self.hist = defaultdict(lambda: deque(maxlen=10))
         self.pos_rate = {"F": D(), "D": D()}
         self.pos_toi = {"F": D(), "D": D()}
@@ -134,7 +177,7 @@ class State:
 
     def new_season(self, season):
         if self.season is not None and season != self.season:
-            for tbl in (self.shots, self.toi, self.team_sa, self.team_for):
+            for tbl in (self.shots, self.toi, self.toi2, self.att, self.conv, self.team_sa, self.team_for):
                 for v in tbl.values():
                     v.s *= self.p.carry
                     v.w *= self.p.carry
@@ -144,13 +187,25 @@ class State:
         base = self.pos_rate[pos].s / self.pos_rate[pos].w
         d = self.shots.get(pid)
         k = self.p.k_min
-        return (base * k if d is None else d.s + base * k) / ((0 if d is None else d.w) + k) * 60
+        r = (base * k if d is None else d.s + base * k) / ((0 if d is None else d.w) + k)
+        if self.use_att:
+            cv = self.p.conv_d if pos == "D" else self.p.conv_f
+            a, c = self.att.get(pid), self.conv.get(pid)
+            ra = ((0.0 if a is None else a.s) + base / cv * self.p.k_att) / ((0.0 if a is None else a.w) + self.p.k_att)
+            cr = ((0.0 if c is None else c.s) + cv * self.p.k_conv) / ((0.0 if c is None else c.w) + self.p.k_conv)
+            r = (1 - self.p.w_att) * r + self.p.w_att * ra * cr
+        return r * 60
 
     def exp_toi(self, pid, pos):
         base = self.pos_toi[pos].s / self.pos_toi[pos].w
-        d = self.toi.get(pid)
         k = self.p.k_toi
-        return base if d is None else (d.s + base * k) / (d.w + k)
+
+        def one(d):
+            return base if d is None or d.w + k <= 0 else (d.s + base * k) / (d.w + k)
+        t = one(self.toi.get(pid))
+        if self.p.toi_hl2 > 0 and self.p.toi_lam < 1:
+            t = self.p.toi_lam * t + (1 - self.p.toi_lam) * one(self.toi2.get(pid))
+        return t
 
     def opp_factor(self, opp):
         lg = self.lg_sa.s / self.lg_sa.w
@@ -223,6 +278,11 @@ def run(s: pd.DataFrame, p: SogParams, record_from=None, stat: str = "shots_on_g
         for r, v in zip(day.itertuples(index=False), val):
             st.shots[r.player_id].add(v, st.rdec, r.toi_min)
             st.toi[r.player_id].add(r.toi_min, st.tdec)
+            if st.t2dec:
+                st.toi2[r.player_id].add(r.toi_min, st.t2dec)
+            if st.use_att and r.has_pbp:     # a game whose play-by-play has not arrived yet is skipped, not zeroed
+                st.att[r.player_id].add(r.icf, st.adec, r.toi_min)
+                st.conv[r.player_id].add(r.shots_on_goal, st.cdec, r.icf)
             st.pos_rate[r.pos].add(v, 0.9999, r.toi_min)
             st.pos_toi[r.pos].add(r.toi_min, 0.9999)
             st.hist[r.player_id].append(v)
@@ -261,6 +321,25 @@ def p_over(mean, line, size):
         under = nb_cdf(int(line) - 1, mean, size)
         return over / (over + under) if over + under > 0 else 0.5
     return over
+
+
+def implied_mean(p_over_target: float, line: float, prm: SogParams, pos: str | None = None,
+                 lo: float = 0.02, hi: float = 15.0, steps: int = 60) -> float | None:
+    """The negative-binomial mean whose P(over `line`) equals `p_over_target` (e.g. a book's no-vig price), with
+    the model's own dispersion (size_for). P(over) rises with the mean, so this is a bisection. Used to read a
+    market price as a projection that can be priced at any other line."""
+    if p_over_target is None or not (0.0 < p_over_target < 1.0):
+        return None
+    f = lambda m: p_over(m, line, size_for(m, prm, pos)) - p_over_target
+    if f(lo) > 0 or f(hi) < 0:
+        return lo if f(lo) > 0 else hi
+    for _ in range(steps):
+        mid = 0.5 * (lo + hi)
+        if f(mid) < 0:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
 
 
 def nb_logpmf(x, mean, size):

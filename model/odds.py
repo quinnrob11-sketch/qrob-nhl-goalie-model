@@ -27,6 +27,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import urllib.error
 import urllib.parse
 import urllib.request
 from zoneinfo import ZoneInfo
@@ -39,6 +40,13 @@ SOG_MARKET = "player_shots_on_goal"
 POINTS_MARKET = "player_points"
 BOOK = "draftkings"
 PP_BOOK = "prizepicks"
+# Other sportsbooks pulled in the same request. The Odds API bills up to 10 bookmakers named in `bookmakers=` as
+# one region, so these cost no extra credits (the build logs x-requests-last per request to prove it). Their
+# prices are logged (model/data/book_prices.csv) so a multi-book consensus can be validated forward, and they
+# give a market reference where DraftKings doesn't price a player's line (otherwise the model would be alone).
+OTHER_BOOKS = ["fanduel", "betmgm", "williamhill_us", "espnbet", "fanatics", "betrivers", "pinnacle"]
+BOOK_NAME = {"fanduel": "FanDuel", "betmgm": "BetMGM", "williamhill_us": "Caesars", "espnbet": "ESPN BET",
+             "fanatics": "Fanatics", "betrivers": "BetRivers", "pinnacle": "Pinnacle"}
 MARKET_OF = {MARKET: "saves", SOG_MARKET: "sog", POINTS_MARKET: "points"}
 ALT_MARKETS = [m + "_alternate" for m in (MARKET, SOG_MARKET, POINTS_MARKET)]
 ET = ZoneInfo("America/New_York")
@@ -64,6 +72,8 @@ last_costs: list = []             # credits each odds request cost (x-requests-l
 sog_rows: list[dict] = []
 points_rows: list[dict] = []
 pp_rows: list[dict] = []          # PrizePicks lines via The Odds API: saves, shots and points
+book_rows: list[dict] = []        # the other sportsbooks' lines (OTHER_BOOKS): saves, shots and points
+books_used: str = ""
 ml_rows: list[dict] = []
 
 
@@ -169,15 +179,17 @@ def _skater_ids(R):
     global match_counts
     for name, rows in (("sog", sog_rows), ("points", points_rows)):
         match_counts[name] = players.match_rows(rows, R, team_key="team_", game_key="teams")
-    sk = [r for r in pp_rows if r["market"] != "saves"]
-    gl = [r for r in pp_rows if r["market"] == "saves"]
-    match_counts["prizepicks"] = players.match_rows(sk, R, team_key="team_", game_key="teams")
-    for r in gl:          # saves: goalies only, within the game's two teams
-        m = R.match(r["name"], None, r["teams"], "G")
-        r["player_id"], r["match"], r["team"] = m["player_id"], m["status"], m.get("team")
-        if m["status"] != "MATCHED":
-            r["match_reason"] = m["reason"]
-    match_counts["prizepicks_saves"] = {"matched": sum(r["match"] == "MATCHED" for r in gl), "unmatched": sum(r["match"] != "MATCHED" for r in gl)}
+    for name, src in (("prizepicks", pp_rows), ("books", book_rows)):
+        sk = [r for r in src if r["market"] != "saves"]
+        gl = [r for r in src if r["market"] == "saves"]
+        match_counts[name] = players.match_rows(sk, R, team_key="team_", game_key="teams")
+        for r in gl:          # saves: goalies only, within the game's two teams
+            m = R.match(r["name"], None, r["teams"], "G")
+            r["player_id"], r["match"], r["team"] = m["player_id"], m["status"], m.get("team")
+            if m["status"] != "MATCHED":
+                r["match_reason"] = m["reason"]
+        match_counts[name + "_saves"] = {"matched": sum(r["match"] == "MATCHED" for r in gl),
+                                         "unmatched": sum(r["match"] != "MATCHED" for r in gl)}
 
 
 def _stamp(rows, at):
@@ -191,16 +203,17 @@ def fetch(goalies: list[dict], now: dt.datetime | None = None, R=None) -> list[d
     time of the pull it came from. If this pull fails (no key, API error, no lines at all), the last good pull
     in model/data/odds_cache.json is reused with its ORIGINAL fetched_at and status "fallback"; games that
     have started are dropped from it."""
-    global last_error, sog_rows, points_rows, ml_rows, remaining, status, fetched_at, pp_rows
+    global last_error, sog_rows, points_rows, ml_rows, remaining, status, fetched_at, pp_rows, book_rows
     now = now or dt.datetime.now(dt.timezone.utc)
     at = now.isoformat(timespec="seconds")
     rows = _fetch(goalies, now, R)
     if rows or sog_rows or points_rows:
         status, fetched_at = "fresh", at
-        for rs in (rows, sog_rows, points_rows, _raw_saves, pp_rows):
+        for rs in (rows, sog_rows, points_rows, _raw_saves, pp_rows, book_rows):
             _stamp(rs, at)
         try:
             raw = {"at": at, "remaining": remaining, "ml": ml_rows, "sog": sog_rows, "points": points_rows, "pp": pp_rows,
+                   "books": book_rows,
                    "saves": [{k: v for k, v in r.items() if k not in ("goalie_id", "player_id", "team", "match", "match_reason")}
                              for r in _raw_saves]}
             with open(CACHE, "w") as f:
@@ -222,6 +235,7 @@ def fetch(goalies: list[dict], now: dt.datetime | None = None, R=None) -> list[d
     sog_rows = _stamp([r for r in c["sog"] if live(r)], c_at)
     points_rows = _stamp([r for r in c["points"] if live(r)], c_at)
     pp_rows = _stamp([r for r in c.get("pp") or [] if live(r)], c_at)
+    book_rows = _stamp([r for r in c.get("books") or [] if live(r)], c_at)
     ml_rows, remaining = c.get("ml") or [], c.get("remaining", remaining)
     rows = _stamp([dict(r) for r in c["saves"] if live(r)], c_at)
     if R is not None:
@@ -237,11 +251,13 @@ _raw_saves: list[dict] = []
 
 
 def _fetch(goalies: list[dict], now: dt.datetime | None = None, R=None) -> list[dict]:
-    global last_error, sog_rows, points_rows, ml_rows, _raw_saves, pp_rows
+    global last_error, sog_rows, points_rows, ml_rows, _raw_saves, pp_rows, book_rows, books_used
     last_error = None
     sog_rows = []
     points_rows = []
     pp_rows = []
+    book_rows = []
+    books_used = ""
     ml_rows = []
     last_costs.clear()
     key = os.environ.get("ODDS_API_KEY")
@@ -260,13 +276,26 @@ def _fetch(goalies: list[dict], now: dt.datetime | None = None, R=None) -> list[
     rows = []
     for ev in events:
         start = dt.datetime.fromisoformat(ev["commence_time"].replace("Z", "+00:00"))
-        if not (now - dt.timedelta(hours=1) <= start <= now + dt.timedelta(hours=WINDOW_H)):
+        # games that have started are skipped: their props are off the board, and pulling them cost credits and
+        # stored in-game prices that later read as pre-game ones
+        if not (now < start <= now + dt.timedelta(hours=WINDOW_H)):
             continue
         try:
-            # DraftKings and PrizePicks in one request: up to 10 named bookmakers bill as one region
+            # DraftKings, PrizePicks and the other books in one request: up to 10 named bookmakers bill as one region.
+            # If the API rejects a bookmaker key, fall back to DraftKings + PrizePicks for the rest of the build.
             mkts = [MARKET, SOG_MARKET, POINTS_MARKET] + (ALT_MARKETS if os.environ.get("ODDS_PP_ALT") == "1" else [])
-            js = _get(f"{BASE}/events/{ev['id']}/odds", {"apiKey": key, "markets": ",".join(mkts),
-                                                        "bookmakers": f"{BOOK},{PP_BOOK}", "oddsFormat": "american"})
+            books = books_used or ",".join([BOOK, PP_BOOK] + OTHER_BOOKS)
+            try:
+                js = _get(f"{BASE}/events/{ev['id']}/odds", {"apiKey": key, "markets": ",".join(mkts),
+                                                            "bookmakers": books, "oddsFormat": "american"})
+            except urllib.error.HTTPError as e:
+                if e.code not in (400, 422) or books == f"{BOOK},{PP_BOOK}":
+                    raise
+                print(f"  [odds] bookmaker list rejected (HTTP {e.code}); using DraftKings + PrizePicks only")
+                books = f"{BOOK},{PP_BOOK}"
+                js = _get(f"{BASE}/events/{ev['id']}/odds", {"apiKey": key, "markets": ",".join(mkts),
+                                                            "bookmakers": books, "oddsFormat": "american"})
+            books_used = books
         except Exception as e:
             last_error = str(e)
             print(f"  [odds] {ev['away_team']} @ {ev['home_team']}: {e}")
@@ -280,11 +309,19 @@ def _fetch(goalies: list[dict], now: dt.datetime | None = None, R=None) -> list[
             for r in parse_event(ev, js, mk, PP_BOOK):
                 r.update(start=ev["commence_time"], market=MARKET_OF[mk.replace("_alternate", "")], alt=mk.endswith("_alternate"))
                 pp_rows.append(r)
+        for b in OTHER_BOOKS:
+            for mk in (MARKET, SOG_MARKET, POINTS_MARKET):
+                for r in parse_event(ev, js, mk, b):
+                    if r.get("over") is None or r.get("under") is None:
+                        continue                  # a market reference needs both sides to remove the vig
+                    r.update(start=ev["commence_time"], market=MARKET_OF[mk], book=BOOK_NAME[b], source=BOOK_NAME[b])
+                    book_rows.append(r)
     _raw_saves = [dict(r) for r in rows]
     if R is not None:
         _skater_ids(R)
     rows = match(rows, goalies, R)
     print(f"  [odds] {len(rows)} DraftKings saves lines, {len(sog_rows)} SOG lines, {len(points_rows)} points lines, "
-          f"{len(ml_rows)} moneylines; PrizePicks {len(pp_rows)} lines; credits per request {last_costs[-12:]} "
+          f"{len(ml_rows)} moneylines; PrizePicks {len(pp_rows)} lines; other books {len(book_rows)} lines "
+          f"({sorted({r['book'] for r in book_rows})}); credits per request {last_costs[-12:]} "
           f"(requests remaining: {remaining})")
     return rows

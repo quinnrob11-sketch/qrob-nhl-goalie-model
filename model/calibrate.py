@@ -28,6 +28,7 @@ import math
 import numpy as np
 import pandas as pd
 
+import prices as dkp
 import pricing
 import prizepicks
 import saves_dist
@@ -137,8 +138,20 @@ def _buckets(p_side, win):
 
 
 MARKETS = ("saves", "sog", "points")
+WEEK0 = pd.Timestamp("2000-01-03")          # a Monday: walk-forward weeks are counted from here
+
+
+def week_key(dates) -> pd.Series:
+    """Monotonic week number for walk-forward splits. ISO week numbers restart at 1 on New Year, so a split on
+    them would train October-December weeks on January data; this count never wraps."""
+    return ((pd.to_datetime(pd.Series(dates)).dt.normalize() - WEEK0).dt.days // 7).astype(int).values
 BLEND_GRID = np.round(np.linspace(0, 1, 21), 2)
 DISAGREE_MIN_N = 100          # disagreements needed before the model weight is shrunk by their record
+# Weight on the model until 200 walk-forward lines exist: never an in-sample fit. On 2026-11-03 the points
+# weight was fitted in-sample on 488 lines (0.75); it made 18 of the first 20 live TAKEs, which went 9-9.
+# Walk-forward, the log-loss optimum was about 0.3 for points (flat 0.1-0.6) and 0-0.4 for saves.
+W_DEFAULT = {"sog": 0.0, "points": 0.3, "saves": 0.05}
+W_CAP = {"sog": 1.0, "points": 0.5, "saves": 0.4}   # walk-forward optima sit well below these
 LINE_L2 = 50.0                # per-line intercepts are shrunk hard toward 0
 
 
@@ -307,7 +320,9 @@ def replay(x: pd.DataFrame, mk: str) -> pd.DataFrame:
             # same as tonight's fit: the weight comes from earlier weeks' walk-forward probabilities once there are 200
             ok = [i for i in range(len(wf_pc)) if wf_mk[i] == wf_mk[i]]
             if len(ok) >= 200:
-                cal["w"] = fit_blend(np.array(wf_pc)[ok], np.array(wf_mk)[ok], np.array(wf_y)[ok])["w"]
+                cal["w"] = min(fit_blend(np.array(wf_pc)[ok], np.array(wf_mk)[ok], np.array(wf_y)[ok])["w"], W_CAP.get(mk, 1.0))
+            else:                                   # as live: a fixed default until 200 walk-forward lines, never in-sample
+                cal["w"] = W_DEFAULT.get(mk, 0.0)
         cal_line = dict(cal, line_a=cal["line_a_fit"]) if cal else None
         if cal is not None:
             for r, m_ in zip(x[te].itertuples(), mkt[te]):
@@ -336,6 +351,45 @@ def replay(x: pd.DataFrame, mk: str) -> pd.DataFrame:
     return out
 
 
+def realistic_mult(nv_side: float) -> float:
+    """The multiplier a Pick6-style board offers on a side the market prices at no-vig `nv_side` (measured on the
+    Nov 3-8 boards: under 50% about 1.00x, 50-54% about 0.94x, 54%+ about 0.8x; none of the 54%+ sides at 1x)."""
+    return 1.0 if nv_side < 0.50 else 0.94 if nv_side < 0.54 else 0.8
+
+
+def rule_record(x: pd.DataFrame, r: pd.DataFrame, mk: str) -> dict:
+    """The live TAKE rule (pricing.verdict: market support, blended p over the bar, model agrees) replayed on the
+    warm walk-forward weeks only, choosing as if each side were a 1x DFS leg, and settled three ways: at DraftKings'
+    own price; as a hypothetical 1x leg (overstates: DFS boards discount these sides); and only where a DFS board
+    would really offer the side at >= 1x (realistic_mult), at that multiplier. Hit rates and ROI carry one SE."""
+    be1 = pricing.dfs_break_even(1.0)
+    picks = []
+    for i, row in enumerate(x.itertuples()):
+        if not r.warm.iloc[i] or row.push:
+            continue
+        pk = r.p_mkt_over.iloc[i]
+        v = pricing.verdict(mk, r.p_final_over.iloc[i], r.p_cal_over.iloc[i], row.line, row.model_proj, 1.0, 1.0,
+                            p_mkt_over=None if pk != pk else pk)
+        if not v["verdict"].startswith("TAKE"):
+            continue
+        win = bool(row.went_over) == (v["side"] == "OVER")
+        price = row.over if v["side"] == "OVER" else row.under
+        m = realistic_mult(pk if v["side"] == "OVER" else 1 - pk)
+        picks.append({"side": v["side"], "win": win, "r_dk": pricing.profit(price) if win else -1.0,
+                      "r_1x": (1 / be1 - 1) if win else -1.0,
+                      "r_real": ((m / be1 - 1) if win else -1.0) if m >= pricing.MIN_MULT else None})
+    def rec(z):
+        se = lambda v: round(float(np.std(v, ddof=1) / np.sqrt(len(v))), 4) if len(v) > 1 else None
+        w = [float(q["win"]) for q in z]; real = [q["r_real"] for q in z if q["r_real"] is not None]
+        return {"n": len(z), "hit": int(sum(w)), "pct": round(float(np.mean(w)), 4) if z else None, "se": se(w),
+                "roi_dk": round(float(np.mean([q["r_dk"] for q in z])), 4) if z else None, "roi_dk_se": se([q["r_dk"] for q in z]),
+                "roi_1x": round(float(np.mean([q["r_1x"] for q in z])), 4) if z else None,
+                "real_n": len(real), "roi_real": round(float(np.mean(real)), 4) if real else None}
+    return {"all": rec(picks), "over": rec([q for q in picks if q["side"] == "OVER"]),
+            "under": rec([q for q in picks if q["side"] == "UNDER"]),
+            "basis": "live TAKE rule, warm walk-forward weeks, DraftKings lines with a pre-game price"}
+
+
 def _by_side(r: pd.DataFrame, m) -> dict:
     m = np.asarray(m, bool)
     o, u = m & (r.side == "OVER").values, m & (r.side == "UNDER").values
@@ -354,13 +408,15 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
         return out
     # both sides' prices from the DraftKings snapshots (needed to price the side the rule picks)
     if prices is not None and len(prices):
-        pr = prices.copy(); pr["key"] = pr.name.map(prizepicks.name_key)
-        pr = pr.sort_values("snap").drop_duplicates(["market", "date", "key", "line"], keep="last")
+        # the last DraftKings snapshot taken BEFORE puck drop (prices.last_pregame); the old read took the last
+        # snapshot of any time, which for ~5% of lines was an in-game price
+        pr = dkp.last_pregame(prices.copy()); pr["key"] = pr.name.map(prizepicks.name_key)
+        pr = pr.drop_duplicates(["market", "date", "key", "line"], keep="last")
         df["key"] = df.player.map(prizepicks.name_key)
         df = df.merge(pr[["market", "date", "key", "line", "over", "under"]], on=["market", "date", "key", "line"], how="left")
     else:
         df["over"] = np.where(df.side_over, df.price, np.nan); df["under"] = np.where(~df.side_over, df.price, np.nan)
-    df["wk"] = pd.to_datetime(df.date).dt.isocalendar().week.astype(int)
+    df["wk"] = week_key(df.date)
     gate = forward_gate(log)
     out["gate"] = gate
     for mk in MARKETS:
@@ -385,9 +441,10 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
         if ok.sum() >= 200:
             wf = fit_blend(r.p_cal_over.values[ok], r.p_mkt_over.values[ok], x.went_over.values[ok])
             cal["blend"] = {**wf, "basis": f"walk-forward ({int(ok.sum())} lines)"}
-            cal["w"] = wf["w"]
+            cal["w"] = min(wf["w"], W_CAP.get(mk, 1.0))
         else:
-            cal["blend"]["basis"] = f"in-sample ({len(x)} lines; walk-forward needs 200)"
+            cal["blend"]["basis"] = f"default {W_DEFAULT.get(mk, 0.0)} ({int(ok.sum())} walk-forward lines; needs 200)"
+            cal["w"] = W_DEFAULT.get(mk, 0.0)
         use_line = bool(wm.sum() >= 200 and scores["blend fitted + line intercepts"]["logloss"] < scores["blend fitted (new)"]["logloss"])
         if use_line:
             cal["line_a"] = cal["line_a_fit"]
@@ -444,5 +501,6 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
             "reliability": {"raw": reliability_side_line(x.p_over.values[wm], x.line.values[wm], x.went_over.values[wm]),
                             "final": reliability_side_line((r.p_line_over if use_line else r.p_final_over).values[wm],
                                                            x.line.values[wm], x.went_over.values[wm])},
-            "disagree_wf": disagreement(r.p_cal_over.values[wm], r.p_mkt_over.values[wm], x.went_over.values[wm])}
+            "disagree_wf": disagreement(r.p_cal_over.values[wm], r.p_mkt_over.values[wm], x.went_over.values[wm]),
+            "rule": rule_record(x, r, mk)}
     return out

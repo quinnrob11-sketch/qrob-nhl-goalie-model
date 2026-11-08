@@ -99,7 +99,7 @@ def real_lines(season_start: str):
     x = x[x.date >= season_start]
     # one row per prop (the tracker's de-duplication: date + market + player + team)
     x = x.sort_values("book").drop_duplicates(["date", "market", "player", "team"]).reset_index(drop=True)
-    x["wk"] = pd.to_datetime(x.date).dt.isocalendar().week.astype(int)
+    x["wk"] = calibrate.week_key(x.date)
     out = {}
     for mk in calibrate.MARKETS:
         m = x[x.market == mk].reset_index(drop=True)

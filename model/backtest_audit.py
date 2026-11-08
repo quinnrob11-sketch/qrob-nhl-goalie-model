@@ -29,6 +29,7 @@ import calibrate
 import data
 import engine
 import fit_props
+import prices as dkp
 import pricing
 import prizepicks
 import saves_dist
@@ -122,11 +123,11 @@ def rule_legs(log, rows_sog, prm_sog, rows_pts, prm_pts, prices):
     df = calibrate.lines_frame(log, None, {}, rows_sog, prm_sog, rows_pts, prm_pts)
     if df.empty:
         return {}
-    pr = prices.copy(); pr["key"] = pr.name.map(prizepicks.name_key)
-    pr = pr.sort_values("snap").drop_duplicates(["market", "date", "key", "line"], keep="last")
+    pr = dkp.last_pregame(prices.copy()); pr["key"] = pr.name.map(prizepicks.name_key)
+    pr = pr.drop_duplicates(["market", "date", "key", "line"], keep="last")
     df["key"] = df.player.map(prizepicks.name_key)
     df = df.merge(pr[["market", "date", "key", "line", "over", "under"]], on=["market", "date", "key", "line"], how="left")
-    df["wk"] = pd.to_datetime(df.date).dt.isocalendar().week.astype(int)
+    df["wk"] = calibrate.week_key(df.date)
     out = {}
     for mk in ("sog", "points"):
         x = df[(df.market == mk)].dropna(subset=["over", "under"]).reset_index(drop=True)
@@ -134,22 +135,43 @@ def rule_legs(log, rows_sog, prm_sog, rows_pts, prm_pts, prices):
             continue
         r = calibrate.replay(x, mk)
         new, old = [], []
+        be1 = pricing.dfs_break_even(1.0)
         for i, row in x.iterrows():
             if not r.warm.iloc[i] or row.push:
                 continue
             went = bool(row.went_over)
-            pb, pm = r.p_final_over.iloc[i], r.p_cal_over.iloc[i]
-            v = pricing.verdict(mk, pb, pm, row.line, row.model_proj, 1.0, 1.0)
-            if v["verdict"].startswith("TAKE"):
-                new.append((v["side"], went == (v["side"] == "OVER"), row.line))
-            pf = r.p_fixed_over.iloc[i]; side = "OVER" if pf >= .5 else "UNDER"; p = max(pf, 1 - pf)
-            if p >= pricing.TAKE_P:
-                old.append((side, went == (side == "OVER"), row.line))
-        rec = lambda z: {"n": len(z), "hit": int(sum(w for _, w, _ in z)), "pct": float(np.mean([w for _, w, _ in z])) if z else None,
-                         "units_1x": round(sum((1 / pricing.dfs_break_even(1.0) - 1) if w else -1 for _, w, _ in z), 2)}
+            pb, pm, pk = r.p_final_over.iloc[i], r.p_cal_over.iloc[i], r.p_mkt_over.iloc[i]
+            # the live rule picks the side as if it were a 1x DFS leg (market support required) ...
+            v = pricing.verdict(mk, pb, pm, row.line, row.model_proj, 1.0, 1.0, p_mkt_over=pk)
+            pf = r.p_fixed_over.iloc[i]; oside = "OVER" if pf >= .5 else "UNDER"
+            for side, keep, bag in ((v["side"], v["verdict"].startswith("TAKE"), new), (oside, max(pf, 1 - pf) >= pricing.TAKE_P, old)):
+                if not keep:
+                    continue
+                win = went == (side == "OVER")
+                nv = pk if side == "OVER" else 1 - pk
+                price = row.over if side == "OVER" else row.under
+                # ... and is settled three ways: as a 1x leg (hypothetical: DFS boards discount these sides),
+                # at DraftKings' own price, and at the multiplier a Pick6-style board actually offers for a side
+                # the market prices this way (measured on Nov 3-8 boards: <50% no-vig ~1.00x, 50-54% ~0.94x,
+                # 54%+ ~0.8x; sub-1x sides are not TAKEs, so only sides offered at >= 1x are settled)
+                m = 1.0 if nv < 0.50 else 0.94 if nv < 0.54 else 0.8
+                bag.append({"side": side, "win": win, "line": row.line, "r_1x": (1 / be1 - 1) if win else -1.0,
+                            "r_dk": pricing.profit(price) if win else -1.0,
+                            "r_real": ((m / be1 - 1) if win else -1.0) if m >= pricing.MIN_MULT else None})
+        def rec(z):
+            if not z:
+                return {"n": 0, "hit": 0, "pct": None, "se": None, "units_1x": 0.0, "units_dk": 0.0, "roi_dk": None,
+                        "real_n": 0, "real_hit": 0, "roi_real": None}
+            w = np.array([q["win"] for q in z], float); real = [q for q in z if q["r_real"] is not None]
+            se = lambda v: float(np.std(v, ddof=1) / np.sqrt(len(v))) if len(v) > 1 else None
+            return {"n": len(z), "hit": int(w.sum()), "pct": float(w.mean()), "se": se(w),
+                    "units_1x": round(sum(q["r_1x"] for q in z), 2), "units_dk": round(sum(q["r_dk"] for q in z), 2),
+                    "roi_dk": round(float(np.mean([q["r_dk"] for q in z])), 4), "roi_dk_se": se([q["r_dk"] for q in z]),
+                    "real_n": len(real), "real_hit": int(sum(q["win"] for q in real)),
+                    "roi_real": round(float(np.mean([q["r_real"] for q in real])), 4) if real else None}
         out[mk] = {"new": rec(new), "old": rec(old),
-                   "new_by_side": {s: rec([z for z in new if z[0] == s]) for s in ("OVER", "UNDER")},
-                   "old_by_side": {s: rec([z for z in old if z[0] == s]) for s in ("OVER", "UNDER")}}
+                   "new_by_side": {s: rec([z for z in new if z["side"] == s]) for s in ("OVER", "UNDER")},
+                   "old_by_side": {s: rec([z for z in old if z["side"] == s]) for s in ("OVER", "UNDER")}}
     return out
 
 
@@ -176,8 +198,9 @@ def saves(log, df, prices):
     # real lines
     lg = pd.DataFrame([r for r in log if r["market"] == "saves" and r.get("result") in ("HIT", "MISS", "PUSH")])
     lg["line"] = lg.line.astype(float); lg["actual"] = lg.actual.astype(float); lg["date"] = pd.to_datetime(lg.date)
-    pr = prices[prices.market == "saves"].copy(); pr["key"] = pr.name.map(prizepicks.name_key); pr["date"] = pd.to_datetime(pr.date)
-    pr = pr.sort_values("snap").drop_duplicates(["date", "key", "line"], keep="last")
+    pr = dkp.last_pregame(prices[prices.market == "saves"].copy()); pr["key"] = pr.name.map(prizepicks.name_key)
+    pr["date"] = pd.to_datetime(pr.date)
+    pr = pr.drop_duplicates(["date", "key", "line"], keep="last")
     lg["key"] = lg.player.map(prizepicks.name_key)
     lg = lg.merge(pr[["date", "key", "line", "over", "under"]], on=["date", "key", "line"], how="left")
     m = lg.merge(x[["date", "team", "proj0", "projc", "sd", "saves"]], on=["date", "team"], how="inner")
@@ -212,7 +235,10 @@ def saves(log, df, prices):
 def md(rep) -> str:
     L = ["# Audit backtest: before / after", "",
          f"Built {rep['built']} by `python model/backtest_audit.py`. Seasons: {', '.join(NAME[s] for s in SEASONS)} "
-         "(every player-game, walk-forward), plus this season's real graded lines.", ""]
+         "(every player-game), plus this season's real graded lines.", "",
+         "**Read sections 1-2 carefully:** the shipped shots parameters are fitted on 2025-26, so the 2024-25 and 2025-26 "
+         "player-game rows are scored with parameters that saw 2025-26 (in-sample; an honest refit on 2024-25 alone shows "
+         "a bias about 0.5 point larger at 1.5 / 2.5). Only the 2026-27 rows and the real-line sections are out of sample.", ""]
     # 1
     L += ["## 1. Shots distribution (item 4): dispersion by position and volume tier", "",
           "Randomized PIT deciles should each hold 10%; P(shots ≥ k) predicted vs actual. Old = one disp_k (size = 10 × mean); new = disp_k per position and projection tier, fitted on earlier seasons only.", ""]
@@ -255,14 +281,15 @@ def md(rep) -> str:
         L += ["", f"Model's side where it and DK no-vig disagree (walk-forward): {d.get('hit')}-{(d.get('n') or 0) - (d.get('hit') or 0)} ({pct(d.get('pct'))}), against a 57.7% 1x break-even.", ""]
     # 4
     L += ["## 3. Rule-passing legs on real lines (items 3 and 9)", "",
-          "Every graded DK line priced as a 1x DFS leg. New = TAKE rule (blended p ≥ 58% with the fitted weight, beats break-even, model alone agrees). Old = calibrated model blended 60/40 at p ≥ 58%.", "",
-          "| market | rule | legs | record | hit % | units (1x, 2-pick 3x) |", "|---|---|---|---|---|---|"]
+          "Walk-forward on every graded DK line with a pre-game price. New = the live TAKE rule (market support, blended p over the bar, model agrees) choosing as if the side were a 1x DFS leg. Old = calibrated model blended 60/40 at p ≥ 58%.",
+          "Each pick is settled three ways. **1x** is hypothetical: DFS boards discount exactly these sides (on Nov 3-8 Pick6 paid ≥1x on 0 sides DK priced at 54%+), so it overstates. **DK price** is DraftKings' own odds. **Real DFS** settles only the sides a Pick6-style board would offer at ≥ 1x, at that multiplier. ± is one standard error.", "",
+          "| market | rule | legs | record | hit % | units 1x (hypothetical) | ROI at DK price | real DFS legs | ROI real DFS |", "|---|---|---|---|---|---|---|---|---|"]
+    fse = lambda v: f" ± {100 * v:.1f}" if v is not None else ""
     for mk, r in rep["rule_legs"].items():
         for nm in ("old", "new"):
-            x = r[nm]
-            L.append(f"| {mk} | {nm} | {x['n']} | {x['hit']}-{x['n'] - x['hit']} | {pct(x['pct'])} | {x['units_1x']:+.2f} |")
-            for s, y in r[nm + "_by_side"].items():
-                L.append(f"| {mk} | {nm}, {'MORE' if s == 'OVER' else 'LESS'} | {y['n']} | {y['hit']}-{y['n'] - y['hit']} | {pct(y['pct'])} | {y['units_1x']:+.2f} |")
+            for lab, y in [(nm, r[nm])] + [(f"{nm}, {'MORE' if s == 'OVER' else 'LESS'}", y) for s, y in r[nm + "_by_side"].items()]:
+                L.append(f"| {mk} | {lab} | {y['n']} | {y['hit']}-{y['n'] - y['hit']} | {pct(y['pct'])}{fse(y.get('se'))} | {y['units_1x']:+.2f} | "
+                         f"{pct(y.get('roi_dk'))}{fse(y.get('roi_dk_se'))} | {y.get('real_n', 0)} ({y.get('real_hit', 0)} hit) | {pct(y.get('roi_real'))} |")
     # 5
     s = rep["saves"]; l3 = s["last30"]
     L += ["", "## 4. Saves (items 6 and 11)", "",

@@ -54,13 +54,41 @@ class OddsPrizePicks(unittest.TestCase):
             os.environ.pop("ODDS_API_KEY")
         ev = [p for u, p in seen if "/events/e1/odds" in u]
         self.assertEqual(len(ev), 1)
-        self.assertEqual(ev[0]["bookmakers"], "draftkings,prizepicks")           # <= 10 books = 1 region: same cost
+        books = ev[0]["bookmakers"].split(",")
+        self.assertEqual(books[:2], ["draftkings", "prizepicks"])
+        self.assertLessEqual(len(books), 10)                                      # <= 10 books = 1 region: same cost
         self.assertEqual(ev[0]["markets"], "player_total_saves,player_shots_on_goal,player_points")
         self.assertNotIn("regions", ev[0])
         got = sorted((r["market"], r["name"], r["line"], r["match"]) for r in odds.pp_rows)
         self.assertEqual(got, [("points", "Mitch Marner", 0.5, "MATCHED"), ("saves", "Joseph Woll", 26.5, "MATCHED"),
                                ("sog", "Mitch Marner", 3.5, "MATCHED"), ("sog", "Nobody Atall", 1.5, "UNMATCHED")])
         self.assertEqual(next(r for r in odds.pp_rows if r["market"] == "saves")["player_id"], 8479361)
+
+    def test_other_books_and_rejected_list(self):
+        js = {"bookmakers": JS["bookmakers"] + [{"key": "fanduel", "markets": [{"key": "player_shots_on_goal", "outcomes": [
+            outc("Mitch Marner", "Over", 2.5, -125), outc("Mitch Marner", "Under", 2.5, 105), outc("Joseph Woll", "Over", 1.5, -110)]}]}]}
+        seen = []
+        def fake_get(url, params):
+            seen.append(dict(params))
+            if url.endswith("/events"):
+                return [EV]
+            if "/events/e1/odds" in url and len(params["bookmakers"].split(",")) > 2:
+                import urllib.error
+                raise urllib.error.HTTPError(url, 422, "invalid bookmaker", {}, None)
+            return js if "/events/e1/odds" in url else []
+        old, os.environ["ODDS_API_KEY"] = odds._get, "dummy"
+        odds._get = fake_get
+        try:
+            odds._fetch([], dt.datetime(2026, 11, 3, 20, 0, tzinfo=dt.timezone.utc), R)
+            self.assertEqual([p["bookmakers"] for p in seen if "markets" in p][-1], "draftkings,prizepicks")
+            # with the full list accepted, FanDuel's two-sided line comes through matched; one-sided lines are dropped
+            odds._get = lambda url, params: [EV] if url.endswith("/events") else (js if "/events/e1/odds" in url else [])
+            odds._fetch([], dt.datetime(2026, 11, 3, 20, 0, tzinfo=dt.timezone.utc), R)
+            fd = [(r["book"], r["market"], r["line"], r["player_id"]) for r in odds.book_rows]
+            self.assertEqual(fd, [("FanDuel", "sog", 2.5, 8478483)])
+        finally:
+            odds._get = old
+            os.environ.pop("ODDS_API_KEY")
 
     def test_board_rows_and_precedence(self):
         at = "2026-11-03T20:00:00+00:00"

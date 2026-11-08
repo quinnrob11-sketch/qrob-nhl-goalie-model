@@ -31,6 +31,7 @@ import moneypuck
 import moneypuck_teams
 import pick6
 import players
+import prices as dkp
 import props_board
 import sources
 import slate as slate_mod
@@ -292,24 +293,30 @@ def _np(o):
 
 DIST = saves_dist.load(os.path.join(OUT, "saves_dist.json"))
 PRICES = os.path.join(HERE, "data", "dk_prices.csv")
+BOOK_PRICES = os.path.join(HERE, "data", "book_prices.csv")
 
 
 def save_prices(dk_saves, dk_sog, dk_points=None):
     """Append this build's DraftKings prices (both sides) to the price history used for grading
     and calibration. Later snapshots of the same line replace earlier ones when read."""
     snap = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
-    rows = [{"market": "saves", "date": r["date"], "name": r["name"], "team": r.get("team", ""),
-             "teams": "/".join(r.get("teams", [])), "line": r["line"], "over": r.get("over"),
-             "under": r.get("under"), "snap": snap} for r in dk_saves or []]
-    rows += [{"market": "sog", "date": r["date"], "name": r["name"], "team": "", "teams": "/".join(r.get("teams", [])),
-              "line": r["line"], "over": r.get("over"), "under": r.get("under"), "snap": snap} for r in dk_sog or []]
-    rows += [{"market": "points", "date": r["date"], "name": r["name"], "team": "", "teams": "/".join(r.get("teams", [])),
-              "line": r["line"], "over": r.get("over"), "under": r.get("under"), "snap": snap} for r in dk_points or []]
-    if rows:
-        new = pd.DataFrame(rows)
-        old = pd.read_csv(PRICES) if os.path.exists(PRICES) else new.iloc[0:0]
-        pd.concat([old, new]).drop_duplicates(["market", "date", "name", "line", "over", "under"], keep="first") \
-            .to_csv(PRICES, index=False)
+    # the pull's own fetch time (odds.fetched_at) and the game's start, so readers can take the last price
+    # before puck drop (prices.last_pregame); a snapshot is stored only when the price changed (prices.append)
+    snap = odds.fetched_at or snap
+    row = lambda mk, r, team: {"market": mk, "date": r["date"], "name": r["name"], "team": team,
+                               "teams": "/".join(r.get("teams", [])), "line": r["line"], "over": r.get("over"),
+                               "under": r.get("under"), "snap": r.get("fetched_at") or snap, "start": r.get("start")}
+    rows = [row("saves", r, r.get("team", "")) for r in dk_saves or []]
+    rows += [row("sog", r, "") for r in dk_sog or []]
+    rows += [row("points", r, "") for r in dk_points or []]
+    if rows and odds.status == "fresh":       # never re-store a fallback (cached) pull as a new snapshot
+        dkp.append(PRICES, rows)
+    # every other sportsbook's line, same rule (a row only when the price moved), for the forward consensus check
+    brows = [{"market": r["market"], "date": r["date"], "name": r["name"], "player_id": r.get("player_id"),
+              "teams": "/".join(r.get("teams", [])), "book": r["book"], "line": r["line"], "over": r.get("over"),
+              "under": r.get("under"), "snap": r.get("fetched_at") or snap, "start": r.get("start")} for r in odds.book_rows]
+    if brows and odds.status == "fresh":
+        dkp.append(BOOK_PRICES, brows, key=dkp.KEY + ["book"])
 
 
 def saves_rows(df: pd.DataFrame, season: int) -> pd.DataFrame:
@@ -492,6 +499,11 @@ def main():
                     "team": r.get("team"), "over": r.get("over"), "under": r.get("under"), "fetched_at": r.get("fetched_at")} for r in odds.sog_rows],
         "dk_points": [{"name": r["name"], "teams": r["teams"], "date": r["date"], "line": r["line"], "player_id": r.get("player_id"),
                        "team": r.get("team"), "over": r.get("over"), "under": r.get("under"), "fetched_at": r.get("fetched_at")} for r in odds.points_rows],
+        # the other sportsbooks' two-sided lines (odds.OTHER_BOOKS, same request, no extra credits): the market
+        # reference where DraftKings doesn't price a player's line, and logged for a forward consensus check
+        "books": [{"market": r["market"], "player_id": r.get("player_id"), "line": r["line"], "book": r["book"],
+                   "over": r.get("over"), "under": r.get("under")} for r in odds.book_rows if r.get("match") == "MATCHED"],
+        "odds_books": odds.books_used,
         "rosters": {t: [[p["id"], p["first"], p["last"], p["pos"]] for p in ps] for t, ps in R.teams.items() if t in teams},
         "ml": odds.ml_rows,
         "dist": DIST,

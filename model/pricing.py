@@ -38,6 +38,22 @@ SAVES_TAKE_P = 0.58         # saves also need calibrated p of the side at least 
 SAVES_EDGE_GRID = (1.5, 2.0, 2.5, 3.0)   # edges reported in the backtest so the threshold can be chosen
 SAVES_BIAS_HL = 30.0        # days; half-life of the rolling saves bias correction
 
+# ---- limits from the out-of-sample review (model/reports/accuracy_review.md) ----
+# Out of sample no model beat DraftKings' no-vig price in any market, so a TAKE needs the market's support:
+# model-only SOG picks at 1x hit 52-54% (n=437), the points model's own leans 56.6% (n=235); the market's
+# favoured side is what actually wins (points no-vig >= 0.55 hit 66.8%, n=832).
+MKT_MIN = 0.55              # shots / points / saves: a TAKE needs a market quote whose own side is at least this
+NEAR_BAND = 0.03            # near miss: p within this of the market's TAKE bar, everything else met
+SOG_TAKE_P = 0.58           # shots on goal: blended p of the side at least this (see SOG section of the review)
+SOG_LOCK_P = 0.62
+SOG_MEAN_W = 0.0            # shots on goal: weight on the market-implied mean in the projection blend (0 = off):
+                            # mu = (1 - w) x model projection + w x the NB mean that reproduces the market's no-vig
+PRICED_TAKES = False        # a line priced at a sportsbook's own odds (DraftKings) is never a TAKE: walk-forward,
+                            # DK-priced TAKEs hit exactly DK's no-vig and lost to the vig at every weight
+                            # (points -7% to -23%; the live 10-10, -21.9%)
+SAVES_TAKE_OVERS = False    # saves overs lost at every edge threshold (5-8, 1-4, 0-2; every DK over 207-235)
+POINTS_UNDER_MAX = 1.0      # points unders only on lines below this: 1.5+ unders were rated 65.6% and hit 50.9%
+
 
 def config() -> dict:
     """The decision knobs, exported to the page so its mirror of decide() uses the same values."""
@@ -47,7 +63,21 @@ def config() -> dict:
             "saves_cap_at": SAVES_CAP_AT, "saves_cap_to": SAVES_CAP_TO,
             "take_p": TAKE_P, "near_miss_p": NEAR_MISS_P, "lock_p": LOCK_P, "min_mult": MIN_MULT,
             "saves_edge_over": SAVES_EDGE_OVER, "saves_edge_under": SAVES_EDGE_UNDER, "saves_take_p": SAVES_TAKE_P,
-            "saves_bias_hl": SAVES_BIAS_HL}
+            "saves_bias_hl": SAVES_BIAS_HL, "mkt_min": MKT_MIN, "near_band": NEAR_BAND,
+            "sog_take_p": SOG_TAKE_P, "sog_lock_p": SOG_LOCK_P, "sog_mean_w": SOG_MEAN_W, "priced_takes": PRICED_TAKES,
+            "saves_take_overs": SAVES_TAKE_OVERS, "points_under_max": POINTS_UNDER_MAX}
+
+
+def take_p(market: str) -> float:
+    return SAVES_TAKE_P if market == "saves" else SOG_TAKE_P if market == "sog" else TAKE_P
+
+
+def lock_p(market: str) -> float:
+    return SOG_LOCK_P if market == "sog" else LOCK_P
+
+
+def near_p(market: str) -> float:
+    return take_p(market) - NEAR_BAND
 
 
 def implied(american) -> float | None:
@@ -173,14 +203,18 @@ def side_break_even(price=None, mult=None, dfs: dict | None = None) -> float | N
 
 def verdict(market: str, p_over: float, p_model_over: float, line: float, proj: float | None = None,
             mult_over=None, mult_under=None, over_price=None, under_price=None, matched: bool = True,
-            confirmed: bool = True, dfs: dict | None = None) -> dict:
+            confirmed: bool = True, dfs: dict | None = None, p_mkt_over=None) -> dict:
     """One explicit call for one line: TAKE MORE, TAKE LESS or PASS with a one-line reason.
 
-    TAKE only if all hold for the side: blended p >= TAKE_P (saves: SAVES_TAKE_P and an edge of
-    SAVES_EDGE_OVER / SAVES_EDGE_UNDER saves past the line), multiplier >= MIN_MULT (DFS), p beats that
-    price's break-even, the player is MATCHED (and, for saves, a confirmed starter), and the model alone
-    (no market blend) leans the same way. The side considered is the one with the higher blended p.
-    Returns side ("OVER" / "UNDER"), p, p_model, be, mult / price, verdict, reason, tier, ev."""
+    TAKE only if all hold for the side: it is offered at >= MIN_MULT on a DFS board (never a sportsbook's own
+    price, PRICED_TAKES); the market (p_mkt_over: no-vig P(over) at this line) prices this player-line and its
+    own probability for the side is >= MKT_MIN; blended p >= take_p(market) (saves: also an edge of
+    SAVES_EDGE_UNDER saves past the line, and no overs); p beats the price's break-even; the player is
+    MATCHED (saves: a confirmed starter); the model alone leans the same way; and no market-specific block
+    (points unders on lines >= POINTS_UNDER_MAX). The side considered is the one with the higher blended p.
+    Near miss: everything met except p, which is within NEAR_BAND of the bar.
+    Returns side ("OVER" / "UNDER"), p, p_model, p_mkt_side (the market's probability for the side), be, mult / price,
+    verdict, reason, tier, ev."""
     side = "OVER" if p_over >= 0.5 else "UNDER"
     p = p_over if side == "OVER" else 1 - p_over
     pm = p_model_over if side == "OVER" else 1 - p_model_over
@@ -189,11 +223,13 @@ def verdict(market: str, p_over: float, p_model_over: float, line: float, proj: 
     be = side_break_even(price, mult, dfs)
     ev = (p * profit(price) - (1 - p)) if price not in (None, "") else (p / be - 1 if be else None)
     edge = None if proj is None else (proj - line if side == "OVER" else line - proj)
-    out = {"side": side, "p": p, "p_model": pm, "be": be, "mult": None if mult in (None, "") else float(mult),
+    pk = None if p_mkt_over in (None, "") or p_mkt_over != p_mkt_over else \
+        (float(p_mkt_over) if side == "OVER" else 1 - float(p_mkt_over))
+    out = {"side": side, "p": p, "p_model": pm, "p_mkt_side": pk, "be": be, "mult": None if mult in (None, "") else float(mult),
            "price": price, "ev": ev, "edge": edge, "verdict": "PASS", "tier": "", "reason": ""}
-    need = SAVES_TAKE_P if market == "saves" else TAKE_P
+    need = take_p(market)
     pct = f"{100 * p:.0f}%"
-    reason = None
+    reason, near = None, False
     if not matched:
         reason = "unmatched player"
     elif market == "saves" and not confirmed:
@@ -202,20 +238,31 @@ def verdict(market: str, p_over: float, p_model_over: float, line: float, proj: 
         reason = f"{'MORE' if side == 'OVER' else 'LESS'} not offered on this line"
     elif mult not in (None, "") and float(mult) < MIN_MULT - 1e-9:
         reason = f"pays {float(mult):g}x"
+    elif price not in (None, "") and not PRICED_TAKES:
+        reason = "sportsbook price: no edge over the book's own odds"
+    elif market == "saves" and side == "OVER" and not SAVES_TAKE_OVERS:
+        reason = "saves overs: no edge (they lost at every threshold)"
+    elif market == "points" and side == "UNDER" and line >= POINTS_UNDER_MAX - 1e-9:
+        reason = f"points {line:g} unders: the model is overconfident here"
     elif market == "saves" and (edge is None or edge < (SAVES_EDGE_OVER if side == "OVER" else SAVES_EDGE_UNDER) - 1e-9):
         need_e = SAVES_EDGE_OVER if side == "OVER" else SAVES_EDGE_UNDER
         reason = f"edge {edge:+.1f} < {need_e:g}" if edge is not None else "no projection"
+    elif pk is None:
+        reason = "no market price on this line (model-only picks have not won)"
+    elif pk < MKT_MIN - 1e-9:
+        reason = f"market only {100 * pk:.0f}% on this side"
     elif p < need - 1e-9:
-        reason = f"{pct} near miss" if p >= NEAR_MISS_P - 1e-9 else f"{pct} < {100 * need:.0f}%"
+        near = p >= need - NEAR_BAND - 1e-9
+        reason = f"{pct} near miss" if near else f"{pct} < {100 * need:.0f}%"
     elif be is not None and p <= be:
         reason = f"{pct} doesn't beat break-even {100 * be:.1f}%"
     elif pm <= 0.5:
         reason = f"model alone {100 * pm:.0f}% disagrees (market-driven)"
     if reason is None:
-        out.update(verdict=f"TAKE {'MORE' if side == 'OVER' else 'LESS'}", tier="Lock" if p >= LOCK_P - 1e-9 else "Strong")
+        out.update(verdict=f"TAKE {'MORE' if side == 'OVER' else 'LESS'}", tier="Lock" if p >= lock_p(market) - 1e-9 else "Strong")
     else:
         out["reason"] = reason
-        if market != "saves" and NEAR_MISS_P - 1e-9 <= p < need - 1e-9 and matched:
+        if near:
             out["tier"] = "Near miss"
     return out
 
