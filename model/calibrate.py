@@ -265,10 +265,11 @@ def lines_frame(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict
         s["key"] = s.player.map(prizepicks.name_key)
         s = s.drop_duplicates(["date", "key", "team"])
         df["key"] = df.player.map(prizepicks.name_key)
-        m = df[df.market == mk].reset_index().merge(s[["date", "key", "team", "proj", "pos"]], on=["date", "key", "team"],
-                                                  how="inner").set_index("index")
+        m = df[df.market == mk].drop(columns=["pos"], errors="ignore").reset_index().merge(
+            s[["date", "key", "team", "proj", "pos"]], on=["date", "key", "team"], how="inner").set_index("index")
         df.loc[m.index, "p_over"] = [sog.p_over(pj, ln, sog.size_for(pj, prm, ps)) for pj, ln, ps in zip(m.proj, m.line, m.pos)]
         df.loc[m.index, "model_proj"] = m.proj.values
+        df.loc[m.index, "pos"] = m.pos.values
     return df.dropna(subset=["p_over", "actual"] if all_books else ["p_over", "price", "actual"])
 
 
@@ -357,19 +358,40 @@ def realistic_mult(nv_side: float) -> float:
     return 1.0 if nv_side < 0.50 else 0.94 if nv_side < 0.54 else 0.8
 
 
+def mean_blend_p(proj, line, nv_over, prm, pos=None, w=None) -> float:
+    """SOG P(over `line`) from the mean-space blend: (1 - w) x projection + w x the NB mean that reproduces the
+    market's no-vig `nv_over` at that line, priced with the model's dispersion (props_board.score_lines does the same)."""
+    import sog
+    w = pricing.SOG_MEAN_W if w is None else w
+    mu_m = sog.implied_mean(nv_over, line, prm, pos) if nv_over == nv_over and nv_over is not None else None
+    if mu_m is None or proj != proj:
+        return np.nan
+    mu = (1 - w) * float(proj) + w * mu_m
+    return float(sog.p_over(mu, line, sog.size_for(mu, prm, pos)))
+
+
 def rule_record(x: pd.DataFrame, r: pd.DataFrame, mk: str) -> dict:
-    """The live TAKE rule (pricing.verdict: market support, blended p over the bar, model agrees) replayed on the
-    warm walk-forward weeks only, choosing as if each side were a 1x DFS leg, and settled three ways: at DraftKings'
-    own price; as a hypothetical 1x leg (overstates: DFS boards discount these sides); and only where a DFS board
-    would really offer the side at >= 1x (realistic_mult), at that multiplier. Hit rates and ROI carry one SE."""
+    """The live TAKE rule (pricing.verdict: market support, blended p over the bar, model agrees where the market
+    requires it) replayed on the warm walk-forward weeks only, choosing as if each side were a 1x DFS leg, and settled
+    three ways: at DraftKings' own price; as a hypothetical 1x leg (overstates: DFS boards discount these sides); and
+    only where a DFS board would really offer the side at >= 1x (realistic_mult), at that multiplier. Hit rates and
+    ROI carry one SE. SOG uses the live mean blend (p_mb_over) with the raw model as p_model; it fits nothing, so
+    every week counts (its 62% / 55% bars were chosen on these dates: in-sample for the bars)."""
     be1 = pricing.dfs_break_even(1.0)
+    mb = mk == "sog" and "p_mb_over" in x
     picks = []
     for i, row in enumerate(x.itertuples()):
-        if not r.warm.iloc[i] or row.push:
+        if row.push or not (mb or r.warm.iloc[i]):
             continue
         pk = r.p_mkt_over.iloc[i]
-        v = pricing.verdict(mk, r.p_final_over.iloc[i], r.p_cal_over.iloc[i], row.line, row.model_proj, 1.0, 1.0,
-                            p_mkt_over=None if pk != pk else pk)
+        if mb:
+            pf = row.p_mb_over
+            if pf != pf:
+                continue
+            v = pricing.verdict(mk, pf, row.p_over, row.line, row.model_proj, 1.0, 1.0, p_mkt_over=None if pk != pk else pk)
+        else:
+            v = pricing.verdict(mk, r.p_final_over.iloc[i], r.p_cal_over.iloc[i], row.line, row.model_proj, 1.0, 1.0,
+                                p_mkt_over=None if pk != pk else pk)
         if not v["verdict"].startswith("TAKE"):
             continue
         win = bool(row.went_over) == (v["side"] == "OVER")
@@ -387,7 +409,17 @@ def rule_record(x: pd.DataFrame, r: pd.DataFrame, mk: str) -> dict:
                 "real_n": len(real), "roi_real": round(float(np.mean(real)), 4) if real else None}
     return {"all": rec(picks), "over": rec([q for q in picks if q["side"] == "OVER"]),
             "under": rec([q for q in picks if q["side"] == "UNDER"]),
-            "basis": "live TAKE rule, warm walk-forward weeks, DraftKings lines with a pre-game price"}
+            "basis": ("live TAKE rule (50/50 mean blend, no Platt), every week, DraftKings lines with a pre-game price; "
+                      "the 62% / 55% bars were chosen on these dates") if mb else
+                     "live TAKE rule, warm walk-forward weeks, DraftKings lines with a pre-game price"}
+
+
+def _final_buckets(x: pd.DataFrame, r: pd.DataFrame, mk: str, push) -> dict:
+    """Side buckets of the live final probability (SOG: the mean blend, lines where it could be formed)."""
+    if mk == "sog" and "p_mb_over" in x:
+        p = x.p_mb_over.values.astype(float); f = np.isfinite(p)
+        return _side_buckets(p[f], x.went_over.values[f], np.asarray(push, bool)[f])
+    return _side_buckets(r.p_final_over.values, x.went_over.values, push)
 
 
 def _by_side(r: pd.DataFrame, m) -> dict:
@@ -417,6 +449,14 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
     else:
         df["over"] = np.where(df.side_over, df.price, np.nan); df["under"] = np.where(~df.side_over, df.price, np.nan)
     df["wk"] = week_key(df.date)
+    # shots on goal: the live probability is the 50/50 mean-space blend with the DK-implied mean (no Platt, nothing
+    # fitted), so the rule record replays exactly that
+    if sog_prm is not None and pricing.SOG_MEAN_W > 0 and (df.market == "sog").any():
+        df["p_mb_over"] = np.nan
+        prm = _prop_params(sog_prm)
+        m = df[(df.market == "sog") & df.over.notna() & df.under.notna()]
+        df.loc[m.index, "p_mb_over"] = [mean_blend_p(pj, ln, pricing.novig(o, u), prm, ps if isinstance(ps, str) else None)
+                                         for pj, ln, o, u, ps in zip(m.model_proj, m.line, m.over, m.under, m.get("pos", [None] * len(m)))]
     gate = forward_gate(log)
     out["gate"] = gate
     for mk in MARKETS:
@@ -431,10 +471,13 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
         scores = {}
         for name, col in (("raw model", x.p_over.values), ("calibrated model", r.p_cal_over.values),
                           ("DK no-vig", r.p_mkt_over.values), ("blend 0.6 (old)", r.p_fixed_over.values),
-                          ("blend fitted (new)", r.p_final_over.values), ("blend fitted + line intercepts", r.p_line_over.values)):
+                          ("blend fitted (new)", r.p_final_over.values), ("blend fitted + line intercepts", r.p_line_over.values),
+                          *((("mean blend 50/50 (live)", x.p_mb_over.values),) if mk == "sog" and "p_mb_over" in x else ())):
             v = np.asarray(col, float)[wm]
-            scores[name] = {"n": int(wm.sum()), "brier": round(brier(v, yy), 5) if len(v) else None,
-                            "logloss": round(logloss(v, yy), 5) if len(v) else None}
+            f = np.isfinite(v)          # a probability that could not be formed (e.g. no position) is left out, not NaN
+            v, yf = v[f], yy[f]
+            scores[name] = {"n": int(f.sum()), "brier": round(brier(v, yf), 5) if len(v) else None,
+                            "logloss": round(logloss(v, yf), 5) if len(v) else None}
         # tonight's blend weight: refit by log loss on the walk-forward (out-of-sample) calibrated probabilities
         # once there are enough of them, so an in-sample fit can't flatter the model
         ok = wm & ~np.isnan(r.p_mkt_over.values.astype(float))
@@ -495,7 +538,8 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
             "buckets_cal": _buckets(r.p.values[~push], r.win.values[~push]),
             "buckets_side": {"raw": _side_buckets(x.p_over.values, x.went_over.values, push),
                              "calibrated": _side_buckets(r.p_cal_over.values, x.went_over.values, push),
-                             "final": _side_buckets(r.p_final_over.values, x.went_over.values, push)},
+                             # "final" = the probability the board uses: SOG's 50/50 mean blend, else the fitted blend
+                             "final": _final_buckets(x, r, mk, push)},
             "lines": int(len(x)), "from": str(x.date.min()), "to": str(x.date.max()),
             "scores": scores,
             "reliability": {"raw": reliability_side_line(x.p_over.values[wm], x.line.values[wm], x.went_over.values[wm]),

@@ -41,28 +41,28 @@ TRAIN, TEST = 2025, 2026
 class SogParams:
     """Defaults are the fitted values in model/output/sog_params.json (a test keeps them equal)."""
     rate_hl: float = 60.0     # games; half-life of shots/60
-    toi_hl: float = 8.0       # games; half-life of TOI (short, so a role change shows up fast)
-    k_min: float = 100.0      # prior strength for shots/60, in minutes at position average
-    k_toi: float = 1.0        # prior strength for TOI, in games
+    toi_hl: float = 3.0       # games; half-life of TOI (short, so a role change shows up fast)
+    k_min: float = 200.0      # prior strength for shots/60, in minutes at position average
+    k_toi: float = 0.0        # prior strength for TOI, in games
     carry: float = 0.7        # share of last season's evidence kept at a new season
     c_opp: float = 1.0        # weight of the opponent's shots-allowed factor
     home: float = 1.0195      # home multiplier (fitted from residuals)
     disp: float = 12.0        # negative-binomial size when disp_k = 0 (larger = closer to Poisson)
     disp_k: float = 10.0      # size = disp_k x mean when > 0 (variance = mean x (1 + 1/disp_k))
-    b2b: float = 0.9738       # multiplier when the player's team played yesterday
-    opp_b2b: float = 1.0201   # multiplier when the opponent played yesterday
+    b2b: float = 0.9749       # multiplier when the player's team played yesterday
+    opp_b2b: float = 1.0204   # multiplier when the opponent played yesterday
     c_team: float = 0.0       # weight of the player's own team rate (points: team scoring)
-    cal_a: float = -0.1132    # linear recalibration of the mean: proj = cal_a + cal_b x raw
-    cal_b: float = 1.047
+    cal_a: float = -0.1159    # linear recalibration of the mean: proj = cal_a + cal_b x raw
+    cal_b: float = 1.0516
     # dispersion by volume tier and position (fit_props.fit_disp_tiers, MLE on player-games): projection
     # edges of the tiers, and disp_k per tier for forwards / defence. Empty keeps the single disp_k.
     disp_edges: tuple = (1.5, 2.5, 3.5)
-    disp_f: tuple = (8.0, 7.5, 9.0, 5.0)
-    disp_d: tuple = (14.0, 17.5, 7.0, 7.0)
-    # shot-attempt rate (SOG model only; points keeps w_att = 0): rate = (1 - w_att) x SOG rate
+    disp_f: tuple = (8.5, 8.0, 9.0, 4.5)
+    disp_d: tuple = (15.0, 23.5, 5.5, 5.5)
+    # shot-attempt rate (SOG model only; points_params.json sets w_att = 0): rate = (1 - w_att) x SOG rate
     #   + w_att x (attempts per minute, half-life att_hl games, prior k_att minutes at position SOG rate / conv)
     #           x (player's SOG per attempt, half-life conv_hl games, prior k_conv attempts at conv_f / conv_d)
-    w_att: float = 0.0
+    w_att: float = 1.0
     att_hl: float = 30.0
     k_att: float = 100.0
     conv_hl: float = 120.0
@@ -70,8 +70,9 @@ class SogParams:
     conv_f: float = 0.5095    # league SOG / attempt, forwards (previous season)
     conv_d: float = 0.4069    # defence
     # second TOI half-life: exp TOI = toi_lam x (half-life toi_hl) + (1 - toi_lam) x (half-life toi_hl2)
-    toi_hl2: float = 0.0
-    toi_lam: float = 1.0
+    # (points_params.json sets toi_hl2 = 0, toi_lam = 1: one half-life)
+    toi_hl2: float = 24.0
+    toi_lam: float = 0.7
 
     def to_dict(self):
         return asdict(self)
@@ -326,8 +327,10 @@ def p_over(mean, line, size):
 def implied_mean(p_over_target: float, line: float, prm: SogParams, pos: str | None = None,
                  lo: float = 0.02, hi: float = 15.0, steps: int = 60) -> float | None:
     """The negative-binomial mean whose P(over `line`) equals `p_over_target` (e.g. a book's no-vig price), with
-    the model's own dispersion (size_for). P(over) rises with the mean, so this is a bisection. Used to read a
-    market price as a projection that can be priced at any other line."""
+    the model's own dispersion (size_for). P(over) rises with the mean within a dispersion tier, so this is a
+    bisection (the same one the walk-forward review validated). The size steps at the tier edges (disp_edges), so
+    within ~0.2 of an edge two means can reproduce the same price; on lines priced 20-80% they differ by <= ~0.1.
+    Used to read a market price as a projection that can be priced at any other line."""
     if p_over_target is None or not (0.0 < p_over_target < 1.0):
         return None
     f = lambda m: p_over(m, line, size_for(m, prm, pos)) - p_over_target

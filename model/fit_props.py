@@ -31,6 +31,12 @@ REPORTS = os.path.join(HERE, "reports")
 FILES = {"shots_on_goal": "sog_params.json", "points": "points_params.json"}
 GRID = {"rate_hl": [30, 60, 120], "toi_hl": [4, 8, 16], "k_min": [25, 50, 100, 200], "carry": [0.5, 0.7, 0.9],
         "c_opp": [0.5, 1.0], "c_team": [0.0, 0.5, 1.0]}
+# SOG only: shot-attempt rate and the two-scale TOI (walk-forward tested in the sog-projection workflow)
+GRID_SOG = {"w_att": [0.5, 0.75, 1.0], "att_hl": [20, 30, 45, 60], "k_att": [25, 50, 100, 200],
+            "conv_hl": [60, 120, 250, 500], "k_conv": [100, 200, 400, 800],
+            "toi_hl": [3, 4, 5, 6], "toi_hl2": [0.0, 16, 24, 40], "toi_lam": [0.6, 0.7, 0.8, 0.9, 1.0],
+            "k_toi": [0.0, 0.25, 0.5], "k_min": [100, 150, 200, 300, 400], "rate_hl": [40, 60, 90]}
+PASSES = 3
 DISP_K = (3, 5, 7, 10, 15, 20, 30)
 LINES = {"shots_on_goal": (0.5, 1.5, 2.5, 3.5, 4.5), "points": (0.5, 1.5, 2.5)}
 TIER_EDGES = {"shots_on_goal": (1.5, 2.5, 3.5), "points": (0.4, 0.7, 1.0)}
@@ -103,31 +109,57 @@ def score(df, p, season, stat):
 
 def fit_stat(stat, sk, season, log):
     path = os.path.join(OUT, FILES[stat])
-    start = sog.SogParams.load(path) if os.path.exists(path) else sog.SogParams()
+    if os.path.exists(path):
+        start = sog.SogParams.load(path)
+    else:   # the defaults are the SOG fit; points start with the attempt rate and second TOI half-life off
+        start = sog.SogParams() if stat == "shots_on_goal" else sog.SogParams(w_att=0.0, toi_hl2=0.0, toi_lam=1.0)
     start = replace(start, b2b=1.0, opp_b2b=1.0, cal_a=0.0, cal_b=1.0, disp_k=start.disp_k or 10.0,
                     disp_edges=(), disp_f=(), disp_d=())
     prev = season - 1
+    if stat == "shots_on_goal":
+        # league SOG per attempt by position on the previous season (prior of the player's conversion)
+        x = sk[(sk.season == prev) & sk.has_pbp]
+        cf = x[x.pos == "F"]; cd = x[x.pos == "D"]
+        start = replace(start, conv_f=round(float(cf.shots_on_goal.sum() / cf.icf.sum()), 4),
+                        conv_d=round(float(cd.shots_on_goal.sum() / cd.icf.sum()), 4),
+                        w_att=start.w_att or 1.0,
+                        # the two-scale TOI needs toi_hl2 > 0 AND toi_lam < 1 at once: start it switched on so the
+                        # coordinate search can move either (toi_lam = 1.0 in the grid switches it off)
+                        toi_hl2=start.toi_hl2 or 24.0, toi_lam=start.toi_lam if start.toi_lam < 1 else 0.7,
+                        k_toi=0.0)
 
     def run(p):
         df, _ = sog.run(sk, p, record_from=prev - 1, stat=stat)
         return df
 
     def ll(df, p, ss):
-        x = df[df.season == ss]; mu = np.maximum(x.proj.values, .02)
+        """NB log-lik on season ss after refitting proj = a + b x raw there (size = disp_k x mean): the search
+        then compares candidates at their best calibration, which is how they are used."""
+        x = df[df.season == ss]
+        if stat != "shots_on_goal":      # points: unchanged objective (raw projection)
+            mu = np.maximum(x.proj.values, .02)
+            return float(nb_logpmf(x.shots.values, mu, sizes(mu, p)).mean())
+        b, a = np.polyfit(x.raw.values, x.shots.values, 1)
+        mu = np.maximum(a + b * x.raw.values, .02)
         return float(nb_logpmf(x.shots.values, mu, sizes(mu, p)).mean())
 
     p = start
     df = run(p); best = ll(df, p, prev)
     log.append(f"### {stat}\n\nStart: log-lik {best:.5f} on {prev - 1}-{str(prev)[2:]}.\n")
-    for name, vals in GRID.items():
-        for v in vals:
-            cand = replace(p, **{name: v})
-            if cand == p:
-                continue
-            d = run(cand); s = ll(d, cand, prev)
-            if s > best + 1e-5:
-                best, p, df = s, cand, d
-        log.append(f"- {name} = {getattr(p, name)} (log-lik {best:.5f})")
+    grid = {**GRID, **GRID_SOG} if stat == "shots_on_goal" else GRID
+    for it in range(PASSES):
+        changed = False
+        for name, vals in grid.items():
+            for v in vals:
+                cand = replace(p, **{name: v})
+                if cand == p:
+                    continue
+                d = run(cand); s = ll(d, cand, prev)
+                if s > best + 1e-6:
+                    best, p, df, changed = s, cand, d, True
+            log.append(f"- pass {it + 1}: {name} = {getattr(p, name)} (log-lik {best:.5f})")
+        if not changed:
+            break
     # back-to-back effects: projected-vs-actual ratios pooled over earlier seasons
     e = df[df.season < season]
     r = lambda m: e[m].shots.sum() / e[m].raw.sum()

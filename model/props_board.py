@@ -164,6 +164,7 @@ def score_lines(payload, lines) -> list[dict]:
     books = _books_index(payload)
     pquotes = _player_quotes(payload)
     sprm = _prm(payload, "sog")
+    cached = _cached_sources(payload)
     out = []
     for r in lines:
         g = games[r["game"]]; mk = r["market"]
@@ -220,12 +221,35 @@ def score_lines(payload, lines) -> list[dict]:
         v = pricing.verdict(mk, pb, pm, r["line"], proj, r.get("mo"), r.get("mu"), over_p, under_p,
                             matched=row["matched"], confirmed=confirmed, p_mkt_over=pk)
         v["p_model_side"] = v.pop("p_model")
+        # a line or a market price reused from an earlier build (this build's pull failed) is never a TAKE: paired
+        # with tonight's other numbers it can show an edge that no longer exists
+        stale_src = _cached_reason(r, cached, pk is not None)
+        if stale_src and str(v.get("verdict", "")).startswith("TAKE"):
+            v.update(verdict="PASS", tier="", reason=stale_src)
         row.update(proj=round(proj, 3), p_raw=round(po, 4), p_model=round(pm, 4), p_mkt=None if pk is None else round(pk, 4),
                    p_blend=round(pb, 4), w=pricing.blend_w(cal), dk_over=over_p, dk_under=under_p, confirmed=confirmed,
                    mkt_src=mkt_src if pk is not None else None, mu_mkt=None if mu_mkt is None else round(mu_mkt, 3),
+                   mean_blend=mk == "sog" and pricing.SOG_MEAN_W > 0, cached=bool(stale_src),
                    **{k: (round(x, 4) if isinstance(x, float) else x) for k, x in v.items()})
         out.append(row)
     return out
+
+
+def _cached_sources(payload) -> set:
+    """Sources whose lines this build reused from an earlier pull ("fallback") or could not get ("error")."""
+    return {k for k, v in (payload.get("sources") or {}).items() if (v or {}).get("status") in ("fallback", "error")}
+
+
+def _cached_reason(r, cached: set, priced: bool) -> str | None:
+    """Why a row's numbers are not this build's, or None: its own line came from a reused board, or the market
+    price it leans on did (DraftKings and the other books arrive in one Odds API pull)."""
+    import sources
+    src = sources.SOURCE_KEY.get(r.get("source"), "")
+    if src in cached:
+        return f"cached {r.get('source')} line (this build's pull failed): not a play"
+    if priced and "dk" in cached:
+        return "cached market price (this build's odds pull failed): not a play"
+    return None
 
 
 def legacy_choose(rows) -> list[dict]:
@@ -317,9 +341,10 @@ _sidetxt = lambda r: "MORE" if r.get("side") == "OVER" else "LESS"
 
 def sog_class(r) -> tuple[str | None, str]:
     """Where one SOG line belongs before conflicts: "review" (role change, team-inconsistent or ambiguous
-    match), "discount" (the side pays under 1x: hidden from both curated lists, even at 58%+), "Lock" /
-    "Strong" (a valid TAKE at 62%+ / 58-62%), "Near miss" (55-58%, pays >= 1x, the model alone agrees;
-    never a TAKE), or None (below 55%, a side not offered, or failing break-even / model agreement)."""
+    match), "discount" (the side pays under 1x: hidden from both curated lists, even at a high p), "Lock" /
+    "Strong" (a valid TAKE: pricing.lock_p / take_p for SOG), "Near miss" (the verdict's flag: every check met
+    except p, within NEAR_BAND of the bar; never a TAKE), or None (a side not offered, no market support, a
+    cached line, or failing break-even)."""
     if r.get("side") is None or r.get("p") is None:
         return (("review", "unmatched or ambiguous player") if not r.get("matched", True) else (None, r.get("reason") or "no projection"))
     if not r.get("matched", True):
@@ -339,7 +364,7 @@ def sog_class(r) -> tuple[str | None, str]:
     p = float(r["p"])
     if _is_take(r):
         return ("Lock" if p >= pricing.lock_p("sog") - 1e-9 else "Strong"), ""
-    agrees = (r.get("p_model_side") or 0) > 0.5
+    agrees = (r.get("p_model_side") or 0) > 0.5 or not pricing.SOG_MODEL_AGREE
     # near miss = the verdict's own flag: every check met except p, which is within NEAR_BAND of the bar
     if r.get("tier") == "Near miss" and agrees:
         return "Near miss", f"{100 * p:.0f}% near miss"

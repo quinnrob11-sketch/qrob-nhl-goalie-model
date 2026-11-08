@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QRob Goalie Saves</title>
+<title>QRob NHL Props</title>
 <style>
 :root{
   color-scheme: light;
@@ -12,6 +12,10 @@
   --accent:#2a78d6; --accent-soft:#cde2fb;
   --over:#0f7a3d; --over-bg:#e3f4ea; --under:#c23b3a; --under-bg:#fbe7e6;
   --warn:#9a6700; --warn-bg:#fff4d6; --grid:#e8e7e3;
+  /* scale (theme independent): spacing, type, radii */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px;
+  --fs-xs:12px; --fs-s:13px; --fs-m:15px; --fs-l:17px; --fs-xl:22px;
+  --r-card:10px; --r-seg:8px; --r-chip:999px;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -33,10 +37,17 @@
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{padding:20px 16px 0;max-width:1200px;margin:0 auto}
-h1{font-size:22px;margin:0 0 4px}
+header{padding:16px 16px 0;max-width:1200px;margin:0 auto}
+.hd{display:flex;align-items:baseline;gap:var(--sp-2);flex-wrap:wrap}
+h1{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0}
 .sub{color:var(--text-2);font-size:13px}
-nav{display:flex;gap:4px;overflow-x:auto;padding:14px 16px 0;max-width:1200px;margin:0 auto;border-bottom:1px solid var(--border)}
+.searchrow{display:flex;gap:var(--sp-2);align-items:stretch;margin-top:10px;max-width:560px}
+.gear{flex:none;font-size:var(--fs-s);padding:0 12px;white-space:nowrap;border-radius:8px}
+.gear[aria-expanded="true"]{background:var(--surface-2);color:var(--text)}
+#dfsPanel{margin-top:var(--sp-2);font-size:var(--fs-s);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:10px 12px;max-width:760px}
+#dfsPanel .row{gap:10px;align-items:center}
+nav{display:flex;gap:4px;overflow-x:auto;padding:10px 16px 0;max-width:1200px;margin:0 auto;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;background:var(--bg);scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
 nav button{background:none;border:0;border-bottom:2px solid transparent;color:var(--text-2);padding:8px 12px;font:inherit;cursor:pointer;white-space:nowrap}
 nav button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
 main{max-width:1200px;margin:0 auto;padding:16px}
@@ -78,8 +89,8 @@ tr.over{background:var(--over-bg)} tr.under{background:var(--under-bg)} tr.dim t
 .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
 .mk h3{margin:0 0 4px;font-size:14px} .mk .big{font-size:24px;font-weight:650;font-variant-numeric:tabular-nums}
 .mk table td,.mk table th{padding:7px 10px}
-@media (max-width:760px){.grid2{grid-template-columns:1fr}}
-.search{display:block;width:100%;max-width:420px;margin-top:12px;padding:9px 12px;font-size:15px}
+@media (max-width:760px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.search{display:block;flex:1;width:100%;min-width:0;padding:9px 12px;font-size:15px;border-radius:8px}
 code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.5px}
 .gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
 .gc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px}
@@ -89,10 +100,6 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 .statusbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12.5px;color:var(--text-2)}
 .statusbar b{color:var(--text);font-weight:600}
 .statusbar .warn{color:var(--under);font-weight:600}
-.pill.stale{background:var(--under-bg);color:var(--under);font-weight:700}
-.pill.src-fresh{background:var(--over-bg, #e6f4ea);color:var(--over, #137333)}
-.pill.src-bad{background:var(--under-bg);color:var(--under);font-weight:700}
-.stale-note{border-left-color:var(--under)!important;background:var(--under-bg)!important;font-size:14px}
 .statusbar .alarms{flex-basis:100%;display:flex;flex-direction:column;gap:4px}
 .statusbar .alarms div{background:var(--under-bg);border-left:3px solid var(--under);padding:5px 8px;border-radius:5px;color:var(--text)}
 /* filter row */
@@ -105,7 +112,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 .board tbody tr:nth-child(even) td{background:var(--surface-2)}
 .board thead th{position:sticky;top:0;z-index:2;background:var(--surface);user-select:none}
 .board th.sortable:hover{color:var(--text)}
-.board th .arr{font-size:10px;margin-left:3px;color:var(--accent)}
+.board th .arr{font-size:11px;margin-left:3px;color:var(--accent)}
 .board td.num,.board th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .board .pin{position:sticky;left:0;z-index:1;box-shadow:1px 0 0 var(--border)}
 .board thead th.pin{z-index:3}
@@ -115,7 +122,7 @@ code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.
 .diff-sup,.board tr td.diff-sup{color:var(--over);font-weight:600} .diff-neu,.board tr td.diff-neu{color:var(--muted)} .diff-con,.board tr td.diff-con{color:var(--under);font-weight:600}
 .sp{display:inline-block;min-width:52px;text-align:center;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700}
 .sp.OVER{background:var(--over-bg);color:var(--over)} .sp.UNDER{background:var(--under-bg);color:var(--under)} .sp.TEAM{background:var(--accent-soft);color:var(--accent)}
-.capped{display:inline-block;margin-left:4px;font-size:9.5px;color:var(--muted);border:1px dashed var(--border);border-radius:4px;padding:0 3px;vertical-align:1px}
+.capped{display:inline-block;margin-left:4px;font-size:11px;color:var(--muted);border:1px dashed var(--border);border-radius:4px;padding:0 3px;vertical-align:1px}
 .board .empty td{color:var(--muted);text-align:left}
 .warn-inline{color:var(--warn);font-weight:600}
 .board input.lin{width:74px;text-align:right;font-variant-numeric:tabular-nums;padding:5px 7px;font-weight:600}
@@ -147,7 +154,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .kv .wide{flex-basis:100%}
 .alts{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px dashed var(--border)}
 .tm{font-size:11px;color:var(--muted);font-weight:400;margin-left:5px}
-.tier{font-size:10.5px;font-weight:700;color:var(--text-2);margin-left:5px;text-transform:uppercase;letter-spacing:.02em}
+.tier{font-size:11px;font-weight:700;color:var(--text-2);margin-left:5px;text-transform:uppercase;letter-spacing:.02em}
 .sp.ghost{background:transparent;border:1px dashed var(--border);color:var(--text-2)}
 .passtxt{font-size:12px;color:var(--muted)}
 .lbl-s{display:none} .nw{white-space:nowrap}
@@ -159,26 +166,14 @@ details.info>summary::-webkit-details-marker{display:none}
 details.info>summary::before{content:"ⓘ ";}
 details.info[open]>summary{margin-bottom:4px}
 details.info>p{margin:0}
-#cardReview>summary,#statusBox>summary,.settings>summary{cursor:pointer;list-style:none}
-#cardReview>summary::-webkit-details-marker,#statusBox>summary::-webkit-details-marker,.settings>summary::-webkit-details-marker{display:none}
-#cardReview>summary h2{display:inline;margin:0}
-#cardReview>summary::after,#statusBox>summary::after{content:" ▸";color:var(--muted);font-size:12px}
-#cardReview[open]>summary::after,#statusBox[open]>summary::after{content:" ▾"}
-#cardReview[open]>summary{margin-bottom:8px}
+#statusBox>summary{cursor:pointer;list-style:none}
+#statusBox>summary::-webkit-details-marker{display:none}
+#statusBox>summary::after{content:" ▸";color:var(--muted);font-size:12px}
+#statusBox[open]>summary::after{content:" ▾"}
 #statusBox{padding:8px 12px;margin-bottom:12px}
 #statusBox>summary{font-size:13px;color:var(--text-2)}
 #statusBox[open]>summary{margin-bottom:8px}
 #statusBox .statusbar{border:0;padding:0;background:none;margin-bottom:6px}
-.srcline{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;color:var(--text-2);margin:0 2px 10px}
-.srcline b{color:var(--text);font-weight:600}
-.srcline .refresh{padding:3px 10px;font-size:12.5px;margin-left:auto}
-.srcline .refmsg{flex-basis:100%;text-align:right;font-size:12px;color:var(--muted);margin-top:-4px}
-.src .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;background:var(--over)}
-.src.bad .dot{background:var(--under)}
-.src.bad{color:var(--under)}
-.settings{margin-top:8px;font-size:13px}
-.settings>summary{color:var(--text-2);font-size:12.5px}
-.settings>summary::before{content:"⚙ "}
 @media (max-width:760px){
   /* iPhone Safari zooms into any field under 16px and stays zoomed: 16px fields never trigger it */
   input,select,textarea,.board input.lin,.board select.gsel,input[type=search]{font-size:16px!important}
@@ -188,63 +183,215 @@ details.info>p{margin:0}
   .board td.l.pin{max-width:124px;white-space:normal}
   .lbl-l{display:none} .lbl-s{display:inline}
   .board .c-pick{display:none} .board .m-pick{display:block;margin-top:2px;white-space:nowrap}
-  .board .m-pick .sp{font-size:10px} .board .m-pick .passtxt{font-size:11px}
+  .board .m-pick .sp{font-size:11px} .board .m-pick .passtxt{font-size:11px}
   .board select.gsel{max-width:114px!important;padding:4px 2px}
-  .board .cell2{font-size:10.5px}
+  .board .cell2{font-size:11px}
   .board .tier{display:block;margin:2px 0 0}
   .board td .sp{min-width:0;padding:1px 7px}
   .board .tm{display:block;margin:1px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
   .board td.l.pin .cell2,.board td.l.pin>div{white-space:normal}
   .board{border-radius:6px}
   h2{font-size:16px}
+  h1{font-size:var(--fs-l)}
+  header{padding:12px 10px 0}
+  nav{padding:6px 6px 0}
+  nav button{padding:8px 10px}
 }
+/* ---------- source strip (Board and SOG): one line, dot + age + rows per book, then Updated + refresh ---------- */
+/* tabular numerals on number columns only: in running text this font widens hyphens */
+.x-src,.x-bet,.x-pcol,.x-game,.x-bookc,.x-projc,.x-needc,.x-edgec,.x-ladder,.x-chip .n,.x-sec .n,.stat .v,.mk .big{font-variant-numeric:tabular-nums}
+.x-src{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-1) var(--sp-3);font-size:var(--fs-s);color:var(--text-2);margin:0 0 var(--sp-3);min-height:30px}
+.x-src .s{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:default}
+.x-src .d{width:8px;height:8px;border-radius:50%;background:var(--over);flex:none}
+.x-src .s.is-old .d{background:var(--warn)}
+.x-src .s.is-off .d{background:var(--under)}
+.x-src .n{color:var(--muted)}
+.x-src .upd{margin-left:auto;display:inline-flex;align-items:center;gap:var(--sp-2);white-space:nowrap}
+.x-src .refresh{font-size:var(--fs-s);padding:3px 10px;min-height:30px}
+.x-refmsg{font-size:var(--fs-xs);color:var(--muted);text-align:right;margin:-6px 0 var(--sp-3)}
+.hd-upd{display:none;margin-left:auto;align-items:center;gap:var(--sp-2);font-size:var(--fs-s);color:var(--text-2);white-space:nowrap;align-self:center}
+.hd-upd .refresh{font-size:var(--fs-s);padding:2px 10px;min-height:30px}
+@media (max-width:760px){ .hd-upd{display:inline-flex} .x-src .upd{display:none} }
+.x-alert{background:var(--warn-bg);border-radius:8px;padding:var(--sp-2) var(--sp-3);font-size:var(--fs-s);margin:0 0 var(--sp-3);color:var(--text)}
+/* ---------- sections and lists ---------- */
+.x-sec{margin:0 0 var(--sp-5)}
+.x-sec>h3,.x-sec>summary{display:flex;align-items:baseline;gap:var(--sp-2);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--text-2);margin:0 0 var(--sp-2);font-weight:700}
+.x-sec .n{color:var(--muted);font-weight:600;letter-spacing:0}
+.x-sec .r{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400}
+details.x-sec>summary{cursor:pointer;list-style:none;min-height:24px}
+details.x-sec>summary::-webkit-details-marker{display:none}
+details.x-sec>summary::before{content:"▸";color:var(--muted)}
+details.x-sec[open]>summary::before{content:"▾"}
+.x-link{font:inherit;font-size:var(--fs-s);color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:400}
+.x-link:hover{text-decoration:underline}
+.x-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden}
+.x-empty{font-size:var(--fs-s);color:var(--text-2);padding:var(--sp-3) var(--sp-4);background:var(--surface);border:1px dashed var(--border);border-radius:var(--r-card)}
+.x-empty .x-link{margin-left:var(--sp-1)}
+.x-more{display:block;width:100%;font:inherit;font-size:var(--fs-s);background:none;border:0;border-top:1px solid var(--border);color:var(--accent);padding:12px;cursor:pointer}
+/* ---------- the pick row: one component for every pick list; phone = 3-line card, >= 1000px = one aligned grid ---------- */
+.x-row{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--sp-3);row-gap:1px;padding:10px var(--sp-3) 10px 15px;border-top:1px solid var(--border);cursor:pointer;align-items:center;-webkit-tap-highlight-color:transparent}
+.x-cols+.x-row{border-top:0}
+.x-row:hover,.x-row[aria-expanded="true"]{background:var(--surface-2)}
+.x-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.x-row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:transparent}
+.x-row.t-lock::before{background:var(--over)}
+.x-row.t-strong::before{background:var(--over);opacity:.45}
+.x-row.t-near::before{background:var(--warn)}
+.x-row.t-check::before{background:var(--warn);opacity:.6}
+.x-who{grid-column:1;grid-row:1;display:flex;align-items:baseline;gap:6px;min-width:0}
+.x-name{font-size:var(--fs-m);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.x-meta{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.x-flag{font-size:var(--fs-xs);color:var(--warn);font-weight:700;white-space:nowrap;flex:none}
+.x-bet{grid-column:1;grid-row:2;display:flex;align-items:baseline;gap:6px;font-size:var(--fs-s);color:var(--text-2);min-width:0;white-space:nowrap;overflow:hidden}
+.x-side{font-weight:700;color:var(--text);letter-spacing:.01em}
+.x-side .ar{display:inline-block;margin-right:4px;font-size:.85em}
+.x-book b{font-weight:600;color:var(--text)}
+.x-stale{color:var(--under);font-weight:600;white-space:nowrap}
+.x-mk{font-size:11px;font-weight:700;color:var(--text-2);border:1px solid var(--border);border-radius:4px;padding:0 4px;line-height:15px;letter-spacing:.02em}
+.x-ctx{grid-column:1;grid-row:3;font-size:var(--fs-xs);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.df.against{color:var(--under)}
+.x-pcol{grid-column:2;grid-row:1 / span 3;display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right}
+.x-p{font-size:var(--fs-l);font-weight:700;line-height:1.1}
+.x-row.t-pass .x-p,.x-row.t-check .x-p{color:var(--text-2);font-weight:600}
+.x-needs{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.x-tier{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:var(--r-chip);padding:1px 8px;line-height:16px;white-space:nowrap}
+.x-tier.lock{background:var(--over);color:var(--surface)}
+.x-tier.strong{background:var(--over-bg);color:var(--over)}
+.x-tier.near{border:1px solid var(--warn);color:var(--warn);padding:0 7px}
+.x-tier.check{border:1px dashed var(--warn);color:var(--warn);padding:0 7px}
+.x-cols,.x-tcol,.x-game,.x-bookc,.x-projc,.x-needc,.x-edgec,.x-chev,.x-d-only{display:none}
+.x-tcol,.x-game,.x-bookc,.x-projc,.x-needc,.x-edgec,.x-chev{font-size:var(--fs-s);color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.x-bookc b{color:var(--text);font-weight:600}
+.x-chev{color:var(--muted);transition:transform .15s;overflow:visible;font-size:var(--fs-m);line-height:1}
+.x-row[aria-expanded="true"] .x-chev{transform:rotate(90deg)}
+.x-edgec.pos{color:var(--over);font-weight:600}
+.x-projc .df{color:var(--muted);margin-left:4px}
+.x-projc .df.against{color:var(--under)}
+.x-pass{font-size:var(--fs-xs);color:var(--muted)}
+@media (min-width:1000px){
+  .x-cols,.x-row{grid-template-columns:70px minmax(140px,2fr) minmax(112px,1.1fr) 128px minmax(118px,1.2fr) 80px 52px 72px 50px 12px;column-gap:10px}
+  .x-cols{display:grid;padding:8px var(--sp-3) 8px 15px;font-size:var(--fs-xs);color:var(--text-2);font-weight:600;border-bottom:1px solid var(--border)}
+  .x-cols .num{text-align:right}
+  .x-row{grid-template-rows:auto;row-gap:0;min-height:48px;padding:8px var(--sp-3) 8px 15px}
+  .x-row>*{grid-row:1!important}
+  .x-row .x-tcol{grid-column:1;display:block}
+  .x-row .x-who{grid-column:2;flex-wrap:wrap;column-gap:6px;row-gap:0}
+  .x-row .x-who .x-meta{flex-basis:100%}
+  .x-row .x-game{grid-column:3;display:block}
+  .x-row .x-bet{grid-column:4}
+  .x-row .x-bookc{grid-column:5;display:block}
+  .x-row .x-projc{grid-column:6;display:block;text-align:right}
+  .x-row .x-pcol{grid-column:7;display:block}
+  .x-row .x-needc{grid-column:8;display:block;text-align:right}
+  .x-row .x-edgec{grid-column:9;display:block;text-align:right}
+  .x-row .x-chev{grid-column:10;display:block}
+  .x-row .x-m-only{display:none!important}
+  .x-row .x-d-only{display:block}
+  .x-row .x-p{font-size:var(--fs-m)}
+}
+/* ---------- the panel under a row (tap to open) ---------- */
+.x-det{display:none;padding:var(--sp-2) var(--sp-4) var(--sp-4) 15px;background:var(--surface-2);border-top:1px solid var(--border);font-size:var(--fs-s);color:var(--text);cursor:default}
+.x-row[aria-expanded="true"]+.x-det{display:block}
+.x-why{font-size:var(--fs-m);font-weight:600;margin:var(--sp-1) 0 var(--sp-2)}
+.x-why .muted{font-weight:400;color:var(--text-2)}
+.x-sum{font-size:var(--fs-m);margin:0 0 var(--sp-3);color:var(--text-2)}
+.x-sum b{color:var(--text)} .x-sum b.good{color:var(--over)}
+.x-kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-2) var(--sp-3);margin:0 0 var(--sp-3)}
+@media (min-width:1000px){ .x-kv{grid-template-columns:repeat(7,minmax(0,1fr))} }
+.x-kv div{display:flex;flex-direction:column;min-width:0}
+.x-kv i{font-style:normal;font-size:var(--fs-xs);color:var(--muted)}
+.x-kv b{font-weight:600;overflow-wrap:anywhere}
+.x-l10{position:relative;display:flex;gap:3px;align-items:flex-end;height:34px;width:max-content;margin:2px 0 var(--sp-1)}
+.x-l10 span{width:14px;background:var(--grid);border-radius:2px 2px 0 0}
+.x-l10 span.ov{background:var(--accent)}
+.x-l10 .ln{position:absolute;left:-3px;right:-3px;border-top:1px dashed var(--text-2);opacity:.75}
+#betRules,#boardBox,#editBox{scroll-margin-top:56px}
+.x-l10cap{font-size:var(--fs-xs);color:var(--text-2);margin-bottom:var(--sp-3)}
+.x-ladder{width:100%;max-width:560px;border-collapse:separate;border-spacing:0;font-size:var(--fs-s);margin:0 0 var(--sp-3);background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.x-ladder th{font-size:var(--fs-xs);color:var(--muted);font-weight:600;text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);position:static;background:var(--surface);cursor:default}
+.x-ladder td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface)}
+.x-ladder tr:last-child td{border-bottom:0}
+.x-ladder .l,.x-ladder th:first-child,.x-ladder td:first-child{text-align:left}
+.x-ladder tr.cur td{font-weight:700}
+.x-ladder td.call{color:var(--text-2);text-align:left}
+.x-ladder td.call.take{color:var(--over);font-weight:700}
+.x-ladder .src{font-size:11px;color:var(--muted);font-weight:600}
+.x-note{font-size:var(--fs-xs);color:var(--text-2);margin:var(--sp-1) 0 0}
+.x-warn{color:var(--warn);font-weight:600}
+.x-own{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px dashed var(--border);font-size:var(--fs-s)}
+.x-own b{font-weight:600}
+.x-own input{width:76px}
+.x-own label{flex-direction:row;align-items:center;gap:4px;font-size:var(--fs-s);color:var(--text-2)}
+.x-own .x-note{flex-basis:100%;margin:0}
+@media (max-width:760px){ .x-own>b{flex-basis:100%} .x-own input{width:62px} .x-own select{width:68px;padding:5px 4px} }
+@media (max-width:999px){ .x-ladder th,.x-ladder td{padding:6px} }
+/* ---------- SOG tab: header, record, filters ---------- */
+.x-head{display:flex;align-items:baseline;gap:var(--sp-2);flex-wrap:wrap;margin:0 0 var(--sp-1)}
+.x-head h2{font-size:var(--fs-xl);margin:0;font-weight:700;letter-spacing:-.01em}
+.x-head .x-date{color:var(--text-2);font-size:var(--fs-m)}
+.x-head .x-link{margin-left:auto}
+.x-record{font-size:var(--fs-s);color:var(--text-2);margin:0 0 var(--sp-3)}
+.x-chips{display:flex;gap:var(--sp-2);overflow-x:auto;padding:2px 0 var(--sp-1);margin:0 0 var(--sp-2);scrollbar-width:none}
+.x-chips::-webkit-scrollbar{display:none}
+.x-chip{flex:none;font:inherit;font-size:var(--fs-s);border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:var(--r-chip);padding:6px 12px;cursor:pointer;white-space:nowrap;min-height:32px}
+.x-chip .n{color:var(--muted);margin-left:4px}
+.x-chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.x-chip.on .n{color:var(--bg);opacity:.7}
+.x-filters{display:flex;gap:var(--sp-2) var(--sp-3);flex-wrap:wrap;align-items:center;margin:0 0 var(--sp-4)}
+.x-seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--r-seg);overflow:hidden;background:var(--surface)}
+.x-seg button{font:inherit;font-size:var(--fs-s);border:0;background:none;color:var(--text-2);padding:6px 12px;cursor:pointer;min-height:32px;white-space:nowrap}
+.x-seg button+button{border-left:1px solid var(--border)}
+.x-seg button.on{background:var(--surface-2);color:var(--text);font-weight:600}
+.x-sort{font-size:var(--fs-s);color:var(--text-2);display:inline-flex;flex-direction:row;gap:6px;align-items:center}
+.x-sort select{font-size:var(--fs-s);padding:4px 8px}
+@media (max-width:760px){ .x-filters{gap:var(--sp-2)} .x-seg button{padding:6px 10px} }
 </style>
 </head>
 <body>
 <header>
-  <h1>QRob Goalie Saves Model</h1>
-  <div class="sub" id="meta"></div>
-  <input type="search" id="q" class="search" placeholder="Search goalie or team (e.g. Hart, VGK)" aria-label="Search goalie or team" autocomplete="off">
-  <details class="settings"><summary>Pick'em payout <span id="dfsSum"></span></summary>
-  <div class="row" style="margin-top:8px;font-size:13px;gap:10px;align-items:center">
-    <span class="muted">DFS pick'em entry:</span>
-    <label style="flex-direction:row;align-items:center;gap:4px"><input type="number" id="dfsLegs" min="2" max="8" step="1" style="width:52px"> legs</label>
-    <label style="flex-direction:row;align-items:center;gap:4px">paying <input type="number" id="dfsPay" min="1" step="0.25" style="width:64px">x</label>
-    <span id="dfsBE" class="muted"></span>
-    <label style="flex-direction:row;align-items:center;gap:4px"><input type="checkbox" id="dfsSub"> allow sub-1x sides</label>
-  </div></details>
+  <div class="hd"><h1>QRob NHL Props</h1><span class="sub" id="meta"></span><span class="hd-upd" id="hdUpd"></span></div>
+  <div class="searchrow">
+    <input type="search" id="q" class="search" placeholder="Search player or team" aria-label="Search player or team" autocomplete="off">
+    <button type="button" class="ghost gear" id="dfsBtn" aria-expanded="false" aria-controls="dfsPanel" title="Pick'em payout">⚙<span class="lbl-l"> Pick'em <span id="dfsSum"></span></span></button>
+  </div>
+  <div id="dfsPanel" hidden>
+    <div class="row">
+      <b>Your pick'em entry</b>
+      <label style="flex-direction:row;align-items:center;gap:4px"><input type="number" id="dfsLegs" min="2" max="8" step="1" style="width:56px"> legs</label>
+      <label style="flex-direction:row;align-items:center;gap:4px">paying <input type="number" id="dfsPay" min="1" step="0.25" style="width:68px">x</label>
+      <label style="flex-direction:row;align-items:center;gap:4px"><input type="checkbox" id="dfsSub"> allow sub-1x sides</label>
+    </div>
+    <p class="muted" id="dfsBE" style="margin:6px 0 0"></p>
+  </div>
 </header>
 <nav id="tabs">
   <button data-t="proj" class="on">Board</button>
+  <button data-t="sogt">SOG</button>
   <button data-t="res">Results</button>
   <button data-t="cal">Calibration</button>
-  <button data-t="win">Game Winners</button>
-  <button data-t="sogt">SOG Props</button>
+  <button data-t="win">Winners</button>
   <button data-t="bt">Backtest</button>
-  <button data-t="track">Tracker &amp; Slip</button>
+  <button data-t="track">Tracker</button>
   <button data-t="goalies">Goalies</button>
   <button data-t="teams">Teams</button>
-  <button data-t="logic">Model Logic</button>
+  <button data-t="logic">Logic</button>
 </nav>
 <main>
 <section id="proj" class="on">
   <div id="srcBar"></div>
-  <div id="alarmBox"></div><div id="feedAlert"></div>
+  <div id="alarmBox"></div>
+  <div id="preNote"></div>
+  <div class="x-sec" id="cardPlays"><h3>Today's plays <span class="n" id="nPlays"></span><span class="r"><button type="button" class="x-link js-rules">How picks work</button></span></h3>
+    <div id="playsBox"></div></div>
+  <div class="x-sec" id="cardNear"><h3>Near miss <span class="n" id="nNear"></span><span class="r" id="nearNote"></span></h3>
+    <div id="nearBox"></div></div>
+  <details class="x-sec" id="cardReview"><summary>Check before betting <span class="n" id="nReview"></span></summary>
+    <div id="reviewBox"></div></details>
   <details class="card" id="statusBox"><summary>Data status</summary>
     <div class="statusbar" id="statusBar"></div>
     <div id="feedBanner"></div></details>
-  <div id="preNote"></div>
-  <div class="card" id="cardPlays" style="border:2px solid var(--accent)"><h2>Today's plays <span class="muted" id="nPlays" style="font-weight:400;font-size:13px"></span></h2>
-    <p class="sub" style="margin:-4px 0 8px">Only TAKE legs: blended p 58%+ (saves: calibrated p 58%+ and a 2.5-save edge over / 3.0 under), at 1x or better, beating that multiplier's break-even, the player matched, and the model alone leaning the same way. SOG: <b>Lock</b> 62%+, <b>Strong</b> 58–62%, at most one line per player per game (ranked by tier, then p, then EV; a line that loses a teammate conflict falls back to his next-best line). Sub-1x discount sides never appear here. ⚠ = conflicts with another leg on the slate.</p>
-    <div id="playsBox"></div></div>
-  <div class="card" id="cardNear"><h2>Near miss (55–58%) <span class="muted" id="nNear" style="font-weight:400;font-size:13px"></span></h2>
-    <p class="sub" style="margin:-4px 0 8px">SOG sides at 55–58% blended p, paying 1x or better, with the model alone leaning the same way. Never a TAKE; shown so a board with 0 plays still shows what came close.</p>
-    <div id="nearBox"></div></div>
-  <details class="card" id="cardReview"><summary><h2>Needs review</h2> <span class="muted" id="nReview" style="font-weight:400;font-size:13px"></span></summary>
-    <p class="sub" style="margin:-4px 0 8px">Kept out of both play lists: role changes (old line → new line), and names that matched no player, more than one player, or a player on a different team than the board says.</p>
-    <div id="reviewBox"></div></details>
   <div class="filters card" style="padding:10px 12px">
-    <label>Market<select id="fMk"><option value="">All</option><option value="saves">Saves</option><option value="sog">SOG</option><option value="points">Points</option><option value="win">Winners</option></select></label>
+    <label>Market<select id="fMk"><option value="">All</option><option value="saves">Saves</option><option value="points">Points</option><option value="win">Winners</option></select></label>
     <label>Side<select id="fSide"><option value="">Both</option><option>OVER</option><option>UNDER</option></select></label>
     <label>Min probability %<input type="number" id="fMinP" value="55" step="1" min="0" max="100" style="width:70px"></label>
     <label class="chk"><input type="checkbox" id="f60"> 60%+ only</label>
@@ -255,12 +402,11 @@ details.info>p{margin:0}
     <p class="sub" style="margin:-4px 0 8px">Games that have started are off the board. Their legs, as called before puck drop, with the stat so far: an over is a HIT as soon as it clears the line; an under is decided at the final.</p>
     <label class="chk" style="flex-direction:row;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="liveAll"> all legs (not just TAKEs)</label>
     <div class="board"><table id="liveT"></table></div></div>
-  <div class="card" id="cardRank"><h2>Every prop: raw projections, one call each <span class="muted" id="nRank" style="font-weight:400;font-size:13px"></span></h2>
-    <p class="sub" style="margin:-4px 0 8px">Every posted line ends in <b>TAKE MORE</b>, <b>TAKE LESS</b> or <b>PASS</b> with the reason. TAKE tiers: <b>Lock</b> 62%+, <b>Strong</b> 58–62%; 55–58% is PASS (near miss). <b>Blended p</b> = fitted weight × model + (1 − weight) × DraftKings no-vig on the same line (the weight is fitted by log loss on graded lines and shrunk when the model's record against the market is below break-even; Calibration tab). <b>Model p</b> = the calibrated model alone. <b>vs break-even</b> = blended p − the multiplier's break-even. A player's other lines are listed greyed under his main one (↳ alt). Lines: the Pick6 board the build pulls, DraftKings where Pick6 doesn't list the player, then yours.</p>
+  <div class="card" id="cardRank"><h2>Points &amp; saves: every line <span class="muted" id="nRank" style="font-weight:400;font-size:13px"></span></h2>
+    <p class="sub" style="margin:-4px 0 8px">Every posted points and saves line ends in <b>TAKE MORE</b>, <b>TAKE LESS</b> or <b>PASS</b>; tap a row for the reason. <b>p</b> = the calibrated model blended with the market's no-vig price on the same line (the weight is fitted on graded lines; Calibration tab). <b>Model</b> = the calibrated model alone, <b>Market</b> = the no-vig price, <b>vs break-even</b> = p minus the price's break-even. A player's other lines are listed under his main one. Shots on goal are on the SOG tab.</p>
     <label class="chk" style="flex-direction:row;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="fRule"> TAKE only</label>
     <div class="board"><table id="bRank"></table></div><div id="rankMore"></div></div>
   <div class="card" id="cardSaves"><h2>Saves <span class="muted" id="nSaves" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSaves"></table></div></div>
-  <div class="card" id="cardSog"><h2>SOG raw projections <span class="muted" id="nSog" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSog"></table></div></div>
   <div class="card" id="cardPts"><h2>Points <span class="muted" id="nPts" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bPts"></table></div></div>
   <div class="card" id="cardWin"><h2>Winners <span class="muted" id="nWin" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bWin"></table></div>
     <p class="sub" style="margin:8px 0 0">Line = the DraftKings moneyline for the pick, Proj = the model's fair price, Diff = model win % − no-vig market % (points).</p></div>
@@ -340,26 +486,8 @@ details.info>p{margin:0}
 </section>
 
 <section id="sogt">
-  <div class="card"><h2>Shots on goal props</h2>
-    <p class="sub" id="sogNote"></p>
-    <div class="row" style="margin-bottom:10px">
-      <label>Game<select id="sGame"><option value="">All games</option></select></label>
-      <label>Position<select id="sPos"><option value="">All</option><option value="F">Forwards</option><option value="D">Defense</option></select></label>
-      <label>Min EV %<input type="number" id="sMinP" value="2" step="1" min="0"></label>
-      <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="sPlays"> Plays only</label>
-      <label>Players per team<select id="sTop"><option>8</option><option>12</option><option value="99">All</option></select></label>
-    </div>
-    <div class="tbl"><table id="sogT"></table></div>
-  </div>
-  <div class="card"><h2>Backtest</h2>
-    <div class="stats" id="sogStats" style="margin-bottom:12px"></div>
-    <div class="note"><b>No proven edge yet.</b> Against 475 real PrizePicks SOG lines from the 2026 playoffs, the model hit about 51–54%, roughly break-even. Against stand-in lines the same model hits 63–70%, so stand-in backtests badly overstate what real lines allow. Use this tab to read matchups, and trust only picks your Tracker proves out.</div>
-    <h3>Real PrizePicks lines, 2026 playoffs</h3>
-    <div class="tbl"><table id="sogReal"></table></div>
-    <h3>Stand-in lines, 2025-26 (out-of-sample)</h3>
-    <p class="sub">Each player's line is the x.5 closest to a 50/50 over for his last-10 average, which is how a naive book would set it. Real lines are sharper, so treat these as a ceiling.</p>
-    <div class="tbl"><table id="sogProxy"></table></div>
-  </div>
+  <div id="sogSrc"></div>
+  <div id="sogBox"></div>
 </section>
 
 <section id="bt">
@@ -425,10 +553,10 @@ details.info>p{margin:0}
       <li><b>Home, playoff and back-to-back:</b> multipliers measured from 2024-25 shot volume.</li>
       <li><b>Between seasons:</b> team shot rates keep <span class="carry"></span> of last year's weight, because rosters turn over. Early-season numbers lean on the league average and firm up after about 15 games.</li>
     </ul>
-    <h3>Bet rules (your markers)</h3>
+    <h3 id="betRules">How picks work</h3>
+    <ul id="ruleList"></ul>
     <ul>
-      <li>Every prop ends in one call: <b>TAKE MORE</b>, <b>TAKE LESS</b> or <b>PASS</b> (with the reason). Shots and points: blended p <b>58%+</b>, at <b>1x or better</b>, beating that multiplier's break-even, the player matched to his NHL id, and the model alone leaning the same way. Saves: a bias-corrected edge of <b>2.5+</b> saves over (<b>3.0+</b> under, until unders are shown calibrated) and calibrated p 58%+. Lock 62%+, Strong 58–62%, 55–58% is PASS (near miss). The thresholds are settings in model/pricing.py, and the audit backtest reports how 1.5 / 2.0 / 2.5 / 3.0 saves edges would have done.</li>
-      <li>Green rows are OVER, red rows are UNDER.</li>
+      <li>In the saves, points and winners tables, green rows are OVER and red rows are UNDER. Pick rows (Today's plays, the SOG tab) use colour only for status: a green bar is a play, amber is a near miss or something to check.</li>
       <li><b>Confirm the starter</b> (morning skate or warmups) before locking. Every projection is for the goalie shown.</li>
       <li>Overtime inflates raw saves past the per-60 projection. In a tight, high-event series, lean OVER on close calls.</li>
       <li>Play-by-play extras (GSAx/60, rebound%, block%, CF%, xGF%) are on the Goalies and Teams tabs for reading a matchup. MoneyPuck xGoals, GSAx, unblocked attempts and high-danger rates were tested walk-forward on this season and did not beat the current projection, so they stay out of the formula. The build cross-checks NHL shots, saves and time on ice against MoneyPuck and stops if they diverge.</li>
@@ -659,33 +787,45 @@ const BUILD_AGE_H = (Date.now() - builtAt) / 36e5;
 // ---------- market-line freshness: real Pick6 / DraftKings fetch times (never the build time) ----------
 const STALE_MIN = D.stale_min ?? 20, SRC = D.sources || {};
 const lineAge = at => { const t = Date.parse(at || ""); return isNaN(t) ? null : (Date.now() - t) / 6e4; };
-const srcStale = s => !s || s.status === "error" || lineAge(s.fetched_at) == null || lineAge(s.fetched_at) > STALE_MIN;
 const rowSrc = r => r.source === "Pick6" ? SRC.pick6 : r.source === "DraftKings" ? SRC.dk : r.source === "PrizePicks" ? (PP_FETCHED_AT ? {status: "fresh", fetched_at: PP_FETCHED_AT} : SRC.pp) : null;
 const lineTm = at => { const t = new Date(at); return isNaN(t) ? "–" : ctFmt(t, {hour: "numeric", minute: "2-digit"}); };
 const lineCT = at => { const t = new Date(at); return isNaN(t) ? "–" : ctFmt(t, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}) + " CT"; };
+// a line's age as text: "7m", "2.6h"
+const ageTx = a => a == null ? "" : a < 60 ? Math.max(0, Math.round(a)) + "m" : (a / 60).toFixed(a < 600 ? 1 : 0) + "h";
+const rowAge = r => lineAge(r.fetched_at || (rowSrc(r) || {}).fetched_at);
+const rowStale = r => { const a = rowAge(r); return a != null && a > STALE_MIN; };
 function staleBadge(r){
   const s = rowSrc(r); if (!s) return "";
-  const a = lineAge(r.fetched_at || s.fetched_at), old = a == null || a > STALE_MIN;
-  return (old ? ` <span class="pill stale" title="This line was fetched ${a == null ? "at an unknown time" : Math.round(a) + " min ago"}; the price may have moved">STALE${a == null ? "" : " " + Math.round(a) + "m"}</span>` : "") +
-    (s.status === "fallback" ? ` <span class="pill stale" title="This build's pull failed; last good ${r.source} lines">fallback</span>` : "");
+  const a = rowAge(r);
+  return a != null && a > STALE_MIN ? ` <span class="x-stale" title="Line fetched ${ageTx(a)} ago${s.status === "fallback" ? " (this build's pull failed; last good lines)" : ""}; the price may have moved">⏱${ageTx(a)}</span>` : "";
 }
-function renderSources(){
-  const one = (name, s) => {
-    if (!s) return `<span class="src bad"><i class="dot"></i>${name} not reported</span>`;
-    const a = lineAge(s.fetched_at), ok = s.status === "fresh" && !srcStale(s);
+// the rows each tab shows (set when it renders): the source strip counts them and checks their age
+const SHOWN = {board: [], sog: []};
+// one line per tab: a dot per book (green fresh, amber older than STALE_MIN, red off), its age and the rows it
+// supplies, then the build time and the Refresh button. One calm notice when a displayed line is stale.
+function srcStrip(rows){
+  const one = (name, short, s, key) => {
+    const n = rows.filter(r => bookKey(r.source) === key).length;
+    if (!s && !n) return "";
+    s = s || {status: "fresh"};
+    const a = lineAge(s.fetched_at), off = s.status === "error" || (s.status === "fallback" && !n), old = a == null || a > STALE_MIN;
     const st = s.status === "error" ? (/403|block/i.test(s.error || "") ? "blocked" : "error") : s.status;
-    const tip = `${name}: ${st}${s.fetched_at ? ", fetched " + lineCT(s.fetched_at) : ""}${s.error ? " (" + String(s.error).replace(/"/g, "'") + ")" : ""}`;
-    return `<span class="src ${ok ? "ok" : "bad"}" title="${tip}"><i class="dot"></i>${name} ${s.fetched_at ? `<b>${lineTm(s.fetched_at)}</b> · ${Math.round(a)}m` : ""}${st !== "fresh" ? ` <b>${st}</b>` : ""}</span>`;
+    const tip = `${name}: ${st}${s.fetched_at ? ", fetched " + lineCT(s.fetched_at) : ""}${s.error ? " (" + s.error + ")" : ""}${n ? `, ${n} line${n === 1 ? "" : "s"} shown` : ""}`;
+    const label = `<span class="lbl-l">${name}</span><span class="lbl-s">${short}</span>`;
+    return `<span class="s${off ? " is-off" : old ? " is-old" : ""}" title="${esc(tip)}"><i class="d"></i>${label} ${off ? "off" : ageTx(a)}${n && !off ? `<span class="n"> · ${n}</span>` : ""}</span>`;
   };
-  const ppS = PP_FETCHED_AT ? {status: "fresh", fetched_at: PP_FETCHED_AT, error: null, live: true} : SRC.pp;
-  const stale = [["Pick6", SRC.pick6], ["DraftKings", SRC.dk], ...(ppS && ppS.status !== "error" ? [["PrizePicks", ppS]] : [])].filter(([, s]) => srcStale(s));
-  const ba = (Date.now() - builtAt) / 6e4;
-  $("#srcBar").innerHTML = (stale.length ? `<div class="note stale-note"><b>⚠ STALE LINES:</b> ${stale.map(([n, s]) => {
-      const a = s && lineAge(s.fetched_at); return `${n} ${!s || !s.fetched_at ? "has no lines from any pull" : `lines are ${Math.round(a)} min old (fetched ${lineCT(s.fetched_at)}${s.status === "fallback" ? ", fallback: this build's pull failed" : ""})`}`; }).join("; ")}.
-      Older than ${STALE_MIN} min: multipliers and prices may have moved. Check the line on the app before betting; affected rows are marked <span class="pill stale">STALE</span>.</div>` : "") +
-    `<div class="srcline">${one("Pick6", SRC.pick6)}${one("DraftKings", SRC.dk)}${SRC.pp || PP_FETCHED_AT ? one("PrizePicks", ppS) : ""}<span>Built <b>${isNaN(builtAt) ? D.built : lineTm(builtAt)}</b>${isNaN(ba) ? "" : ` · ${Math.round(ba)}m ago`} CT</span>` +
-    `<button class="ghost refresh" id="refreshBtn" ${REFRESH.busy ? "disabled" : ""}>${REFRESH.busy ? "Checking…" : "↻ Refresh"}</button>` +
-    (REFRESH.msg ? `<span class="refmsg">${REFRESH.msg}</span>` : "") + `</div>`;
+  const ppS = PP_FETCHED_AT ? {status: "fresh", fetched_at: PP_FETCHED_AT} : SRC.pp;
+  const stale = rows.some(rowStale);
+  return `<div class="x-src">${one("Pick6", "Pick6", SRC.pick6, "Pick6")}${one("PrizePicks", "PrizePicks", ppS, "PrizePicks")}${one("DraftKings", "DK", SRC.dk, "DraftKings")}` +
+    `<span class="upd">${updTx("Updated ")}</span></div>` +
+    (REFRESH.msg ? `<div class="x-refmsg">${REFRESH.msg}</div>` : "") +
+    (stale ? `<div class="x-alert">⏱ Some lines are older than ${STALE_MIN} min. Check the price in the app before betting.</div>` : "");
+}
+const updTx = pre => `${pre}${isNaN(builtAt) ? D.built : lineTm(builtAt)}<button type="button" class="ghost refresh js-refresh" title="Check for a newer build" aria-label="Check for a newer build" ${REFRESH.busy ? "disabled" : ""}>${REFRESH.busy ? "Checking…" : "↻"}</button>`;
+function renderSources(){
+  $("#srcBar").innerHTML = srcStrip(SHOWN.board);
+  $("#sogSrc").innerHTML = srcStrip(SHOWN.sog);
+  $("#hdUpd").innerHTML = updTx("");
 }
 const STALE = !isNaN(BUILD_AGE_H) && BUILD_AGE_H > 6 && (D.slate || []).some(g => g.date === TODAY_CT);
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
@@ -785,18 +925,16 @@ function parsePP(js){
   for (const inc of js.included || []) if (inc.type === "new_player" || inc.type === "player") players[inc.id] = inc.attributes || {};
   const byKey = {};
   for (const g of D.goalies) (byKey[nameKey(g.name)] ||= []).push(g);
-  const rows = [], sogRows = [];
+  const rows = [];
   for (const p of js.data || []){
     const a = p.attributes || {};
     if ((a.odds_type || "standard").toLowerCase() !== "standard" || a.is_promo || a.flash_sale_line_score != null || a.line_score == null) continue;
-    const isSog = ["Shots On Goal", "Shots", "Player Shots"].includes(a.stat_type);
-    if (a.stat_type !== "Goalie Saves" && !isSog) continue;
+    // goalie saves only: shots and points come in through ppProps (PP_PROPS)
+    if (a.stat_type !== "Goalie Saves") continue;
     const rel = p.relationships || {}, ref = ((rel.new_player || rel.player || {}).data) || {};
     const pl = players[ref.id] || {}, name = pl.name || pl.display_name;
     if (!name) continue;
     let team = String(pl.team || pl.team_abbreviation || "").toUpperCase(); team = PP_TEAM_FIX[team] || team;
-    if (isSog){ sogRows.push({name, team, line: +a.line_score, date: a.start_time ? etDate(a.start_time) : null, url: `https://app.prizepicks.com/projections/${p.id}`,
-                              player_id: team ? matchPlayer(name, team).id : null}); continue; }
     // matched within his team to one NHL playerId (players.py); a roster goalie with no NHL history gets a league-average profile
     const m = team && ROSTER[pmTeam(team)] ? matchPlayer(name, team, null, "G") : null;
     let g = m && m.id != null ? (G[m.id] || null) : null;
@@ -810,7 +948,6 @@ function parsePP(js){
     rows.push({name, team: team || g.team, line: +a.line_score, date: a.start_time ? etDate(a.start_time) : null,
                url: `https://app.prizepicks.com/projections/${p.id}`, goalie_id: g.id});
   }
-  PP_SOG = sogRows;
   return rows;
 }
 async function pullPrizePicksLive(){
@@ -826,7 +963,7 @@ async function pullPrizePicksLive(){
   } catch (e){
     ppLive = {state: "fail", err: e.name === "AbortError" ? "timed out" : (e.message === "Failed to fetch" || e.name === "TypeError") ? "blocked by PrizePicks for other websites" : e.message};
   } finally { clearTimeout(timer); }
-  renderSlate(); renderSlip(); renderWinners(); renderSOG(); renderSources(); if (typeof renderStarters === "function" && $("#gStart")) renderStarters();
+  renderSlate(); renderSlip(); renderWinners(); renderSources(); if (typeof renderStarters === "function" && $("#gStart")) renderStarters();
 }
 // DraftKings (via The Odds API): same idea, a posted saves line = expected starter
 const DK = {};
@@ -961,7 +1098,7 @@ function renderSlate(){
         ${r.lineSrc==="pp"?`<div style="font-size:11px"><a href="${r.pp.url}" target="_blank" rel="noopener" class="muted">PrizePicks · 1x</a></div>`:""}
         ${r.lineSrc==="board"?`<div style="font-size:11px" class="muted">${r.bd.book} · ${multTxt(r.bd.mo, r.bd.mu)}</div>`:""}
         ${r.lineSrc==="manual"?`<div style="font-size:11px" class="muted">your line · DFS 1x</div>`:""}</td>
-      <td class="${d ? diffCls(r.edge, d.side) : ""}">${r.line != null ? sgn1(r.edge) : "–"}</td>
+      <td class="${d ? diffCls(r.edge, d.side) : ""}">${r.line != null ? sgnD(r.edge) : "–"}</td>
       <td class="l">${d ? sidePill(d.side) + (play ? "" : ' <span class="muted">pass</span>') : ""}</td>
       <td>${d ? pc0(d.pShow) : "–"}</td>
       <td class="l">${d ? tierPill(d.tier, d.capped) : ""}</td>
@@ -1017,19 +1154,6 @@ function boardRowsSaves(){
 const callOf = (mk, x, pl) => x.d ? verdictFor(mk, x.d.side === "OVER" ? x.d.p : 1 - x.d.p, x.d.pModel, x.L.line, x.proj,
   x.L.src === "DK" ? null : (x.L.mo ?? 1), x.L.src === "DK" ? null : (x.L.mu ?? 1), true, true,
   x.L.src === "DK" ? {over: x.L.over, under: x.L.under} : {}, x.d.pMkt) : null;
-function boardRowsSog(){
-  const out = [];
-  for (const g of D.slate) for (const [team, opp, home] of [[g.away, g.home, false], [g.home, g.away, true]])
-    for (const pl of D.sog.players[team] || []){
-      const x = sogDecision(g, team, opp, home, pl);
-      if (!x.d) continue;
-      out.push({t: g.start || "", time: ctStart(g), date: g.date, game: `${g.away} @ ${g.home}`, player: pl.name,
-                sub: `${team} · ${pl.pos}${roleTxt(pl) ? " · " + roleTxt(pl) : ""}`, team, opp, mk: "sog", d: x.d, src: x.L.src,
-                line: x.L.line, proj: x.proj, diff: x.proj - x.L.line, side: x.d.side, prob: x.d.pShow, tier: x.d.tier, capped: false,
-                play: x.d.play, q: [pl.name, team, opp], call: callOf("sog", x, pl)});
-    }
-  return out;
-}
 function boardRowsPts(){
   const out = [];
   for (const g of D.slate) for (const [team, opp, home] of [[g.away, g.home, false], [g.home, g.away, true]])
@@ -1232,8 +1356,7 @@ function propBoard(dateF){
 }
 const verdictPill = r => isTake(r) ? `<span class="sp ${r.side}">${r.verdict}</span>` : `<span class="pill PASS">PASS</span>`;
 const roleBadge = r => r.role_change ? ` <span class="pill LOW" title="Listed on a different line than his recent ice time${r.role_adjusted ? "; TOI adjusted (confirmed within 6 h, capped ±15%)" : "; not confirmed in the last 6 h, so TOI is unchanged"}">role ${r.role_change}${r.role_adjusted ? " · TOI adj" : ""}</span>` : "";
-// one compact row per pick: player, prop + line, projection, differential, pick, p. Tap it for the rest.
-const PICK_HEAD = `<thead><tr><th class="l pin">Player</th><th class="l">Prop</th><th class="num">Proj</th><th class="num">Diff</th><th class="l">Pick</th><th class="num">p</th></tr></thead>`;
+// Points & saves rows: one compact table row per line (player, prop + line, projection, differential, pick, p); tap it for the rest.
 const detRow = (cols, html) => `<tr class="det"><td colspan="${cols}">${html}</td></tr>`;
 const kvList = pairs => `<div class="kv">${pairs.filter(([, v]) => v != null && v !== "" && v !== "–").map(([k, v, w]) => `<span${w ? ' class="wide"' : ""}><i>${k}</i>${v}</span>`).join("")}</div>`;
 function pickCell(r){
@@ -1271,7 +1394,7 @@ function propRow(r){
   const flags = (r.conflicts && r.conflicts.length ? ' <span class="bad" title="Conflicts: tap for details">⚠</span>' : "") + staleBadge(r) + roleBadge(r);
   return `<tr class="pk${isTake(r) ? "" : " pass"}"><td class="l pin"><b>${r.name}</b><span class="tm">${r.team || ""}</span>${flags}</td>
     <td class="l nw"><span class="lbl-l">${r.label}</span><span class="lbl-s">${SHORT_LBL[r.label] || r.label}</span> ${n1(r.line)}</td><td class="num">${n1(r.proj)}</td>
-    <td class="num ${d == null ? "" : diffCls(d, r.side, r.market === "saves" ? 0.5 : 0.15)}">${sgn1(d)}</td>
+    <td class="num ${d == null ? "" : diffCls(d, r.side, r.market === "saves" ? 0.5 : 0.15)}">${sgnD(d)}</td>
     <td class="l">${pickCell(r)}</td><td class="num"><b>${pc0(r.p)}</b></td></tr>` + detRow(6, propDetail(r));
 }
 let RANK_ALL = false, RANK_SORT = store.get("gm_rank_sort", ["call", -1]);
@@ -1281,53 +1404,419 @@ function rankHead(){
   return `<thead><tr>${th("call", "Player", "l pin")}<th class="l">Prop</th>${th("proj", "Proj", "num")}${th("diff", "Diff", "num")}<th class="l">Pick</th>${th("p", "p", "num")}</tr></thead>`;
 }
 const RANK_N = 25;
+// points and saves, every line (shots on goal have their own tab)
 function renderRanked(rows){
   const onlyTake = $("#fRule").checked, mkF = $("#fMk").value, sideF = $("#fSide").value;
-  const keep = r => r.primary && (!mkF || r.market === mkF) && (!sideF || r.side === sideF) && matchQ(r.name, r.team, r.opp) && (!onlyTake || isTake(r));
+  const keep = r => r.primary && r.market !== "sog" && (!mkF || r.market === mkF) && (!sideF || r.side === sideF) && matchQ(r.name, r.team, r.opp) && (!onlyTake || isTake(r));
   const [rk, rd] = RANK_SORT;
   const rv = r => rk === "diff" ? (rankDiff(r) == null ? -1e9 : Math.abs(rankDiff(r))) : rk === "proj" ? (r.proj ?? -1e9) : rk === "p" ? (r.p ?? -1) : null;
   const prim = rows.filter(keep).sort((a, b) => rk === "call" ? (isTake(b) - isTake(a) || (b.p ?? -1) - (a.p ?? -1))
     : ((rv(a) < rv(b) ? -1 : rv(a) > rv(b) ? 1 : 0) * rd || (b.p ?? -1) - (a.p ?? -1)));
   const shown = RANK_ALL ? prim : prim.slice(0, RANK_N);
-  $("#bRank").innerHTML = rankHead() + "<tbody>" + (shown.map(propRow).join("") || `<tr class="empty"><td colspan="6">No props for this date yet. The build pulls Pick6 and DraftKings every 15 minutes; paste your board below to add yours.</td></tr>`) + "</tbody>";
-  $("#rankMore").innerHTML = prim.length > RANK_N ? `<button class="ghost more" id="rankMoreBtn">${RANK_ALL ? "Show top " + RANK_N : `Show all ${prim.length} props`}</button>` : "";
+  $("#bRank").innerHTML = rankHead() + "<tbody>" + (shown.map(propRow).join("") || `<tr class="empty"><td colspan="6">No points or saves lines for this date yet. The build pulls Pick6, PrizePicks and DraftKings every 15 minutes; paste your board under Starters, lines and sources to add yours.</td></tr>`) + "</tbody>";
+  $("#rankMore").innerHTML = prim.length > RANK_N ? `<button class="ghost more" id="rankMoreBtn">${RANK_ALL ? "Show top " + RANK_N : `Show all ${prim.length} lines`}</button>` : "";
   if ($("#rankMoreBtn")) $("#rankMoreBtn").onclick = () => { RANK_ALL = !RANK_ALL; renderRanked(rows); };
   $("#bRank").querySelectorAll("th[data-rsort]").forEach(h => h.onclick = () => {
     const k = h.dataset.rsort; RANK_SORT = [k, RANK_SORT[0] === k ? -RANK_SORT[1] : -1];
     store.set("gm_rank_sort", RANK_SORT); renderRanked(rows);
   });
-  const takes = rows.filter(isTake), nm = rows.filter(r => r.matched === false).length, c = (rows.sel || {}).counts || {};
-  $("#nRank").textContent = `${takes.length} TAKE · ${c.near_miss ?? 0} near miss · ${prim.length} props${nm ? ` · ${nm} unmatched` : ""}`;
-  renderPlays(takes, rows.sel || {plays: [], near: [], review: []});
+  const nt = prim.filter(isTake).length;
+  $("#nRank").textContent = `${prim.length} line${prim.length === 1 ? "" : "s"}${nt ? ` · ${nt} TAKE` : ""}`;
 }
 const multCell = r => r.mult != null ? r.mult + "x" : r.dk_over != null && r.side ? amer(r.side === "OVER" ? r.dk_over : r.dk_under) : "–";
 const ctCell = r => r.start ? ctFmt(new Date(r.start), {hour: "numeric", minute: "2-digit"}) : "–";
-const conflictTxt = r => r.conflicts && r.conflicts.length ? `<div class="cell2 bad">⚠ conflicts: ${r.conflicts.join(", ")}</div>` : "";
-// Today's plays = SOG Lock/Strong kept by selectSog + saves/points TAKEs; Near miss and Needs review are their own lists
-function renderPlays(takes, sel){
-  takes = takes.slice().sort((a, b) => b.p - a.p || String(a.player_id ?? a.name).localeCompare(String(b.player_id ?? b.name)));
-  $("#playsBox").innerHTML = takes.length ? `<div class="board"><table>${PICK_HEAD}<tbody>${takes.map(propRow).join("")}</tbody></table></div>`
-    : `<p class="muted" style="margin:0">No TAKE legs for this date yet.${sel.near.length ? ` ${sel.near.length} SOG near miss${sel.near.length === 1 ? "" : "es"} below.` : ""}</p>`;
-  $("#nPlays").textContent = takes.length ? `${takes.length} leg${takes.length === 1 ? "" : "s"}, ranked by p` : "";
-  const near = sel.near.slice().sort(sogRankCmp);
-  $("#nearBox").innerHTML = near.length ? `<div class="board"><table>${PICK_HEAD}<tbody>${near.map(propRow).join("")}</tbody></table></div>`
-    : `<p class="muted" style="margin:0">No SOG sides at 55–58% paying 1x or better.</p>`;
-  $("#nNear").textContent = near.length ? `${near.length} line${near.length === 1 ? "" : "s"}, not plays` : "";
-  // server-side review rows the Pick6 pull could not match (ambiguous names) are added to the client's own
-  const dateF = $("#dateF").value, seen = new Set(sel.review.map(r => r.name + "|" + r.line));
-  const extra = ((D.board || {}).review || []).filter(r => r.verdict == null && !seen.has(r.name + "|" + r.line));
-  // one row per player and game (his main line), the count of his other flagged lines beside it
-  const byWho = {};
-  for (const r of sel.review.concat(extra)) (byWho[(r.player_id ?? r.name) + "|" + (r.game ?? "") + "|" + (r.market || "")] ||= []).push(r);
-  const rev = Object.values(byWho).map(rs => ({...(rs.find(r => r.primary) || rs[0]), nMore: rs.length - 1}));
-  $("#reviewBox").innerHTML = rev.length ? `<div class="board"><table><thead><tr><th class="l pin">Player</th><th class="l">Prop</th><th class="l">Why</th></tr></thead><tbody>` +
-    rev.map(r => `<tr class="pass"><td class="l pin"><b>${r.name}</b><span class="tm">${r.team || "?"}</span>${r.nMore ? `<div class="cell2">+${r.nMore} more line${r.nMore === 1 ? "" : "s"}</div>` : ""}</td>
-      <td class="l">${r.label || String(r.market || "").toUpperCase()} ${n1(r.line)}</td>
-      <td class="l" style="white-space:normal">${String(r.reason || "").replace(/^needs review: /, "")}${r.role ? ` <span class="muted">· now ${r.role}</span>` : ""}</td></tr>`).join("") + "</tbody></table></div>"
-    : `<p class="muted" style="margin:0">Nothing needs review.</p>`;
-  const nLines = rev.reduce((t, r) => t + 1 + r.nMore, 0);
-  $("#nReview").textContent = rev.length ? `${rev.length} player${rev.length === 1 ? "" : "s"} · ${nLines} line${nLines === 1 ? "" : "s"}` : "";
+// ---------- pick rows: ONE row component for every pick list ----------
+// Board (Today's plays, Near miss, Check before betting) and the SOG tab. Display only: every verdict, tier and
+// probability comes from propBoard() / selectSog() / verdictFor(). A row never shows a side that is not offered,
+// and the chance it shows is always for the bet as printed (side, line, book, price).
+const MK_TAG = {sog: "SOG", points: "PTS", saves: "SV"};
+const BOOKS = ["Pick6", "PrizePicks", "DraftKings"];
+const bookName = s => { s = String(s || ""); return s.startsWith("DraftKings") ? "DraftKings" : s.startsWith("PrizePicks") ? "PrizePicks"
+  : s.startsWith("Pick6") ? "Pick6" : /^your line/i.test(s) ? "Your line" : s || "–"; };
+const bookKey = s => { const b = bookName(s); return BOOKS.includes(b) ? b : "Yours"; };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const pc1 = x => x == null || isNaN(x) ? "–" : (100 * x).toFixed(1) + "%";
+// a signed differential that never reads "−0.0"
+const sgnD = x => x == null || isNaN(x) ? "–" : Math.abs(x) < 0.05 ? "0.0" : sgn1(x);
+const ptsTx = x => x == null || isNaN(x) ? "–" : Math.abs(x) < 0.0005 ? "0.0" : (x > 0 ? "+" : "−") + (100 * Math.abs(x)).toFixed(1);
+const amerTx = o => !hasVal(o) ? "–" : +o > 0 ? "+" + (+o) : "−" + Math.abs(+o);
+const sideWord = s => s === "OVER" ? "MORE" : "LESS";
+const sideCap = s => s === "OVER" ? "More" : "Less";
+const arrow = s => s === "OVER" ? "▲" : s === "UNDER" ? "▼" : "";
+const pctIn = s => (String(s).match(/\d+%/) || [""])[0];
+const ageLong = a => a == null ? "" : a < 60 ? Math.max(0, Math.round(a)) + " min" : (a / 60).toFixed(1) + " h";
+
+// what a side of a line pays: DraftKings rows at DraftKings' own odds, pick'em rows at their multiplier (0 = not offered)
+const isBookRow = r => bookName(r.source) === "DraftKings";
+const dkPrices = r => hasVal(r.dk_over) || hasVal(r.dk_under) ? {over: r.dk_over, under: r.dk_under}
+  : r.market === "saves" ? (DK[r.date + "|" + r.team] || {}) : {};
+function offered(r, side){
+  if (isBookRow(r)){ const pr = dkPrices(r)[side === "OVER" ? "over" : "under"]; return hasVal(pr) ? {kind: "book", price: +pr} : null; }
+  const m = side === "OVER" ? r.mo : r.mu;
+  if (!hasVal(m)) return {kind: "dfs", mult: 1};
+  return +m > 0 ? {kind: "dfs", mult: +m} : null;
 }
+const pOverOf = r => hasVal(r.p_blend) ? +r.p_blend : r.p == null || !r.side ? null : r.side === "OVER" ? +r.p : 1 - r.p;
+// one side as it can be bet: its chance (from p_blend), the price's break-even, what a play needs, and the edge over that
+function sideView(r, side){
+  const o = offered(r, side), po = pOverOf(r);
+  if (!o || po == null) return null;
+  const p = side === "OVER" ? po : 1 - po, be = o.kind === "book" ? impliedP(o.price) : dfsBE(o.mult);
+  const needs = Math.max(takeP(r.market), be);
+  return {side, p, be, needs, edge: p - needs, o, flipped: false};
+}
+// the side a row shows: the call's side when it is offered, else the side that is (never an unoffered side)
+function dispSide(r){
+  if (!r.side) return null;
+  const a = sideView(r, r.side); if (a) return a;
+  const b = sideView(r, r.side === "OVER" ? "UNDER" : "OVER");
+  return b ? {...b, flipped: true} : null;
+}
+const bestSide = r => [sideView(r, "OVER"), sideView(r, "UNDER")].filter(Boolean).sort((a, b) => b.edge - a.edge)[0] || null;
+const priceTx = v => !v ? "–" : v.o.kind === "book" ? amerTx(v.o.price) : (+v.o.mult) + "x";
+// status = colour: lock / strong (plays), near, check (review first), pass
+function statusOf(r){
+  if (isTake(r)) return r.tier === "Lock" ? "lock" : "strong";
+  if (r.tier === "Near miss") return "near";
+  if (r.sog_section === "review" || /^needs review/.test(r.reason || "") || r.role_change || r.matched === false) return "check";
+  return "pass";
+}
+const infoOnly = r => /^sportsbook price/.test(r.reason || "") || (/^DK price break-even/.test(r.reason || "") && !RULE.priced_takes);
+// a pass that is NOT about the probability (reaching "needs" would still not make it a play): a short tag for it
+function blockTag(r, v){
+  const why = String(r.reason || "");
+  if (v && v.flipped) return "";
+  if (infoOnly(r)) return "info only";
+  if (/^no market price/.test(why)) return "no market";
+  if (/^market only/.test(why)) return "market " + pctIn(why);
+  if (/^model alone/.test(why)) return "model " + pctIn(why);
+  if (/^saves overs/.test(why)) return "overs off";
+  if (/^points .*unders/.test(why)) return "unders off";
+  if (/^starter not confirmed/.test(why)) return "unconfirmed";
+  if (/^edge /.test(why)) return "edge " + sgnD(r.edge);
+  if (/^conflict/.test(why)) return "conflict";
+  if (/^alt line/.test(why)) return "alt line";
+  if (/^(unmatched|no projection|no game|not on tonight)/.test(why)) return "no projection";
+  if (/^pays /.test(why) && v && v.p >= v.needs) return "below 1x";
+  if (!v) return "not offered";
+  return "";
+}
+// the verdict in plain English, one line
+function whyText(r, v){
+  const why = String(r.reason || ""), lab = MK_TAG[r.market] || r.label || "", S = v ? v.side : r.side, st = statusOf(r);
+  const m = t => ` <span class="muted">· ${t}</span>`;
+  if (isTake(r)) return `Take <b>${sideWord(S)} ${n1(r.line)} ${lab}</b> on ${esc(bookName(r.source))} at ${priceTx(v)}.`;
+  if (st === "near") return `Near miss${m(`${pc0(v ? v.p : r.p)}, needs ${pc0(v ? v.needs : takeP(r.market))} to be a play`)}`;
+  if (st === "check") return `Check first${m(esc(why.replace(/^needs review: /, "") || (r.role_change ? `role change ${r.role_change} (old → new line)` : "unmatched player")))}`;
+  if (v && v.flipped) return `Pass${m(`only ${sideCap(v.side)} is offered on ${n1(r.line)}; it is ${pc0(v.p)} and needs ${pc0(v.needs)}`)}`;
+  if (infoOnly(r)) return `Info only${m(`${esc(bookName(r.source))} price (no edge over the book's own odds)`)}`;
+  if (/^no market price/.test(why)) return `Pass${m("no market price on this line (model-only picks have not won)")}`;
+  if (/^market only/.test(why)) return `Pass${m(`the market only gives this side ${pctIn(why)} (a play needs ${pc0(RULE.mkt_min)}+)`)}`;
+  if (/^model alone/.test(why)) return `Pass${m(`the market likes ${sideCap(S)} but the model alone does not (${pctIn(why)})`)}`;
+  if (/^saves overs/.test(why)) return `Pass${m("saves overs are off: they lost at every threshold")}`;
+  if (/^points .*unders/.test(why)) return `Pass${m(`points ${n1(r.line)} unders are off: the model is overconfident there`)}`;
+  if (/^pays /.test(why) && v && v.o.kind === "dfs") return v.p < v.needs
+    ? `Pass${m(`${sideCap(v.side)} pays ${+v.o.mult}x, so it needs ${pc0(v.needs)}; it is ${pc0(v.p)}`)}`
+    : `Pass${m(`${sideCap(v.side)} pays ${+v.o.mult}x; sides under 1x are off in your pick'em settings (⚙)`)}`;
+  if (/break-even/.test(why) && v) return `Pass${m(`at ${priceTx(v)} it needs ${pc1(v.needs)}; it is ${pc1(v.p)}`)}`;
+  if (/(near miss|^\d+% < )/.test(why) && v) return `Pass${m(`${pc0(v.p)} is under the ${pc0(takeP(r.market))} bar`)}`;
+  if (/^conflict/.test(why)) return `Pass${m(`conflicts with ${esc(why.replace(/^conflict: /, ""))}, which has the higher chance`)}`;
+  if (/^alt line/.test(why)) return `Pass${m(esc(why.replace(/^alt line \(best is (.+)\)$/, "another of his lines is the pick: $1")))}`;
+  if (/^edge /.test(why)){
+    const need = n1(S === "OVER" ? RULE.saves_edge_over : RULE.saves_edge_under), a = S === "OVER" ? "an over" : "an under", e = r.edge;
+    return `Pass${m(e != null && e >= 0 ? `the projection clears the line by only ${n1(e)} saves; ${a} needs ${need}+`
+      : `the projection is on the other side of the line (${sgnD(e)} saves); ${a} needs ${need}+`)}`;
+  }
+  if (/^starter not confirmed/.test(why)) return `Pass${m("starter not confirmed (choose him in the Saves table once he is)")}`;
+  return `Pass${m(esc(why || "no edge"))}`;
+}
+function sumTx(r, v){
+  if (!v) return "";
+  const full = statusOf(r) !== "check" && !blockTag(r, v);
+  return `<div class="x-sum"><b>${pc1(v.p)}</b> chance${full ? ` · needs <b>${pc1(v.needs)}</b> · edge <b class="${v.edge > 0 ? "good" : ""}">${ptsTx(v.edge)}</b>` : ""}</div>`;
+}
+function factsTx(r, v){
+  const S = v ? v.side : r.side, sideP = x => x == null || !S ? null : S === "OVER" ? +x : 1 - x;
+  const src = r.mkt_src || "DraftKings", w = r.w ?? blendW((CAL[r.market] || {}).cal);
+  const from = r.p_mkt == null || w >= 1 ? "model" : w <= 0 ? `${esc(src)} no\u2011vig` : `${Math.round(100 * w)}% model + ${Math.round(100 * (1 - w))}% ${esc(src)}`;
+  const kv = [["Chance from", from], ["Model alone", pc0(sideP(r.p_model))],
+    ["Market no\u2011vig", r.p_mkt != null ? `${pc0(sideP(r.p_mkt))} <span class="muted">${esc(src)}</span>` : `none on ${n1(r.line)}`],
+    ["Projection", r.proj == null ? "–" : `${n1(r.proj)} (${sgnD(r.proj - r.line)})`]];
+  const pl = SKATER[r.player_id];
+  if (r.market !== "saves" && pl){
+    const pts = r.market === "points";
+    kv.push([pts ? "Points/60" : "Shots/60", n1(pts ? pl.p60 : pl.r60)], ["Avg TOI", n1(pts ? (pl.ptoi ?? pl.toi) : pl.toi) + " min"]);
+  }
+  if (r.market === "saves") kv.push(["Starter", r.confirmed === false ? '<span class="x-warn">unconfirmed</span>' : "confirmed"]);
+  if (r.role) kv.push(["Role", esc(r.role) + (r.role_change ? ` <span class="x-warn">was ${esc(String(r.role_change).split("→")[0])}</span>` : "")]);
+  return `<div class="x-kv">${kv.map(([k, x]) => `<div><i>${k}</i><b>${x}</b></div>`).join("")}</div>`;
+}
+// last 10 games, oldest to newest, against the line (the dashed rule)
+function l10Tx(r){
+  const pl = SKATER[r.player_id] || {};
+  const l10 = r.market === "points" ? pl.pl10 : r.market === "sog" ? pl.l10 : r.market === "saves" ? (G[r.player_id] || {}).last10 : null;
+  if (!l10 || !l10.length || r.line == null) return "";
+  const mx = Math.max(r.line + 1, ...l10), h = x => Math.max(3, Math.round(34 * x / mx)), over = l10.filter(x => x > r.line).length;
+  return `<div class="x-l10" aria-hidden="true">${l10.map(x => `<span class="${x > r.line ? "ov" : ""}" style="height:${h(x)}px"></span>`).join("")}<i class="ln" style="bottom:${Math.round(34 * r.line / mx)}px"></i></div>
+    <div class="x-l10cap">Last ${l10.length} (oldest → newest): ${l10.join(" ")} · over ${n1(r.line)} in <b>${over}/${l10.length}</b></div>`;
+}
+// a ladder rung's call, short
+function callTag(x, b){
+  if (isTake(x)) return ["Take", "take"];
+  if (x.tier === "Near miss") return ["near", ""];
+  if (statusOf(x) === "check") return ["check", ""];
+  if (!b) return ["n/a", ""];
+  if (b.side === x.side){ const t = blockTag(x, b); if (t) return [t, ""]; }
+  if (b.o.kind === "dfs" && b.o.mult < RULE.min_mult - 1e-9) return ["< 1x", ""];
+  if (b.p < takeP(x.market) - 1e-9) return ["< " + pc0(takeP(x.market)), ""];
+  if (b.p <= b.be + 1e-9) return ["< price", ""];
+  return ["pass", ""];
+}
+const SHORT_BOOK = {"Pick6": "P6", "PrizePicks": "PP", "DraftKings": "DK", "Your line": "You"};
+// every line he has tonight, each on its best offered side; the row's own line in bold
+function ladderTx(r, v, alts){
+  const rs = [r, ...(alts || [])].filter((x, i, a) => a.indexOf(x) === i)
+    .sort((a, b) => (+a.line) - (+b.line) || String(a.source).localeCompare(String(b.source)));
+  if (rs.length < 2) return "";
+  const multi = new Set(rs.map(x => bookName(x.source))).size > 1;
+  const body = rs.map(x => {
+    const b = x === r ? v : bestSide(x), [call, cls] = callTag(x, b), bn = bookName(x.source);
+    const mkt = b && x.p_mkt != null && (x.w ?? 1) <= 0 ? `<span class="src"> ${String(x.mkt_src || "DraftKings").startsWith("Draft") ? "DK" : "mkt"}</span>` : "";
+    return `<tr class="${x === r ? "cur" : ""}"><td class="l">${n1(x.line)}</td>${multi ? `<td class="l"><span class="lbl-l">${esc(bn)}</span><span class="lbl-s">${SHORT_BOOK[bn] || esc(bn)}</span></td>` : ""}` +
+      `<td class="l">${b ? arrow(b.side) + " " + sideCap(b.side) : "–"}</td><td>${priceTx(b)}</td><td>${b ? pc0(b.p) + mkt : "–"}</td><td>${b ? pc0(b.needs) : "–"}</td><td class="call ${cls}">${call}</td></tr>`;
+  }).join("");
+  return `<table class="x-ladder"><thead><tr><th class="l">Line</th>${multi ? '<th class="l">Book</th>' : ""}<th class="l">Side</th><th>Pays</th><th>Chance</th><th>Needs</th><th class="l">Call</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function noteTx(r){
+  let t = /^your line/i.test(r.source || "") ? "Your line (saved in this browser)" : `${esc(r.source || "–")}${r.via ? " via " + esc(r.via) : ""} line`;
+  if (r.fetched_at) t += `, fetched ${lineTm(r.fetched_at)} CT (${ageLong(rowAge(r))} ago)`;
+  t += ".";
+  if (r.conflicts && r.conflicts.length) t += ` <span class="x-warn">⚠ Conflicts with ${esc(r.conflicts.join(", "))}.</span>`;
+  if (r.capped) t += ` Saves calls of ${pc0(RULE.saves_cap_at)}+ have hit 46%; the Saves table shows them as ${pc0(RULE.saves_cap_to)}.`;
+  return `<p class="x-note">${t}</p>`;
+}
+// "Use my own line" (SOG): writes SOGL / SOGM for that player and date; clientLines() feeds the line into propBoard
+const OWN_MULTS = [1.2, 1.1, 1, 0.9, 0.85, 0.8, 0.75];
+function ownTx(r){
+  if (r.market !== "sog" || r.player_id == null || !SKATER[r.player_id] || !r.date) return "";
+  const k = r.date + "|" + r.player_id, cur = SOGL[k], m = SOGM[k] || {}, mo = +(m.o ?? 1), mu = +(m.u ?? 1);
+  const sel = (side, val) => `<select data-own="${side}" aria-label="${side === "o" ? "More" : "Less"} multiplier">${[...new Set([...OWN_MULTS, val])].sort((a, b) => b - a)
+    .map(x => `<option value="${x}" ${x === val ? "selected" : ""}>${x}x</option>`).join("")}</select>`;
+  // the board prices a typed line through clientLines(); say so when it is not at the multipliers set here
+  const used = r.source === "your line" ? [+(r.mo ?? 1), +(r.mu ?? 1)] : null;
+  const off = cur != null && used && (used[0] !== mo || used[1] !== mu);
+  return `<form class="x-own" data-k="${esc(k)}"><b>Use my own line</b>
+    <input type="number" step="0.5" min="0" inputmode="decimal" name="line" value="${cur ?? ""}" placeholder="${n1(r.line)}" aria-label="Your line">
+    <label><span class="lbl-l">More</span><span class="lbl-s">▲</span> ${sel("o", mo)}</label><label><span class="lbl-l">Less</span><span class="lbl-s">▼</span> ${sel("u", mu)}</label>
+    <button class="btn" type="submit">Save</button>${cur != null ? ` <button class="ghost" type="button" data-own-clear>Remove mine</button>` : ""}
+    ${off ? `<p class="x-note">Typed lines are priced at ${used[0]}x More / ${used[1]}x Less for now; the multipliers you set are saved.</p>` : ""}</form>`;
+}
+function xDetail(r, v, opt){
+  return `<div class="x-why">${whyText(r, v)}</div>${sumTx(r, v)}${factsTx(r, v)}${l10Tx(r)}${ladderTx(r, v, r.alts || (opt.alts && opt.alts.get(r)) || [])}${noteTx(r)}${ownTx(r)}`;
+}
+// open rows stay open across re-renders; panels are filled on first open
+const XR = {n: 0, rows: new Map(), ids: {}, open: new Set(), keep: {}};
+const xKey = (r, ctx) => `${ctx}|${r.player_id ?? r.name}|${r.game}|${r.market}`;
+function xBegin(ctx){ for (const id of XR.ids[ctx] || []) XR.rows.delete(id); XR.ids[ctx] = []; }
+function xRow(r, ctx, opt = {}){
+  const v = dispSide(r), st = opt.check ? "check" : statusOf(r);
+  const S = v ? v.side : r.side && offered(r, r.side) ? r.side : null, lab = MK_TAG[r.market] || r.label || "";
+  const g = D.slate.find(x => x.id === r.game) || {}, home = g.home ? g.home === r.team : null;
+  const opp = r.opp || (home == null ? "" : home ? g.away : g.home), at = home == null ? "" : home ? "vs" : "@";
+  const pos = r.pos || (SKATER[r.player_id] || {}).pos || (r.market === "saves" ? "G" : "");
+  const start = r.start || g.start, t = start ? ctFmt(new Date(start), {hour: "numeric", minute: "2-digit"}) : "";
+  const tShort = t.replace(/ ([AP])M$/, (_, x) => x.toLowerCase());
+  const a = rowAge(r), staleTx = a != null && a > STALE_MIN ? ` <span class="x-stale" title="Line fetched ${ageLong(a)} ago">⏱${ageTx(a)}</span>` : "";
+  const diff = r.proj != null && r.line != null ? r.proj - r.line : null;
+  const against = diff != null && S && (S === "OVER" ? diff < -0.05 : diff > 0.05);
+  const chip = {lock: "Lock", strong: "Strong", near: "Near", check: "Check"}[st];
+  const chipTx = chip ? `<span class="x-tier ${st}">${chip}</span>` : "";
+  const lost = /^conflict/.test(r.reason || ""), won = r.conflicts && r.conflicts.length;
+  const flags = (won || lost ? `<span class="x-flag" title="${esc(lost ? r.reason.replace(/^conflict: /, "Conflicts with ") : "Conflicts with " + r.conflicts.join(", "))}">⚠</span>` : "") +
+    (r.role_change ? `<span class="x-flag" title="Line change: ${esc(r.role_change)}">${esc(r.role_change)}</span>` : "");
+  const book = esc(bookName(r.source)), price = priceTx(v), mk = opt.market ? `<span class="x-mk">${lab}</span>` : "";
+  const blocked = st === "pass" ? blockTag(r, v) : "", p = v ? v.p : S ? r.p : null;
+  const key = xKey(r, ctx), id = "xd" + (++XR.n), open = XR.open.has(key);
+  XR.rows.set(id, {r, v, opt}); (XR.ids[ctx] ||= []).push(id);
+  return `<div class="x-row t-${st}" role="button" tabindex="0" aria-expanded="${open}" aria-controls="${id}" data-k="${esc(key)}">` +
+    `<span class="x-tcol">${chipTx || `<span class="x-pass">${infoOnly(r) ? "info" : "pass"}</span>`}</span>` +
+    `<div class="x-who"><span class="x-name">${esc(r.name)}</span>${flags}<span class="x-meta x-d-only">${[r.team, pos, r.role].filter(Boolean).map(esc).join(" · ")}</span></div>` +
+    `<div class="x-bet"><span class="x-side"><span class="ar">${arrow(S)}</span>${S ? sideWord(S) : "–"} ${n1(r.line)}</span>${mk}<span class="x-m-only x-book">· <b>${book}</b> ${price}${staleTx}</span></div>` +
+    `<div class="x-ctx x-m-only">${esc([r.team, pos].filter(Boolean).join(" "))}${opp ? ` · ${at} ${esc(opp)} ${tShort}` : ""} · proj ${n1(r.proj)} <span class="df${against ? " against" : ""}">(${sgnD(diff)})</span></div>` +
+    `<span class="x-game">${opp ? `${at} ${esc(opp)} · ${t}` : t}</span>` +
+    `<span class="x-bookc"><b>${book}</b> · ${price}${staleTx}</span>` +
+    `<span class="x-projc">${n1(r.proj)}<span class="df${against ? " against" : ""}">${sgnD(diff)}</span></span>` +
+    `<div class="x-pcol"><span class="x-p">${pc0(p)}</span><span class="x-m-only">${chipTx || `<span class="x-needs">${blocked || (v ? "needs " + pc0(v.needs) : "")}</span>`}</span></div>` +
+    `<span class="x-needc">${blocked || (v ? pc1(v.needs) : "–")}</span>` +
+    `<span class="x-edgec${v && !blocked && st !== "check" && v.edge > 0 ? " pos" : ""}">${v && !blocked && st !== "check" ? ptsTx(v.edge) : "–"}</span>` +
+    `<span class="x-chev" aria-hidden="true">›</span></div><div class="x-det" id="${id}">${open ? xDetail(r, v, opt) : ""}</div>`;
+}
+const X_COLS = `<div class="x-cols" aria-hidden="true"><span></span><span>Player</span><span>Game</span><span>Bet</span><span>Book · pays</span><span class="num">Proj</span><span class="num">Chance</span><span class="num">Needs</span><span class="num">Edge</span><span></span></div>`;
+const xList = (rows, ctx, opt = {}, foot = "") => `<div class="x-list">${X_COLS}${rows.map(r => xRow(r, ctx, opt)).join("")}${foot}</div>`;
+function xToggle(row){
+  const open = row.getAttribute("aria-expanded") !== "true", det = document.getElementById(row.getAttribute("aria-controls"));
+  row.setAttribute("aria-expanded", String(open));
+  if (!open){ XR.open.delete(row.dataset.k); return; }
+  XR.open.add(row.dataset.k);
+  const x = det && !det.childElementCount && XR.rows.get(det.id);
+  if (x) det.innerHTML = xDetail(x.r, x.v, x.opt);
+}
+document.addEventListener("click", e => {
+  const row = e.target.closest(".x-row");
+  if (row && !e.target.closest("a,button,input,select,textarea,label")) xToggle(row);
+});
+document.addEventListener("keydown", e => {
+  if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("x-row")){ e.preventDefault(); xToggle(e.target); }
+});
+// "Use my own line": save / remove, then keep that row (still open) in view
+function ownSaved(f){
+  const row = f.closest(".x-det") && f.closest(".x-det").previousElementSibling, k = row && row.dataset.k;
+  store.set("gm_sogl", SOGL); store.set("gm_sogm", SOGM); renderBoard();
+  const el = k && [...document.querySelectorAll(".x-row")].find(x => x.dataset.k === k);
+  if (el) el.scrollIntoView({block: "nearest"});
+}
+document.addEventListener("submit", e => {
+  const f = e.target.closest("form.x-own"); if (!f) return;
+  e.preventDefault();
+  const k = f.dataset.k, v = f.querySelector('input[name="line"]').value.trim();
+  if (v === "" || isNaN(+v)){ delete SOGL[k]; delete SOGM[k]; }
+  else { SOGL[k] = +v; SOGM[k] = {o: +f.querySelector('select[data-own="o"]').value, u: +f.querySelector('select[data-own="u"]').value}; }
+  ownSaved(f);
+});
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-own-clear]"), f = b && b.closest("form.x-own"); if (!f) return;
+  delete SOGL[f.dataset.k]; delete SOGM[f.dataset.k]; ownSaved(f);
+});
+// collapsed sections keep their open state across re-renders
+document.addEventListener("toggle", e => { const d = e.target; if (d.dataset && d.dataset.keep) XR.keep[d.dataset.keep] = d.open; }, true);
+function openRules(){
+  const b = document.querySelector('#tabs button[data-t="logic"]'); if (b) b.click();
+  const h = $("#betRules"); if (h) h.scrollIntoView({block: "start"});
+}
+function openPaste(){
+  const b = document.querySelector('#tabs button[data-t="proj"]'); if (b) b.click();
+  $("#editBox").open = true; $("#boardBox").open = true; $("#boardBox").scrollIntoView({block: "start"});
+}
+// Check before betting: one row per player, game and market (his main line; the rest go in its panel), plus the
+// server's rows the Pick6 pull could not match
+function checkRows(sel, mk){
+  const day = $("#dateF").value, dayOf = r => r.date || (D.slate.find(g => g.id === r.game) || {}).date;
+  const seen = new Set(sel.review.map(r => r.name + "|" + r.line));
+  const extra = ((D.board || {}).review || []).filter(r => r.verdict == null && !seen.has(r.name + "|" + r.line) &&
+    (!mk || r.market === mk) && (!day || !dayOf(r) || dayOf(r) === day));
+  const by = {};
+  for (const r of sel.review.filter(r => !mk || r.market === mk).concat(extra)) (by[(r.player_id ?? r.name) + "|" + (r.game ?? "") + "|" + (r.market || "")] ||= []).push(r);
+  const alts = new Map(), rows = Object.values(by).map(rs => { const m = rs.find(r => r.primary) || rs[0]; alts.set(m, rs.filter(x => x !== m)); return m; });
+  return {rows, alts, extra: rows.filter(r => extra.includes(r))};
+}
+// ---------- Board: Today's plays, Near miss, Check before betting ----------
+// Today's plays = SOG Lock / Strong kept by selectSog + saves / points TAKEs, Lock first, then by chance
+function renderPlays(pb){
+  const sel = pb.sel || {plays: [], near: [], review: []};
+  xBegin("board");
+  const takes = pb.filter(isTake).sort((a, b) => (b.tier === "Lock") - (a.tier === "Lock") || (b.p ?? 0) - (a.p ?? 0) ||
+    String(a.player_id ?? a.name).localeCompare(String(b.player_id ?? b.name)));
+  const near = sel.near.slice().sort(sogRankCmp), nn = near.length;
+  $("#playsBox").innerHTML = takes.length ? xList(takes, "board", {market: true})
+    : `<div class="x-empty">No plays right now.${nn ? ` ${nn} near miss${nn === 1 ? "" : "es"} below.` : ""} Lines refresh every 15 minutes.</div>`;
+  $("#nPlays").textContent = takes.length;
+  $("#cardNear").style.display = nn ? "" : "none";
+  $("#nearBox").innerHTML = nn ? xList(near, "board", {market: true}) : "";
+  $("#nNear").textContent = nn || "";
+  $("#nearNote").textContent = `${Math.round(100 * nearP("sog"))}–${pc0(takeP("sog"))}, not plays`;
+  const chk = checkRows(sel);
+  $("#cardReview").style.display = chk.rows.length ? "" : "none";
+  $("#reviewBox").innerHTML = chk.rows.length ? xList(chk.rows, "board", {market: true, check: true, alts: chk.alts}) : "";
+  $("#nReview").textContent = chk.rows.length || "";
+  SHOWN.board = pb.slice();
+}
+// ---------- the SOG tab: the one complete SOG list for the date ----------
+const SOGX = Object.assign({game: "", side: "", book: "", sort: "close"}, store.get("gm_sogx", {}), {all: false});
+const sogxSave = () => store.set("gm_sogx", {game: SOGX.game, side: SOGX.side, book: SOGX.book, sort: SOGX.sort});
+let LAST_PB = null;
+// every line source reported and none of them up: "Pick6 off, PrizePicks off, DraftKings off"
+function sourcesOff(){
+  const ppS = PP_FETCHED_AT ? {status: "fresh"} : SRC.pp;
+  const list = [["Pick6", SRC.pick6], ["PrizePicks", ppS], ["DraftKings", SRC.dk]].filter(([, s]) => s);
+  return list.length && list.every(([, s]) => s.status === "error" || s.status === "fallback") ? list.map(([n]) => n + " off").join(", ") : "";
+}
+function renderSogTab(pb){
+  pb = pb || LAST_PB || propBoard($("#dateF").value);
+  const day = $("#dateF").value, sel = pb.sel || {plays: [], near: [], review: []};
+  xBegin("sog");
+  const sog = pb.filter(r => r.market === "sog");
+  SHOWN.sog = sog;
+  // one row per player per game: the line selectSog kept, else his main line (selectSog's primary); the rest are his ladder
+  const items = sog.filter(r => r.primary);
+  const chk = checkRows(sel, "sog"), extra = chk.extra;
+  const V = new Map(items.map(r => [r, dispSide(r)]));
+  const games = D.slate.filter(g => !day || g.date === day).sort((a, b) => String(a.start || "").localeCompare(String(b.start || "")) || a.id - b.id);
+  const byGame = {}; for (const r of items) byGame[r.game] = (byGame[r.game] || 0) + 1;
+  const books = [...BOOKS, "Yours"].filter(b => items.some(r => bookKey(r.source) === b));
+  const game = games.some(g => String(g.id) === SOGX.game) ? SOGX.game : "", book = books.includes(SOGX.book) ? SOGX.book : "";
+  const fOn = !!(game || SOGX.side || book), qOn = !!Q();
+  const shown = items.filter(r => (!game || String(r.game) === game) && (!book || bookKey(r.source) === book) &&
+    (!SOGX.side || (V.get(r) || {}).side === SOGX.side) && matchQ(r.name, r.team, r.opp));
+  const plays = shown.filter(r => ["lock", "strong"].includes(statusOf(r))).sort(sogRankCmp);
+  const near = shown.filter(r => statusOf(r) === "near").sort(sogRankCmp);
+  const check = shown.filter(r => statusOf(r) === "check").concat(extra.filter(r => (!game || String(r.game) === game) && matchQ(r.name, r.team, r.opp)));
+  // closest to a play: lines a higher chance would make a play, by edge; then lines blocked for another reason
+  const cl = r => { const v = V.get(r); return !v ? 2 : blockTag(r, v) ? 1 : 0; }, ed = r => (V.get(r) || {edge: -9}).edge;
+  const cmp = {close: (a, b) => cl(a) - cl(b) || ed(b) - ed(a),
+    chance: (a, b) => ((V.get(b) || {}).p ?? -1) - ((V.get(a) || {}).p ?? -1),
+    time: (a, b) => String(a.start || "").localeCompare(String(b.start || "")) || ed(b) - ed(a),
+    name: (a, b) => String(a.name).localeCompare(String(b.name))}[SOGX.sort] || ((a, b) => cl(a) - cl(b) || ed(b) - ed(a));
+  const rest = shown.filter(r => statusOf(r) === "pass").sort((a, b) => cmp(a, b) || String(a.name).localeCompare(String(b.name)));
+  const N = 12, restShown = SOGX.all ? rest : rest.filter((r, i) => i < N || XR.open.has(xKey(r, "sog")));
+  const R = (((D.legs || {}).by_market || {}).sog || {}).takes;
+  const dayTx = day ? new Date(day + "T12:00:00").toLocaleDateString("en-US", {weekday: "short", month: "short", day: "numeric"}) : "All dates";
+  const sec = (title, n, body, right = "") => `<div class="x-sec"><h3>${title} <span class="n">${n}</span>${right ? `<span class="r">${right}</span>` : ""}</h3>${body}</div>`;
+  const chip = (val, label, n) => `<button type="button" class="x-chip${game === val ? " on" : ""}" data-sx-game="${val}" aria-pressed="${game === val}">${label}<span class="n">${n}</span></button>`;
+  const seg = (key, cur, opts, label) => `<div class="x-seg" role="group" aria-label="${label}">${opts.map(([v, l]) =>
+    `<button type="button" class="${cur === v ? "on" : ""}" data-sx-${key}="${v}" aria-pressed="${cur === v}">${l}</button>`).join("")}</div>`;
+  const sortSel = `<label class="x-sort">Sort <select id="sxSort">${[["close", "Closest to a play"], ["chance", "Chance"], ["time", "Game time"], ["name", "Name"]]
+    .map(([v, l]) => `<option value="${v}" ${SOGX.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`;
+  const nm = n => `${n} near miss${n === 1 ? "" : "es"}`;
+  let body;
+  if (!items.length && !extra.length){
+    const down = sourcesOff();
+    body = `<div class="x-empty">${down ? `Lines unavailable (${down}). Paste a board under <button type="button" class="x-link js-paste">Starters, lines and sources</button>.`
+      : `No SOG lines posted for ${dayTx} yet. Books post them through the morning; this page updates every 15 minutes.`}</div>`;
+  } else if (!shown.length && !check.length && (fOn || qOn)){
+    body = `<div class="x-empty">No lines match these filters.<button type="button" class="x-link js-sx-clear">Clear filters</button></div>`;
+  } else {
+    body = sec("Plays", plays.length, plays.length ? xList(plays, "sog")
+        : `<div class="x-empty">No SOG plays ${fOn || qOn ? "match these filters" : "right now"}.${near.length ? ` ${nm(near.length)} below.` : ""}</div>`) +
+      (near.length ? sec("Near miss", near.length, xList(near, "sog"), `${Math.round(100 * nearP("sog"))}–${pc0(takeP("sog"))}, not plays`) : "") +
+      (rest.length ? sec("All lines", rest.length, xList(restShown, "sog", {}, rest.length > N ? `<button type="button" class="x-more js-sx-all">${SOGX.all ? "Show fewer" : `Show all ${rest.length}`}</button>` : ""), sortSel) : "") +
+      (check.length ? `<details class="x-sec" data-keep="sogCheck"${XR.keep.sogCheck ? " open" : ""}><summary>Check before betting <span class="n">${check.length}</span></summary>${xList(check, "sog", {check: true, alts: chk.alts})}</details>` : "");
+  }
+  $("#sogBox").innerHTML = `<div class="x-head"><h2>Shots on goal</h2><span class="x-date">${dayTx}</span><button type="button" class="x-link js-rules">How picks work</button></div>
+    <div class="x-record">SOG plays graded so far: ${R && R.n ? `<b>${R.hit}–${R.miss}</b> (${pc0(R.pct)})` : "none yet"} · a play needs ${pc0(takeP("sog"))}+ with the market agreeing</div>` +
+    (items.length ? `<div class="x-chips" role="group" aria-label="Game">${chip("", "All games", items.length)}${games.filter(g => byGame[g.id])
+        .map(g => chip(String(g.id), `${g.away} @ ${g.home} ${ctStart(g).replace(" CT", "")}`, byGame[g.id])).join("")}</div>` +
+      `<div class="x-filters">${seg("side", SOGX.side, [["", "All"], ["OVER", "▲ More"], ["UNDER", "▼ Less"]], "Side")}` +
+      `${books.length > 1 ? seg("book", book, [["", '<span class="lbl-l">All books</span><span class="lbl-s">All</span>'],
+        ...books.map(b => [b, b === "Yours" ? "Your lines" : b === "DraftKings" ? '<span class="lbl-l">DraftKings</span><span class="lbl-s">DK</span>' : b])], "Book") : ""}` +
+      `${fOn ? `<button type="button" class="x-link js-sx-clear">Clear filters</button>` : ""}</div>` : "") + body;
+}
+// SOG tab controls: game chips, side / book segments, sort, show all, clear; "How picks work"; the paste link
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-sx-game],[data-sx-side],[data-sx-book],.js-sx-all,.js-sx-clear,.js-rules,.js-paste");
+  if (!b) return;
+  if (b.matches(".js-rules")){ openRules(); return; }
+  if (b.matches(".js-paste")){ openPaste(); return; }
+  if (b.dataset.sxGame !== undefined) SOGX.game = b.dataset.sxGame;
+  else if (b.dataset.sxSide !== undefined) SOGX.side = b.dataset.sxSide;
+  else if (b.dataset.sxBook !== undefined) SOGX.book = b.dataset.sxBook;
+  else if (b.matches(".js-sx-all")) SOGX.all = !SOGX.all;
+  else if (b.matches(".js-sx-clear")){
+    SOGX.game = SOGX.side = SOGX.book = "";
+    if (Q()){ $("#q").value = ""; $("#q").dispatchEvent(new Event("input")); }
+  }
+  sogxSave(); renderSogTab();
+});
+document.addEventListener("change", e => { if (e.target.id === "sxSort"){ SOGX.sort = e.target.value; sogxSave(); renderSogTab(); } });
 function renderLive(){
   const L = (D.live || {}).legs || [], all = $("#liveAll") && $("#liveAll").checked;
   const rows = L.filter(r => all || String(r.verdict || "").startsWith("TAKE"));
@@ -1375,7 +1864,7 @@ function boardTable(id, mk, rows, opts = {}){
   const neutral = opts.neutral ?? 0.15;
   const cols = opts.win ? 5 : 6;
   const body = rows.map(r => {
-    const diffTd = `<td class="num ${r.diff == null ? "" : opts.win ? (Math.abs(r.diff) < 1 ? "diff-neu" : r.diff > 0 ? "diff-sup" : "diff-con") : diffCls(r.diff, r.side, neutral)}">${r.diff == null ? "–" : sgn1(r.diff) + (opts.win ? " pts" : "")}</td>`;
+    const diffTd = `<td class="num ${r.diff == null ? "" : opts.win ? (Math.abs(r.diff) < 1 ? "diff-neu" : r.diff > 0 ? "diff-sup" : "diff-con") : diffCls(r.diff, r.side, neutral)}">${r.diff == null ? "–" : sgnD(r.diff) + (opts.win ? " pts" : "")}</td>`;
     const pick = r.noLine ? '<span class="passtxt">needs a line</span>' : r.play ? `${sidePill(r.side)}${r.tier ? `<span class="tier">${r.tier}</span>` : ""}` : `<span class="passtxt">${r.side ? String(r.side).toLowerCase() + " · " : ""}pass</span>`;
     const det = kvList([
       ["", r.call ? `${verdictPill(r.call)}${!isTake(r.call) && r.call.reason ? ` <span class="muted">${r.call.reason}</span>` : ""}` : r.play ? tierPill(r.tier, r.capped) : "PASS", true],
@@ -1400,17 +1889,16 @@ function renderBoard(){
   const mkF = $("#fMk").value, sideF = $("#fSide").value, dateF = $("#dateF").value, plays = $("#fPlays").checked;
   const minP = $("#f60").checked ? 0.60 : (+$("#fMinP").value || 0) / 100;
   const keep = (r, sides = true) => (!dateF || r.date === dateF) && r.prob >= minP - 1e-9 && (!plays || r.play) && (!sides || !sideF || r.side === sideF) && matchQ(...r.q);
-  const allS = boardRowsSaves(), allK = boardRowsSog(), allW = boardRowsWin(), allP = boardRowsPts();
+  const allS = boardRowsSaves(), allW = boardRowsWin(), allP = boardRowsPts();
   // saves lists every starter (so you can type lines); only the explicit toggles narrow it
   const minS = $("#f60").checked ? 0.60 : 0;
   const S = allS.filter(r => (!dateF || r.date === dateF) && (!plays || r.play) && (!sideF || r.side === sideF) && (!minS || (r.prob ?? 0) >= minS) && matchQ(...r.q));
-  const K = allK.filter(r => keep(r)), Wn = allW.filter(r => keep(r, false)), Pt = allP.filter(r => keep(r));
-  const day = r => (!dateF || r.date === dateF) && matchQ(...r.q) && (!sideF || r.side === sideF);
-  const pb = propBoard(dateF); renderRanked(pb); renderLive();
+  const Wn = allW.filter(r => keep(r, false)), Pt = allP.filter(r => keep(r));
+  // one propBoard() feeds Points & saves, Today's plays / Near miss / Check before betting and the SOG tab
+  const pb = propBoard(dateF); LAST_PB = pb; renderRanked(pb); renderPlays(pb); renderSogTab(pb); renderLive();
   // plays the probability filter hides are counted, never hidden silently
   const hid = (all, sides = true) => all.filter(r => r.play && r.prob < minP - 1e-9 && (!dateF || r.date === dateF) && (!sides || !sideF || r.side === sideF) && matchQ(...r.q)).length;
   $("#cardSaves").style.display = !mkF || mkF === "saves" ? "" : "none";
-  $("#cardSog").style.display = !mkF || mkF === "sog" ? "" : "none";
   $("#cardWin").style.display = (!mkF || mkF === "win") && !sideF ? "" : "none";
   $("#cardPts").style.display = !mkF || mkF === "points" ? "" : "none";
   boardTable("#bPts", "points", Pt, {label: "points lines", neutral: 0.1, limit: 15});
@@ -1426,19 +1914,18 @@ function renderBoard(){
   $("#bSaves").querySelectorAll("select[data-st]").forEach(s => s.onchange = () => {
     STARTER[s.dataset.st] = +s.value; store.set("gm_starter", STARTER); renderSlate(); renderSlip(); renderWinners(); renderGoalies();
   });
-  // raw projections only: SOG plays come from selectSog (Today's plays / Near miss), so no tier pills here
-  boardTable("#bSog", "sog", K.map(r => ({...r, play: false})), {label: "SOG lines", limit: 15});
   boardTable("#bWin", "win", Wn, {win: true, label: "games"});
   const cnt = (rows, h) => `${rows.length} shown · ${rows.filter(r => r.play).length} plays` +
     (h ? ` · <span class="warn-inline">${h} play${h === 1 ? "" : "s"} below ${Math.round(100 * minP)}% hidden (lower the minimum to see ${h === 1 ? "it" : "them"})</span>` : "");
-  $("#nSaves").innerHTML = `${S.length} goalies · ${S.filter(r => !r.noLine).length} with lines · ${S.filter(r => r.play).length} plays`; const sc = pb.sel.counts; $("#nSog").innerHTML = `${sc.rows} board rows · ${sc.lock} Lock · ${sc.strong} Strong · ${sc.near_miss} near miss · ${sc.needs_review} needs review · ${sc.hidden_discounts} hidden discount${sc.hidden_discounts === 1 ? "" : "s"} (sub-1x) · ${K.length} raw projections shown`; $("#nWin").innerHTML = cnt(Wn, hid(allW, false)); $("#nPts").innerHTML = cnt(Pt, hid(allP));
-  renderStatus();
+  $("#nSaves").innerHTML = `${S.length} goalies · ${S.filter(r => !r.noLine).length} with lines · ${S.filter(r => r.play).length} plays`; $("#nWin").innerHTML = cnt(Wn, hid(allW, false)); $("#nPts").innerHTML = cnt(Pt, hid(allP));
+  renderStatus(pb);
 }
-function renderStatus(){
+function renderStatus(pb){
   const dateF = $("#dateF").value || TODAY_CT;
   const rows = slateRows(), night = rows.filter(r => r.g.date === dateF);
   const conf = night.filter(r => r.confirmed).length;
-  const sogA = alarmByDate(boardRowsSog().map(r => ({date: r.date, d: {play: r.play, side: r.side}})));
+  // the one-sided board warning for SOG counts the plays selectSog kept, by date and side
+  const sogA = alarmByDate(((pb && pb.sel && pb.sel.plays) || []).map(r => ({date: r.date, d: {play: true, side: r.side}})));
   const alarms = [...alarmLines("saves", rows.alarm, dateF), ...alarmLines("SOG", sogA, dateF)];
   $("#statusBar").innerHTML = [
     `Built <b>${builtCT}</b>`, `Data through <b>${D.data_through}</b>`,
@@ -1478,10 +1965,11 @@ async function checkForUpdate(manual){
   }
   REFRESH.busy = false; renderSources();
 }
-document.addEventListener("click", e => { if (e.target.closest("#refreshBtn")) checkForUpdate(true); });
+document.addEventListener("click", e => { if (e.target.closest(".js-refresh")) checkForUpdate(true); });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkForUpdate(false); });
 setInterval(() => { if (document.visibilityState === "visible") checkForUpdate(false); }, 5 * 6e4);
-// data plumbing on screen: a Pick6 pull that parses to 0 rows is a red banner, never a silently empty board
+// data plumbing (collapsed Data status): a Pick6 pull that parses to 0 rows is spelled out there, and the source
+// strip shows "Pick6 off", so the board is never silently empty
 function renderFeeds(){
   const st = String(D.pick6_status || "not run"), ps = D.pick6_stats || {}, bc = (D.board || {}).counts || {}, dm = D.dk_match || {};
   const drops = Object.entries(ps.dropped || {}).map(([k, v]) => `${v} ${k}`).join(", ");
@@ -1492,8 +1980,8 @@ function renderFeeds(){
     `Board match rate <b>${bc.match_rate != null ? pct(bc.match_rate, 0) : "–"}</b>${bc.modeled ? ` of ${bc.modeled} modeled lines` : ""}`,
     dkUn ? `<span class="warn-inline">${dkUn}</span>` : "",
     `Rosters: ${D.rosters_status || "–"}`, `Live scores: ${(D.live || {}).status || "–"}`];
-  $("#feedAlert").innerHTML = (bad ? `<div class="note" style="border-color:var(--under);background:var(--under-bg)"><b>⚠ Pick6 board missing: ${st}.</b> The board below falls back to DraftKings lines and anything you paste. ${st.startsWith("parse failed") ? "The page changed shape: save it (File → Save Page As, HTML only) as model/tests/fixtures/pick6.html so the parser can be fixed against it." : st.startsWith("blocked") ? "DraftKings refused the build server's request." : ""}</div>` : "");
-  $("#feedBanner").innerHTML = `<p class="sub" style="margin:0">${parts.filter(Boolean).join(" · ")}</p>`;
+  $("#feedBanner").innerHTML = `<p class="sub" style="margin:0">${parts.filter(Boolean).join(" · ")}</p>` +
+    (bad ? `<p class="sub" style="margin:6px 0 0"><b class="warn-inline">Pick6 board missing: ${esc(st)}.</b> The board falls back to PrizePicks and DraftKings lines and anything you paste. ${st.startsWith("parse failed") ? "The page changed shape: save it (File → Save Page As, HTML only) as model/tests/fixtures/pick6.html so the parser can be fixed against it." : st.startsWith("blocked") ? "DraftKings refused the build server's request." : ""}</p>` : "");
 }
 $("#liveAll").oninput = renderLive;
 document.addEventListener("click", e => {
@@ -1760,6 +2248,21 @@ function renderLogic(){
     ["Market blend", `final = ${RULE.blend_w} × model + ${fmt(1 - RULE.blend_w, 1)} × no-vig price (both prices posted)`],
     ["Play rule", `final P > break-even + ${pct(RULE.margin ?? MARGIN, 0)}, EV ≥ ${pct(RULE.margin ?? MARGIN, 0)}`], ["DFS per-leg break-even", `${pct(dfsBE(1),1)} at 1x (${DFS.legs} legs at ${DFS.payout}x)`]];
   $("#parT").innerHTML = `<tbody>${rows.map(r => `<tr><td class="l">${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</tbody>`;
+  // the rules as verdictFor / selectSog apply them, with this build's settings (model/pricing.py)
+  const tp = mk => pc0(takeP(mk)), one = takeP("sog") === takeP("points") && takeP("points") === takeP("saves");
+  const never = [!RULE.priced_takes ? "sportsbook-priced lines (DraftKings odds are shown for information: the model has no edge over the book's own price)" : "",
+    "lines with no market price on the same line (model-only picks have not won)", !RULE.saves_take_overs ? "saves overs (they lost at every threshold)" : "",
+    `points unders at ${RULE.points_under_max}+ (the model is overconfident there)`, DFS.sub1x ? "" : `sides paying under ${RULE.min_mult}x (allow them in ⚙ Pick'em)`].filter(Boolean);
+  $("#ruleList").innerHTML = [
+    `Every line ends in one call: <b>TAKE MORE</b>, <b>TAKE LESS</b> or <b>PASS</b>. Tap a row for the reason in plain English, the numbers behind it and his other lines.`,
+    `A <b>TAKE</b> needs all of these: a pick'em price (Pick6, PrizePicks or a line you type) paying <b>${RULE.min_mult}x or better</b> on that side; the market's own no-vig probability for the side at <b>${pc0(RULE.mkt_min)}+</b> on the same line; a chance of <b>${one ? tp("sog") : `${tp("sog")} (shots), ${tp("points")} (points), ${tp("saves")} (saves)`}+</b> that also beats the price's break-even (${pc1(dfsBE(1))} at 1x on your ${DFS.legs}-pick ${DFS.payout}x entry); the player matched to his NHL id; and the model alone leaning the same way.`,
+    `<b>Chance</b> = the calibrated model blended with the market's no-vig price on the same line, by a weight fitted on graded lines (Calibration tab). <b>Needs</b> = the bar or the price's break-even, whichever is higher; <b>edge</b> = chance minus needs.`,
+    `Never a play: ${never.join("; ")}.`,
+    `Saves also need a confirmed starter and a projection <b>${RULE.saves_edge_over}+</b> saves past the line on overs, <b>${RULE.saves_edge_under}+</b> on unders.`,
+    `Tiers: <b>Lock</b> ${pc0(lockP("sog"))}+, <b>Strong</b> ${Math.round(100 * takeP("sog"))}–${pc0(lockP("sog"))}. <b>Near miss</b>: ${Math.round(100 * nearP("sog"))}–${tp("sog")} with every other check met; shown, never a play.`,
+    `Shots on goal: at most one line per player per game, his other lines in the row's panel. A line that loses a conflict (a teammate's opposite-side play, or a saves play the other way) falls back to his next-best line; ⚠ marks the conflict.`,
+    `<b>Check before betting</b>: role changes (old line → new line), team mismatches and names that matched more than one player.`
+  ].map(x => `<li>${x}</li>`).join("");
   document.querySelectorAll(".k_sv").forEach(e => e.textContent = P.k_sv);
   document.querySelectorAll(".carry").forEach(e => e.textContent = Math.round(P.carry*100) + "%");
 }
@@ -1770,12 +2273,13 @@ function initDfs(){
     DFS.legs = Math.max(2, +$("#dfsLegs").value || 2); DFS.payout = Math.max(1, +$("#dfsPay").value || 3); DFS.sub1x = $("#dfsSub").checked;
     store.set("gm_dfs", DFS);
     $("#dfsSum").textContent = `· ${DFS.legs} legs at ${DFS.payout}x`;
-    $("#dfsBE").textContent = `→ per-leg break-even ${pct(dfsBE(1),1)} at 1x (${pct(dfsBE(0.9),1)} at 0.9x, ${pct(dfsBE(0.8),1)} at 0.8x)`;
+    $("#dfsBE").textContent = `Per-leg break-even ${pct(dfsBE(1),1)} at 1x (${pct(dfsBE(0.9),1)} at 0.9x, ${pct(dfsBE(0.8),1)} at 0.8x).`;
   };
-  ["#dfsLegs","#dfsPay","#dfsSub"].forEach(s => $(s).onchange = () => { upd(); renderSlate(); renderSOG(); renderSlip(); renderGoalies(); });
+  ["#dfsLegs","#dfsPay","#dfsSub"].forEach(s => $(s).onchange = () => { upd(); renderSlate(); renderSlip(); renderGoalies(); renderLogic(); });
+  $("#dfsBtn").onclick = () => { const p = $("#dfsPanel"), open = p.hidden; p.hidden = !open; $("#dfsBtn").setAttribute("aria-expanded", String(open)); };
   upd();
 }
-$("#q").addEventListener("input", () => { renderResults(); renderSlate(); renderGoalies(); renderTeams(); renderWinners(); renderSOG(); if (window.drawBtGames) window.drawBtGames(); });
+$("#q").addEventListener("input", () => { renderResults(); renderSlate(); renderGoalies(); renderTeams(); renderWinners(); if (window.drawBtGames) window.drawBtGames(); });
 
 // ---------- results (model/tracker.py, graded every build) ----------
 function renderResults(){
@@ -1934,7 +2438,6 @@ function nbOver(mean, line, prm, pos){   // P(over | no push); whole-number line
   const under = nbCdf(line - 1, mean, size);
   return over + under > 0 ? over / (over + under) : 0.5;
 }
-const sogOver = (mean, line, pos) => nbOver(mean, line, SP, pos);
 // tonight's projection from per-player rates (mirrors sog.live_proj): rate/60 x TOI x opponent x team x
 // home x back-to-back x opponent back-to-back, then the linear recalibration cal_a + cal_b x raw
 function liveProj(rate60, toi, oppF, teamF, home, b2b, oppB2b, prm){
@@ -1950,32 +2453,7 @@ function dkMkt(list, name, team, date, line, pid){
 const playedYday = (team, date) => { const l = D.last_played[team]; return !!l && (new Date(date) - new Date(String(l).slice(0, 10))) / 864e5 === 1; };
 const roleTxt = pl => [pl.line, pl.pp].filter(Boolean).join(" · ") + (pl.role_change ? ` · role ${pl.role_change}` : "");
 const SOGL = store.get("gm_sogl", {});
-let PP_SOG = [];
-function sogLineFor(pl, team, date){
-  const k = date + "|" + pl.id;
-  if (SOGL[k] != null) return {line: SOGL[k], src: "manual"};
-  const bd = boardFor("sog", pl.id);
-  if (bd) return {line: bd.line, src: bd.book, mo: bd.mo, mu: bd.mu};
-  const key = nameKey(pl.name);
-  const dk = (D.dk_sog || []).find(r => r.date === date && r.teams.includes(team) && (r.player_id != null ? r.player_id === pl.id : nameKey(r.name) === key));
-  if (dk) return {line: dk.line, src: "DK", over: dk.over, under: dk.under};
-  const pp = PP_SOG.find(r => (!r.date || r.date === date) && r.team === team && (r.player_id != null ? r.player_id === pl.id : nameKey(r.name) === key));
-  if (pp) return {line: pp.line, src: "PP", url: pp.url};
-  return {line: null, src: ""};
-}
-const SOGM = store.get("gm_sogm", {});   // per-line DFS multiplier you set (Pick6 / PrizePicks)
-function sogDecision(g, team, opp, home, pl){
-  const proj = liveProj(pl.r60, pl.toi, D.sog.opp[opp] ?? 1, (D.sog.team || {})[team] ?? 1, home, playedYday(team, g.date), playedYday(opp, g.date), SP);
-  const L = sogLineFor(pl, team, g.date), mk = g.date + "|" + pl.id;
-  let po = null, d = null;
-  if (L.line != null){
-    po = sogOver(proj, L.line, pl.pos);
-    const m = SOGM[mk] || {};
-    d = decide("sog", po, Object.assign({proj, line: L.line}, L.src === "DK" ? {over: L.over, under: L.under}
-      : {multOver: m.o ?? L.mo ?? 1, multUnder: m.u ?? L.mu ?? 1, mkt: dkMkt(D.dk_sog, pl.name, team, g.date, L.line, pl.id)}));
-  }
-  return {proj, L, mk, po, d};
-}
+const SOGM = store.get("gm_sogm", {});   // per-line DFS multipliers you set with "Use my own line" (Pick6 / PrizePicks)
 // ---------- points props (same engine as SOG, stat = points; model/fit_props.py) ----------
 const PTP = (D.points || {}).params || null;
 const PTL = store.get("gm_ptl", {});
@@ -2001,70 +2479,11 @@ function ptsDecision(g, team, opp, home, pl){
   }
   return {proj, L, po, d};
 }
-function renderSOG(){
-  const sel = $("#sGame");
-  if (sel.options.length === 1) sel.innerHTML += D.slate.map(g => `<option value="${g.date}|${g.id}">${g.date.slice(5)} ${ctStart(g)} ${g.away} @ ${g.home}</option>`).join("");
-  const nDK = (D.dk_sog || []).length, c = CAL.sog || {};
-  $("#sogNote").innerHTML = `Projection = shots/60 × expected TOI × opponent shots-allowed factor × home/road. P(over) uses a negative binomial (it fits real shot counts better than a Poisson in every season tested). That probability is then <b>calibrated</b> on every graded real line${c.cal ? ` (${c.cal.n} so far)` : ""}, and a side is a play only when it beats the price's break-even by ${pct(RULE.margin_sog, 0)}. The projection must also sit at least ${RULE.sog_gap} shots past the line in the play direction (under only if projection ≤ line − ${RULE.sog_gap}) unless EV is ${pct(RULE.sog_gap_ev, 0)}+, because on a 1.5 or 2.5 line a count model already leans under when the projection equals the line. DraftKings lines carry their real price; PrizePicks and your own lines are priced as DFS legs at the multiplier you set (1x by default, and sub-1x sides never qualify unless you allow them above). Sorted by EV. ${c.tier_cap === "LOW" ? `<b>Tiers are capped at LOW</b> until 150 forward-graded SOG plays hit above 57.7% with positive ROI${c.gate ? ` (${c.gate.plays} so far)` : ""}.` : ""} Lines: your entry, then DraftKings (${nDK} this build), then the PrizePicks board pulled live in your browser${PP_SOG.length ? ` (${PP_SOG.length} SOG props)` : ""}.`;
-  const gSel = sel.value, pos = $("#sPos").value, minEV = +$("#sMinP").value / 100, top = +$("#sTop").value, onlyPlays = $("#sPlays").checked;
-  const rows = [];
-  for (const g of D.slate){
-    if (gSel && gSel !== g.date + "|" + g.id) continue;
-    for (const [team, opp, home] of [[g.away, g.home, false], [g.home, g.away, true]]){
-      const list = (D.sog.players[team] || []).filter(p => !pos || p.pos === pos).slice(0, top);
-      for (const pl of list){
-        if (!matchQ(pl.name, team, opp)) continue;
-        const {proj, L, mk, po, d} = sogDecision(g, team, opp, home, pl);
-        if (onlyPlays && !(d && d.play && d.ev >= minEV)) continue;
-        rows.push({g, team, opp, home, pl, proj, L, po, d, mk});
-      }
-    }
-  }
-  const key = r => r.d ? (r.d.play ? 10 + r.d.ev : r.d.ev) : -9;
-  rows.sort((a, b) => key(b) - key(a) || b.proj - a.proj);
-  $("#sogT").innerHTML = `<thead><tr><th class="l">Player</th><th class="l">Game</th><th>Shots/60</th><th>TOI</th><th>Last 10</th><th>Proj</th><th>Line · source</th><th>Diff</th><th>DFS mult (over / under)</th><th class="l">Pick</th><th>P (calibrated)</th><th>Break-even</th><th>EV</th><th class="l">Tier</th></tr></thead><tbody>` +
-    (rows.length ? rows.map(r => { const d = r.d, play = d && d.play && d.ev >= minEV, m = SOGM[r.mk] || {};
-      const lowVal = d && r.L.line >= 3.5 && d.side === "UNDER" && d.kind === "dfs" && (d.mult ?? 1) < 1;
-      return `<tr class="${play ? d.side.toLowerCase() : d ? "dim" : ""}">
-      <td class="l">${r.pl.name} <span class="muted">${r.pl.pos}</span>${r.pl.new ? ' <span class="muted">· no NHL history</span>' : ""}</td>
-      <td class="l">${r.team} ${r.home ? "vs" : "@"} ${r.opp}<div class="muted" style="font-size:11px">${ctStart(r.g)}</div></td>
-      <td>${fmt(r.pl.r60,1)}</td><td>${fmt(r.pl.toi,1)}</td>
-      <td style="font-size:11.5px">${(r.pl.l10||[]).join(" ") || "–"}</td><td><b>${fmt(r.proj,2)}</b></td>
-      <td><input type="number" step="0.5" style="width:64px" data-sl="${r.mk}" value="${r.L.line ?? ""}" placeholder="line">${r.L.src && r.L.src !== "manual" ? `<div class="muted" style="font-size:11px">${r.L.src}${hasVal(r.L.over) ? ` o${amer(r.L.over)}/u${amer(r.L.under) || "–"}` : ""}</div>` : ""}</td>
-      <td class="${r.d ? diffCls(r.proj - r.L.line, r.d.side) : ""}">${r.L.line != null ? sgn1(r.proj - r.L.line) : "–"}</td>
-      <td>${r.L.line != null && r.L.src !== "DK" ? `<select data-mo="${r.mk}">${[...new Set([1.2,1.1,1,0.9,0.85,0.8,0.75, m.o ?? r.L.mo ?? 1])].sort((a,b)=>b-a).map(x => `<option ${(m.o ?? r.L.mo ?? 1) == x ? "selected" : ""}>${x}</option>`).join("")}</select> <select data-mu="${r.mk}">${[...new Set([1.2,1.1,1,0.9,0.85,0.8,0.75, m.u ?? r.L.mu ?? 1])].sort((a,b)=>b-a).map(x => `<option ${(m.u ?? r.L.mu ?? 1) == x ? "selected" : ""}>${x}</option>`).join("")}</select>` : "–"}</td>
-      <td class="l side">${d ? (play ? d.side : "PASS") : ""}${d ? `<div class="muted" style="font-size:11px">${d.side} ${priceTxt(d)}</div>` : ""}${lowVal ? `<div class="bad" style="font-size:11px">3.5+ under below 1x: low value</div>` : ""}</td>
-      <td>${d ? pc0(d.p) : "–"}</td><td>${d && d.be != null ? pc0(d.be) : "–"}</td><td class="${d && d.ev > 0 ? "good" : d ? "bad" : ""}">${evTxt(d)}</td>
-      <td class="l">${d ? `<span class="pill ${d.tier}">${d.tier}</span>` : ""}</td></tr>`; }).join("")
-    : `<tr><td colspan="14" class="l muted">No players match.</td></tr>`) + "</tbody>";
-  $("#sogT").querySelectorAll("input[data-sl]").forEach(i => i.onchange = () => {
-    if (i.value === "") delete SOGL[i.dataset.sl]; else SOGL[i.dataset.sl] = +i.value;
-    store.set("gm_sogl", SOGL); renderSOG(); renderBoard();
-  });
-  $("#sogT").querySelectorAll("select[data-mo],select[data-mu]").forEach(x => x.onchange = () => {
-    const k = x.dataset.mo || x.dataset.mu; SOGM[k] = SOGM[k] || {}; SOGM[k][x.dataset.mo ? "o" : "u"] = +x.value;
-    store.set("gm_sogm", SOGM); renderSOG(); renderBoard();
-  });
-}
-function renderSogBacktest(){
-  const B = D.sog.backtest, T = B["2026"], R = B.real_pp_2026_playoffs;
-  const r58 = (R.buckets.find(b => b.min_p === 0.58) || {}), r55 = (R.buckets.find(b => b.min_p === 0.55) || {});
-  $("#sogStats").innerHTML = `
-    <div class="stat hero"><div class="k">Real PrizePicks lines, P(hit) ≥ 55%</div><div class="v">${pct(r55.hit)}</div><div class="s">${r55.n ?? 0} props · 2026 playoffs</div></div>
-    <div class="stat"><div class="k">Real lines, P(hit) ≥ 58%</div><div class="v">${pct(r58.hit)}</div><div class="s">${r58.n ?? 0} props</div></div>
-    <div class="stat"><div class="k">Avg miss per player-game</div><div class="v">${fmt(T.mae_model,2)}</div><div class="s">vs ${fmt(T.mae_l10,2)} for last-10 avg</div></div>`;
-  const tbl = bs => `<thead><tr><th>Min P(hit)</th><th>Props</th><th>Hit %</th><th>OVER n</th><th>OVER hit</th><th>UNDER n</th><th>UNDER hit</th><th>Units @ -115</th></tr></thead><tbody>` +
-    bs.map(b => `<tr><td>${pct(b.min_p,0)}</td><td>${b.n}</td><td class="${b.hit>=.65?"good":b.hit<.524?"bad":""}"><b>${pct(b.hit)}</b></td><td>${b.over_n}</td><td>${pct(b.over_hit)}</td><td>${b.under_n}</td><td>${pct(b.under_hit)}</td><td>${b.units>0?"+":""}${fmt(b.units)}</td></tr>`).join("") + "</tbody>";
-  $("#sogReal").innerHTML = tbl(R.buckets);
-  $("#sogProxy").innerHTML = tbl(T.buckets);
-}
-["#sGame","#sPos","#sMinP","#sTop","#sPlays"].forEach(s => $(s).oninput = renderSOG);
-
 $("#ppRefresh").onclick = pullPrizePicksLive;
 function boardRefresh(msg){
   $("#boardCount").textContent = (BOARD.rows || []).length ? `(${BOARD.rows.length} props loaded)` : "";
   if (msg !== undefined) $("#boardMsg").textContent = msg;
-  renderSlate(); renderSOG(); renderSlip();
+  renderSlate(); renderSlip();
 }
 $("#boardFile").onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { $("#boardText").value = rd.result; }; rd.readAsText(f); };
 $("#boardImport").onclick = () => {
@@ -2080,7 +2499,7 @@ $("#boardImport").onclick = () => {
 };
 $("#boardClear").onclick = () => { BOARD = {rows: []}; store.set("gm_board", BOARD); boardRefresh("Board cleared."); };
 $("#boardCount").textContent = (BOARD.rows || []).length ? `(${BOARD.rows.length} props loaded)` : "";
-initDfs(); renderSlate(); initBuilder(); renderResults(); renderLegs(); renderCalib(); renderWinners(); renderWinBacktest(); renderSOG(); renderSogBacktest(); renderBacktest(); renderTracker(); renderSlip(); initGoalies(); renderTeams(); renderLogic();
+initDfs(); renderSlate(); initBuilder(); renderResults(); renderLegs(); renderCalib(); renderWinners(); renderWinBacktest(); renderBacktest(); renderTracker(); renderSlip(); initGoalies(); renderTeams(); renderLogic();
 if (D.slate.length) pullPrizePicksLive();
 </script>
 </body>

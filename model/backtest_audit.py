@@ -118,8 +118,10 @@ def synthetic_reliability(rows, prm, stat):
 
 # ---------- 4. rule-passing legs on real lines ----------
 def rule_legs(log, rows_sog, prm_sog, rows_pts, prm_pts, prices):
-    """Walk-forward on graded DK lines: TAKE under the new rule (blend fitted walk-forward, model must agree)
-    vs the old (calibrated model blended 60/40, p >= 58%), both as 1x DFS legs."""
+    """Walk-forward on graded DK lines: TAKE under the live rule vs the old (calibrated model blended 60/40,
+    p >= 58%), both as 1x DFS legs on the same warm weeks. The live rule's p: SOG, the 50/50 mean blend with the
+    DK-implied mean (nothing fitted; its 62% / 55% bars were chosen on this season's lines); points, the blend
+    fitted walk-forward (model must agree)."""
     df = calibrate.lines_frame(log, None, {}, rows_sog, prm_sog, rows_pts, prm_pts)
     if df.empty:
         return {}
@@ -136,11 +138,18 @@ def rule_legs(log, rows_sog, prm_sog, rows_pts, prm_pts, prices):
         r = calibrate.replay(x, mk)
         new, old = [], []
         be1 = pricing.dfs_break_even(1.0)
+        mb = mk == "sog" and pricing.SOG_MEAN_W > 0
+        prm = calibrate._prop_params(prm_sog) if mb else None
         for i, row in x.iterrows():
-            if not r.warm.iloc[i] or row.push:
+            if not r.warm.iloc[i] or row.push:        # the same warm weeks for both rules, so they compare like for like
                 continue
             went = bool(row.went_over)
             pb, pm, pk = r.p_final_over.iloc[i], r.p_cal_over.iloc[i], r.p_mkt_over.iloc[i]
+            if mb:      # the live SOG probability: mean blend, raw model as "model alone"
+                pb = calibrate.mean_blend_p(row.model_proj, row.line, pk, prm, row.pos if isinstance(row.get("pos"), str) else None)
+                pm = row.p_over
+                if pb != pb:
+                    continue
             # the live rule picks the side as if it were a 1x DFS leg (market support required) ...
             v = pricing.verdict(mk, pb, pm, row.line, row.model_proj, 1.0, 1.0, p_mkt_over=pk)
             pf = r.p_fixed_over.iloc[i]; oside = "OVER" if pf >= .5 else "UNDER"
@@ -281,7 +290,7 @@ def md(rep) -> str:
         L += ["", f"Model's side where it and DK no-vig disagree (walk-forward): {d.get('hit')}-{(d.get('n') or 0) - (d.get('hit') or 0)} ({pct(d.get('pct'))}), against a 57.7% 1x break-even.", ""]
     # 4
     L += ["## 3. Rule-passing legs on real lines (items 3 and 9)", "",
-          "Walk-forward on every graded DK line with a pre-game price. New = the live TAKE rule (market support, blended p over the bar, model agrees) choosing as if the side were a 1x DFS leg. Old = calibrated model blended 60/40 at p ≥ 58%.",
+          "Walk-forward on every graded DK line with a pre-game price. New = the live TAKE rule choosing as if the side were a 1x DFS leg: market support (its own side ≥ 55%) and blended p over the bar (SOG: the 50/50 mean blend at ≥ 62%, no model-agrees check; its bars were chosen on these dates, so SOG 'new' is in-sample for the bars; points: the fitted blend at ≥ 58%, model agrees). Old = calibrated model blended 60/40 at p ≥ 58%. Both rules on the same warm weeks.",
           "Each pick is settled three ways. **1x** is hypothetical: DFS boards discount exactly these sides (on Nov 3-8 Pick6 paid ≥1x on 0 sides DK priced at 54%+), so it overstates. **DK price** is DraftKings' own odds. **Real DFS** settles only the sides a Pick6-style board would offer at ≥ 1x, at that multiplier. ± is one standard error.", "",
           "| market | rule | legs | record | hit % | units 1x (hypothetical) | ROI at DK price | real DFS legs | ROI real DFS |", "|---|---|---|---|---|---|---|---|---|"]
     fse = lambda v: f" ± {100 * v:.1f}" if v is not None else ""

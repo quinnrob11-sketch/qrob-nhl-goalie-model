@@ -61,12 +61,18 @@ class Verdicts(unittest.TestCase):
         self.assertTrue(all(v == 1 for v in per_player.values()))
 
     def test_market_driven_legs_pass(self):
-        # DK prices Reinhart's 1.5 over at 70% no-vig; blended p (w = 0) is 70%, but the model alone leans under
+        # DK prices Reinhart's 1.5 over at 70% no-vig, the model projects 1.0 shots: the 50/50 mean blend sits between
+        # the two (expected shots ~1.7, near 50% at 1.5), so the market alone can't make it a TAKE
         dk = [{"name": "Sam Reinhart", "player_id": 20, "teams": ["TOR", "FLA"], "date": "2026-11-03", "line": 1.5, "over": -233, "under": 233}]
         b = self.build([p6(20, "Sam Reinhart", "FLA", 1.5)], dk)
         r = b["rows"][0]
-        self.assertGreaterEqual(r["p_blend"], 0.58)
-        self.assertEqual(r["verdict"], "PASS"); self.assertIn("model alone", r["reason"])
+        self.assertTrue(r["mean_blend"])
+        self.assertAlmostEqual(r["p_mkt"], 0.70, places=2)
+        self.assertLess(r["p_raw"], 0.40)                                   # the model alone leans under
+        self.assertTrue(r["p_raw"] < r["p_blend"] < r["p_mkt"])
+        self.assertGreater(r["mu_mkt"], r["proj"])
+        self.assertEqual(r["verdict"], "PASS")
+        self.assertLess(r["p"], pricing.take_p("sog"))
 
     def test_dk_fallback_priced_at_dk_odds(self):
         # Pick6 doesn't list Reinhart; DK's -233 over is the fallback. At w = 0 the blended p is DK's own no-vig
@@ -98,12 +104,17 @@ class Rule(unittest.TestCase):
         v = lambda *a, mk=.6, **k: pricing.verdict(*a, p_mkt_over=mk, **k)
         self.assertEqual(v("sog", .60, .58, 2.5, 3.0, 0.8, 1.2)["reason"], "pays 0.8x")
         self.assertEqual(v("sog", .40, .42, 2.5, 2.0, 1.7, 0.0)["reason"], "LESS not offered on this line")
-        nm = v("sog", .56, .56, 2.5, 3.0, 1, 1, mk=.56)
-        self.assertEqual((nm["reason"], nm["tier"]), ("56% near miss", "Near miss"))
+        nm = v("sog", .60, .60, 2.5, 3.0, 1, 1, mk=.56)                     # SOG bar 62%: 59-62% is a near miss
+        self.assertEqual((nm["reason"], nm["tier"]), ("60% near miss", "Near miss"))
+        self.assertEqual(v("sog", .57, .57, 2.5, 3.0, 1, 1, mk=.56)["reason"], "57% < 62%")
         self.assertEqual(v("sog", .60, .6, 2.5, 3.0, 1, 1, matched=False)["reason"], "unmatched player")
-        t = v("sog", .63, .6, 2.5, 3.0, 1, 1)
+        t = v("sog", .65, .6, 2.5, 3.0, 1, 1)
         self.assertEqual((t["verdict"], t["tier"], round(t["p_mkt_side"], 2)), ("TAKE MORE", "Lock", .6))
-        self.assertEqual(v("sog", .40, .41, 2.5, 2.0, 1, 1, mk=.42)["verdict"], "TAKE LESS")
+        self.assertEqual(v("sog", .63, .6, 2.5, 3.0, 1, 1)["tier"], "Strong")
+        self.assertEqual(v("sog", .37, .41, 2.5, 2.0, 1, 1, mk=.42)["verdict"], "TAKE LESS")
+        # SOG (rule R1) has no "model alone agrees" check: the mean blend already carries the model; points keep it
+        self.assertEqual(v("sog", .63, .45, 2.5, 3.0, 1, 1)["verdict"], "TAKE MORE")
+        self.assertIn("model alone 45% disagrees", v("points", .60, .45, 0.5, 0.9, 1, 1)["reason"])
 
     def test_market_support_and_blocks(self):
         # no market quote: model-only picks have not won (SOG 52-54% at 1x, points' own leans 56.6%)
@@ -118,7 +129,7 @@ class Rule(unittest.TestCase):
         self.assertIn("unders", pricing.verdict("points", .30, .30, 1.5, 0.6, 1, 1, p_mkt_over=.35)["reason"])
         self.assertEqual(pricing.verdict("points", .38, .30, 0.5, 0.4, 1, 1, p_mkt_over=.40)["verdict"], "TAKE LESS")
         # a side failing the market check is not a near miss
-        self.assertEqual(pricing.verdict("sog", .56, .56, 2.5, 3.0, 1, 1, p_mkt_over=.50)["tier"], "")
+        self.assertEqual(pricing.verdict("sog", .60, .60, 2.5, 3.0, 1, 1, p_mkt_over=.50)["tier"], "")
 
     def test_saves_edges(self):
         v = lambda *a, mk=.6, **k: pricing.verdict(*a, p_mkt_over=mk, **k)

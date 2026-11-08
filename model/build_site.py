@@ -485,8 +485,9 @@ def main():
         "starters_status": starters.status,
         "sog": {"params": sp.to_dict(), "players": sog_export(teams, sst, sp, skater_df, pst, combos, slots, R),
                 "opp": {t: round(float(sst.opp_factor(t)), 4) for t in sst.team_sa if t not in DEFUNCT},
-                "team": {t: round(float(sst.team_factor(t)), 4) for t in sst.team_for if t not in DEFUNCT},
-                "backtest": json.load(open(os.path.join(OUT, "sog_backtest.json")))},
+                # (the old proxy-line SOG backtest, output/sog_backtest.json, is no longer shown: synthetic lines and
+                # stale parameters; the Backtest tab's rule record replays the live rule on real graded lines)
+                "team": {t: round(float(sst.team_factor(t)), 4) for t in sst.team_for if t not in DEFUNCT}},
         "points": {"params": pp_.to_dict(),
                    "opp": {t: round(float(pst.opp_factor(t)), 4) for t in pst.team_sa if t not in DEFUNCT},
                    "team": {t: round(float(pst.team_factor(t)), 4) for t in pst.team_for if t not in DEFUNCT}},

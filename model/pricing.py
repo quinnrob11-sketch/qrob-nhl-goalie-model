@@ -44,10 +44,15 @@ SAVES_BIAS_HL = 30.0        # days; half-life of the rolling saves bias correcti
 # favoured side is what actually wins (points no-vig >= 0.55 hit 66.8%, n=832).
 MKT_MIN = 0.55              # shots / points / saves: a TAKE needs a market quote whose own side is at least this
 NEAR_BAND = 0.03            # near miss: p within this of the market's TAKE bar, everything else met
-SOG_TAKE_P = 0.58           # shots on goal: blended p of the side at least this (see SOG section of the review)
-SOG_LOCK_P = 0.62
-SOG_MEAN_W = 0.0            # shots on goal: weight on the market-implied mean in the projection blend (0 = off):
-                            # mu = (1 - w) x model projection + w x the NB mean that reproduces the market's no-vig
+SOG_TAKE_P = 0.62           # shots on goal (rule R1 of the review): blended p of the side at least this, with the
+SOG_LOCK_P = 0.64           # market's own side >= MKT_MIN and the side offered at >= 1x. Walk-forward on DK lines
+                            # (10-07..11-06, n=246) it hit 63.8% +- 3.1: +10.5% per leg at a 1x payout, -1.5% +- 4.1
+                            # at DK's own price. No DFS board has offered such a side at >= 1x yet, so expect ~0 a night.
+SOG_MEAN_W = 0.5            # shots on goal: weight on the market-implied mean in the projection blend (0 = off):
+                            # mu = (1 - w) x model projection + w x the NB mean that reproduces the market's no-vig,
+                            # priced at any line with the model's dispersion (no Platt: off DK's line the Platt fit
+                            # was miscalibrated, ECE 0.08 vs 0.007 for the blend)
+SOG_MODEL_AGREE = False     # R1 has no "model alone agrees" check for SOG (the blend already carries the model)
 PRICED_TAKES = False        # a line priced at a sportsbook's own odds (DraftKings) is never a TAKE: walk-forward,
                             # DK-priced TAKEs hit exactly DK's no-vig and lost to the vig at every weight
                             # (points -7% to -23%; the live 10-10, -21.9%)
@@ -64,7 +69,8 @@ def config() -> dict:
             "take_p": TAKE_P, "near_miss_p": NEAR_MISS_P, "lock_p": LOCK_P, "min_mult": MIN_MULT,
             "saves_edge_over": SAVES_EDGE_OVER, "saves_edge_under": SAVES_EDGE_UNDER, "saves_take_p": SAVES_TAKE_P,
             "saves_bias_hl": SAVES_BIAS_HL, "mkt_min": MKT_MIN, "near_band": NEAR_BAND,
-            "sog_take_p": SOG_TAKE_P, "sog_lock_p": SOG_LOCK_P, "sog_mean_w": SOG_MEAN_W, "priced_takes": PRICED_TAKES,
+            "sog_take_p": SOG_TAKE_P, "sog_lock_p": SOG_LOCK_P, "sog_mean_w": SOG_MEAN_W,
+            "sog_model_agree": SOG_MODEL_AGREE, "priced_takes": PRICED_TAKES,
             "saves_take_overs": SAVES_TAKE_OVERS, "points_under_max": POINTS_UNDER_MAX}
 
 
@@ -210,7 +216,7 @@ def verdict(market: str, p_over: float, p_model_over: float, line: float, proj: 
     price, PRICED_TAKES); the market (p_mkt_over: no-vig P(over) at this line) prices this player-line and its
     own probability for the side is >= MKT_MIN; blended p >= take_p(market) (saves: also an edge of
     SAVES_EDGE_UNDER saves past the line, and no overs); p beats the price's break-even; the player is
-    MATCHED (saves: a confirmed starter); the model alone leans the same way; and no market-specific block
+    MATCHED (saves: a confirmed starter); the model alone leans the same way (not for SOG, SOG_MODEL_AGREE); and no market-specific block
     (points unders on lines >= POINTS_UNDER_MAX). The side considered is the one with the higher blended p.
     Near miss: everything met except p, which is within NEAR_BAND of the bar.
     Returns side ("OVER" / "UNDER"), p, p_model, p_mkt_side (the market's probability for the side), be, mult / price,
@@ -256,7 +262,7 @@ def verdict(market: str, p_over: float, p_model_over: float, line: float, proj: 
         reason = f"{pct} near miss" if near else f"{pct} < {100 * need:.0f}%"
     elif be is not None and p <= be:
         reason = f"{pct} doesn't beat break-even {100 * be:.1f}%"
-    elif pm <= 0.5:
+    elif pm <= 0.5 and (market != "sog" or SOG_MODEL_AGREE):
         reason = f"model alone {100 * pm:.0f}% disagrees (market-driven)"
     if reason is None:
         out.update(verdict=f"TAKE {'MORE' if side == 'OVER' else 'LESS'}", tier="Lock" if p >= lock_p(market) - 1e-9 else "Strong")

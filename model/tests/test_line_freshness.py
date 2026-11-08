@@ -100,8 +100,9 @@ class Pick6(Tmp):
 
 
 class Board(unittest.TestCase):
-    def board(self, p6_at, dk_at, src=None):
-        pl = payload(PLAYERS, [{**DK_ROW, "name": "W. Nylander", "player_id": 11, "fetched_at": dk_at}])
+    def board(self, p6_at, dk_at, src=None, extra_dk=()):
+        pl = payload(PLAYERS, [{**DK_ROW, "name": "W. Nylander", "player_id": 11, "fetched_at": dk_at},
+                               *({**d, "fetched_at": dk_at} for d in extra_dk)])
         pl["built_iso"] = ISO(NOW)
         pl["sources_at"] = ISO(NOW)
         pl["sources"] = src or {}
@@ -124,12 +125,40 @@ class Board(unittest.TestCase):
         self.assertFalse(sources.info("fresh", edge, NOW)["stale"])
 
     def test_calls_identical_for_identical_lines_whatever_their_age(self):
+        # age alone is a label: the same lines from fresh pulls get the same calls however old the timestamps
         a = self.board(ISO(NOW), ISO(NOW))
-        b = self.board(ISO(NOW - dt.timedelta(hours=3)), ISO(NOW - dt.timedelta(hours=3)), {"dk": {"status": "fallback"}})
+        b = self.board(ISO(NOW - dt.timedelta(hours=3)), ISO(NOW - dt.timedelta(hours=3)), {"dk": {"status": "fresh"}})
         strip = lambda rows: [{k: v for k, v in r.items() if k not in ("fetched_at", "age_min", "stale", "fallback")} for r in rows]
         self.assertEqual(strip(a["rows"]), strip(b["rows"]))
         self.assertEqual(a["counts"], b["counts"])
         self.assertEqual(strip(a["plays"]), strip(b["plays"]))
+
+    def test_reused_board_is_never_a_play(self):
+        # a board reused because this build's pull failed (status fallback / error) keeps every number, but no row
+        # that leans on it is a TAKE: a cached line paired with tonight's prices showed edges that no longer existed
+        import pricing
+        old_bar = pricing.SOG_TAKE_P
+        try:
+            pricing.SOG_TAKE_P = 0.0         # make every priced SOG row a TAKE when its sources are fresh
+            # DraftKings prices Marner's 2.5 (no-vig over 65%), so his Pick6 2.5 MORE has the market's support
+            mk = [{**DK_ROW, "over": -200, "under": 160}]
+            a = self.board(ISO(NOW), ISO(NOW), extra_dk=mk)
+            for src in ({"dk": {"status": "fallback"}}, {"pick6": {"status": "fallback"}}, {"dk": {"status": "error"}}):
+                b = self.board(ISO(NOW), ISO(NOW), src, extra_dk=mk)
+                ra = {(r["name"], r["line"], r["source"]): r for r in a["rows"]}
+                for r in b["rows"]:
+                    x = ra[(r["name"], r["line"], r["source"])]
+                    self.assertEqual((r.get("p"), r.get("side"), r.get("proj")), (x.get("p"), x.get("side"), x.get("proj")))
+                    if r.get("cached"):
+                        self.assertEqual(r["verdict"], "PASS")
+                        if str(x.get("verdict", "")).startswith("TAKE"):     # a TAKE when fresh says why it isn't now
+                            self.assertIn("cached", r["reason"])
+                self.assertFalse(any(r.get("cached") for r in b["plays"]))
+                self.assertTrue(any(r.get("cached") for r in b["rows"]), src)
+            self.assertTrue(any(str(r.get("verdict", "")).startswith("TAKE") for r in a["rows"] if r["market"] == "sog"))
+            self.assertFalse(any(r.get("cached") for r in a["rows"]))
+        finally:
+            pricing.SOG_TAKE_P = old_bar
 
 
 class Publish(unittest.TestCase):
