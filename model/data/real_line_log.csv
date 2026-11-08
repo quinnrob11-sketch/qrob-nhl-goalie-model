@@ -39,7 +39,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-09-30,winner,COL,COL,LAK,,,,,COL,,0.66,,,65%+,COL 8-4,HIT,
 2026-10-01,saves,J. Allen,NJD,PHI,Pick6,22.5,1,,UNDER,21.4,0.56,,,LOW,23,MISS,went to OT
 2026-10-01,saves,A. Vasilevskiy,TBL,NYR,Pick6,23.5,0.9,,UNDER,21.8,0.6,,,MED,20,HIT,
-2026-10-01,saves,I. Shesterkin,NYR,TBL,Pick6,24.5,1,,UNDER,24.3,0.51,,,PASS,24,HIT,
+2026-10-01,saves,I. Shesterkin,NYR,TBL,Pick6,24.5,1,,UNDER,24.3,0.51,,,PASS,23,HIT,stat corrected 24→23
 2026-10-01,saves,U. Luukkonen,BUF,CBJ,Pick6,25.5,1,,UNDER,24.7,0.55,,,PASS,17,HIT,
 2026-10-01,saves,J. Greaves,CBJ,BUF,Pick6,25.5,1,,UNDER,24.6,0.55,,,PASS,23,HIT,
 2026-10-01,saves,J. Saros,NSH,MIN,Pick6,25.5,1,,OVER,25.6,0.5,,,PASS,27,HIT,
@@ -51,7 +51,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-01,saves,Y. Askarov,SJS,FLA,Pick6,25.5,0.9,,UNDER,22.2,0.68,,,HIGH,23,HIT,
 2026-10-01,saves,J. Allen,NJD,PHI,DraftKings,22.5,1,-125,UNDER,21.4,0.56,,,LOW,23,MISS,auto; went to OT
 2026-10-01,saves,A. Vasilevskiy,TBL,NYR,DraftKings,23.5,1,-130,UNDER,21.8,0.6,,,MED,20,HIT,auto
-2026-10-01,saves,I. Shesterkin,NYR,TBL,DraftKings,25.5,1,-110,UNDER,24.3,0.57,,,LOW,24,HIT,auto
+2026-10-01,saves,I. Shesterkin,NYR,TBL,DraftKings,25.5,1,-110,UNDER,24.3,0.57,,,LOW,23,HIT,auto; stat corrected 24→23
 2026-10-01,saves,U. Luukkonen,BUF,CBJ,DraftKings,25.5,1,-120,UNDER,24.7,0.55,,,PASS,17,HIT,auto
 2026-10-01,saves,J. Greaves,CBJ,BUF,DraftKings,25.5,1,-110,UNDER,24.6,0.55,,,PASS,23,HIT,auto
 2026-10-01,saves,J. Saros,NSH,MIN,DraftKings,25.5,1,-115,OVER,25.6,0.5,,,PASS,27,HIT,auto
@@ -149,7 +149,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-01,sog,D. Nurse,SJS,FLA,Pick6,1.5,0.9,,OVER,1.9,0.55,,,PASS,0,MISS,TOI 17.1 vs 21.5 expected; went to OT
 2026-10-01,sog,M. Olivier,CBJ,BUF,Pick6,1.5,0.8,,UNDER,1.56,0.55,,,PASS,3,MISS,
 2026-10-01,sog,T. Thompson,BUF,CBJ,Pick6,2.5,0.8,,OVER,2.95,0.54,,,PASS,4,HIT,
-2026-10-01,sog,J. Guentzel,TBL,NYR,Pick6,2.5,1,,UNDER,2.57,0.54,,,PASS,4,MISS,TOI 24.0 vs 19.9 expected
+2026-10-01,sog,J. Guentzel,TBL,NYR,Pick6,2.5,1,,UNDER,2.57,0.54,,,PASS,3,MISS,TOI 24.0 vs 19.9 expected; stat corrected 4→3
 2026-10-01,sog,J. Norris,BUF,CBJ,Pick6,1.5,1,,UNDER,1.59,0.54,,,PASS,1,HIT,
 2026-10-01,sog,R. Josi,NSH,MIN,Pick6,2.5,1,,UNDER,2.58,0.54,,,PASS,3,MISS,
 2026-10-01,sog,Y. Sharangovich,CGY,SEA,Pick6,1.5,0.9,,OVER,1.86,0.54,,,PASS,1,MISS,
@@ -221,7 +221,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-01,sog,B. Pesce,NJD,PHI,DraftKings,1.5,1,-135,UNDER,1.29,0.64,,,HIGH,0,HIT,auto
 2026-10-01,sog,N. Kucherov,TBL,NYR,DraftKings,3.5,1,-150,UNDER,2.88,0.67,,,HIGH,1,HIT,auto
 2026-10-01,sog,B. Hagel,TBL,NYR,DraftKings,2.5,1,-135,OVER,2.79,0.51,,,PASS,3,HIT,auto
-2026-10-01,sog,J. Guentzel,TBL,NYR,DraftKings,2.5,1,-115,UNDER,2.57,0.54,,,PASS,4,MISS,auto; TOI 24.0 vs 19.9 expected
+2026-10-01,sog,J. Guentzel,TBL,NYR,DraftKings,2.5,1,-115,UNDER,2.57,0.54,,,PASS,3,MISS,auto; TOI 24.0 vs 19.9 expected; stat corrected 4→3
 2026-10-01,sog,J. Carlson,TBL,NYR,DraftKings,1.5,1,-165,OVER,1.97,0.56,,,LOW,4,HIT,auto
 2026-10-01,sog,B. Point,TBL,NYR,DraftKings,2.5,1,-175,UNDER,1.96,0.69,,,HIGH,1,HIT,auto
 2026-10-01,sog,I. Mikheyev,TBL,NYR,DraftKings,1.5,1,-115,UNDER,1.63,0.53,,,PASS,0,HIT,auto
@@ -543,7 +543,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-03,sog,A. Fantilli,CBJ,UTA,DraftKings,2.5,1,-115,UNDER,2.4,0.58,,,MED,1,HIT,auto
 2026-10-03,sog,V. Nichushkin,CBJ,UTA,DraftKings,1.5,1,-160,OVER,1.83,0.53,,,PASS,2,HIT,auto
 2026-10-03,sog,M. Knies,CBJ,UTA,DraftKings,1.5,1,-140,OVER,1.8,0.52,,,PASS,1,MISS,auto
-2026-10-03,sog,C. Coyle,CBJ,UTA,DraftKings,1.5,1,-110,OVER,1.74,0.5,,,PASS,0,MISS,auto
+2026-10-03,sog,C. Coyle,CBJ,UTA,DraftKings,1.5,1,-110,OVER,1.74,0.5,,,PASS,1,MISS,auto; stat corrected 0→1
 2026-10-03,sog,C. Sillinger,CBJ,UTA,DraftKings,1.5,1,-155,UNDER,1.68,0.51,,,PASS,2,MISS,auto
 2026-10-03,sog,S. Monahan,CBJ,UTA,DraftKings,1.5,1,-110,UNDER,1.62,0.53,,,PASS,1,HIT,auto
 2026-10-03,sog,M. Olivier,CBJ,UTA,DraftKings,1.5,1,-150,UNDER,1.59,0.54,,,PASS,1,HIT,auto
@@ -563,7 +563,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-03,sog,A. Larsson,SEA,EDM,DraftKings,1.5,1,-220,UNDER,1.28,0.64,,,HIGH,0,HIT,auto
 2026-10-03,sog,K. Kakko,SEA,EDM,DraftKings,1.5,1,-220,UNDER,1.25,0.65,,,HIGH,0,HIT,auto
 2026-10-03,sog,C. McDavid,EDM,SEA,DraftKings,3.5,1,-130,UNDER,3.33,0.58,,,MED,4,MISS,auto; TOI 26.3 vs 22.1 expected
-2026-10-03,sog,L. Draisaitl,EDM,SEA,DraftKings,3.5,1,-130,UNDER,2.93,0.66,,,HIGH,5,MISS,auto
+2026-10-03,sog,L. Draisaitl,EDM,SEA,DraftKings,3.5,1,-130,UNDER,2.93,0.66,,,HIGH,6,MISS,auto; stat corrected 5→6
 2026-10-03,sog,E. Bouchard,EDM,SEA,DraftKings,2.5,1,120,UNDER,2.7,0.51,,,PASS,2,HIT,auto
 2026-10-03,sog,V. Podkolzin,EDM,SEA,DraftKings,2.5,1,110,UNDER,2.19,0.63,,,HIGH,2,HIT,auto
 2026-10-03,sog,K. Kapanen,EDM,SEA,DraftKings,1.5,1,-160,OVER,1.85,0.53,,,PASS,1,MISS,auto
@@ -685,7 +685,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-04,saves,J. Gibson,DET,WPG,DraftKings,22.5,1,100,UNDER,21.9,0.53,,,PASS,24,MISS,auto
 2026-10-04,saves,K. Vejmelka,UTA,NYR,DraftKings,23.5,1,-120,UNDER,21.5,0.61,,,MED,18,HIT,auto
 2026-10-04,saves,I. Shesterkin,NYR,UTA,DraftKings,27.5,1,-120,UNDER,23.9,0.7,,,HIGH,28,MISS,auto
-2026-10-04,saves,J. Markstrom,FLA,ANA,DraftKings,24.5,1,-125,OVER,25.8,0.57,,,LOW,18,MISS,auto; FLA faced 21 shots vs 29 expected; went to OT
+2026-10-04,saves,J. Markstrom,FLA,ANA,DraftKings,24.5,1,-125,OVER,25.8,0.57,,,LOW,17,MISS,auto; FLA faced 21 shots vs 29 expected; went to OT; stat corrected 18→17
 2026-10-04,saves,L. Dostal,ANA,FLA,DraftKings,23.5,1,-110,UNDER,22.2,0.57,,,LOW,29,MISS,auto; went to OT
 2026-10-04,saves,D. Wolf,CGY,SEA,DraftKings,24.5,1,-105,OVER,25.0,0.53,,,PASS,21,MISS,auto
 2026-10-04,saves,J. Daccord,SEA,CGY,DraftKings,23.5,1,-105,OVER,23.8,0.52,,,PASS,32,HIT,auto
@@ -700,7 +700,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-04,sog,V. Björck,WPG,DET,DraftKings,1.5,1,-200,UNDER,1.69,0.51,,,PASS,1,HIT,auto
 2026-10-04,sog,N. Niederreiter,WPG,DET,DraftKings,1.5,1,-175,UNDER,1.34,0.62,,,MED,0,HIT,auto
 2026-10-04,sog,A. DeBrincat,DET,WPG,DraftKings,3.5,1,-150,UNDER,3.09,0.63,,,HIGH,4,MISS,auto; TOI 23.3 vs 18.7 expected
-2026-10-04,sog,V. Arvidsson,DET,WPG,DraftKings,2.5,1,-130,UNDER,2.23,0.62,,,HIGH,3,MISS,auto; TOI 21.4 vs 14.5 expected
+2026-10-04,sog,V. Arvidsson,DET,WPG,DraftKings,2.5,1,-130,UNDER,2.23,0.62,,,HIGH,4,MISS,auto; TOI 21.4 vs 14.5 expected; stat corrected 3→4
 2026-10-04,sog,L. Raymond,DET,WPG,DraftKings,2.5,1,-145,UNDER,2.16,0.64,,,HIGH,2,HIT,auto
 2026-10-04,sog,M. Seider,DET,WPG,DraftKings,2.5,1,-160,UNDER,2.13,0.64,,,HIGH,3,MISS,auto
 2026-10-04,sog,J. Faulk,DET,WPG,DraftKings,1.5,1,-125,UNDER,1.72,0.5,,,PASS,3,MISS,auto
@@ -732,7 +732,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-04,sog,S. Jones,FLA,ANA,DraftKings,1.5,1,-145,UNDER,1.6,0.54,,,PASS,4,MISS,auto; TOI 28.6 vs 24.3 expected; went to OT
 2026-10-04,sog,L. Eller,FLA,ANA,DraftKings,1.5,1,-175,UNDER,1.12,0.69,,,HIGH,2,MISS,auto; went to OT
 2026-10-04,sog,C. Gauthier,ANA,FLA,DraftKings,3.5,1,-135,UNDER,3.13,0.62,,,HIGH,4,MISS,auto; TOI 20.8 vs 16.6 expected; went to OT
-2026-10-04,sog,L. Carlsson,ANA,FLA,DraftKings,2.5,1,-155,UNDER,2.49,0.56,,,LOW,1,HIT,auto
+2026-10-04,sog,L. Carlsson,ANA,FLA,DraftKings,2.5,1,-155,UNDER,2.49,0.56,,,LOW,0,HIT,auto; stat corrected 1→0
 2026-10-04,sog,B. Sennecke,ANA,FLA,DraftKings,2.5,1,-190,UNDER,2.31,0.6,,,MED,3,MISS,auto; TOI 21.7 vs 17.2 expected; went to OT
 2026-10-04,sog,A. Killorn,ANA,FLA,DraftKings,1.5,1,-120,OVER,1.89,0.55,,,PASS,0,MISS,auto; went to OT
 2026-10-04,sog,M. Granlund,ANA,FLA,DraftKings,1.5,1,-135,OVER,1.85,0.54,,,PASS,2,HIT,auto
@@ -773,10 +773,10 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-04,winner,SEA,SEA,CGY,model,,,,SEA,,0.61,,,,CGY 1-6 SEA,HIT,
 2026-10-04,winner,VGK,VGK,VAN,model,,,,VGK,,0.59,,,,VGK 3-2 VAN,HIT,
 2026-10-05,saves,D. Vladar,PHI,TBL,DraftKings,26.5,1,-125,UNDER,26.2,0.52,,,PASS,32,MISS,auto
-2026-10-05,saves,A. Vasilevskiy,TBL,PHI,DraftKings,21.5,1,-130,UNDER,20.3,0.57,,,LOW,13,HIT,auto
+2026-10-05,saves,A. Vasilevskiy,TBL,PHI,DraftKings,21.5,1,-130,UNDER,20.3,0.57,,,LOW,14,HIT,auto; stat corrected 13→14
 2026-10-05,saves,L. Ullmark,OTT,BOS,DraftKings,21.5,1,-115,OVER,22.7,0.57,,,LOW,10,MISS,auto; OTT faced 19 shots vs 26 expected; pulled after 40 min
 2026-10-05,saves,J. Swayman,BOS,OTT,DraftKings,24.5,1,-135,OVER,25.7,0.57,,,LOW,20,MISS,auto
-2026-10-05,saves,S. Murashov,PIT,WPG,DraftKings,22.5,1,-115,UNDER,22.4,0.51,,,PASS,31,MISS,auto; PIT faced 34 shots vs 26 expected
+2026-10-05,saves,S. Murashov,PIT,WPG,DraftKings,22.5,1,-115,UNDER,22.4,0.51,,,PASS,32,MISS,auto; PIT faced 34 shots vs 26 expected; stat corrected 31→32
 2026-10-05,saves,Y. Askarov,SJS,DAL,DraftKings,23.5,1,-105,UNDER,23.3,0.51,,,PASS,21,HIT,auto
 2026-10-05,saves,J. Oettinger,DAL,SJS,DraftKings,21.5,1,-125,OVER,21.8,0.52,,,PASS,13,MISS,auto; DAL faced 13 shots vs 25 expected
 2026-10-05,sog,O. Tippett,PHI,TBL,DraftKings,2.5,1,-170,UNDER,2.31,0.6,,,MED,0,HIT,auto
@@ -836,7 +836,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-06,saves,J. Saros,NSH,TOR,DraftKings,24.5,1,-120,UNDER,24.3,0.51,,,PASS,32,MISS,auto; NSH faced 37 shots vs 28 expected; went to OT
 2026-10-06,saves,A. Stolarz,TOR,NSH,DraftKings,23.5,1,-125,OVER,24.8,0.58,,,LOW,21,MISS,auto; went to OT
 2026-10-06,saves,B. Bussi,CAR,MTL,DraftKings,22.5,1,-120,UNDER,20.3,0.63,,,MED,16,HIT,auto
-2026-10-06,saves,J. Dobes,MTL,CAR,DraftKings,27.5,1,-120,UNDER,26.9,0.54,,,PASS,28,MISS,auto
+2026-10-06,saves,J. Dobes,MTL,CAR,DraftKings,27.5,1,-120,UNDER,26.9,0.54,,,PASS,27,HIT,auto; stat corrected 28→27
 2026-10-06,saves,J. Gibson,DET,OTT,DraftKings,25.5,1,-125,UNDER,22.9,0.65,,,HIGH,22,HIT,auto
 2026-10-06,saves,K. Vejmelka,UTA,NJD,DraftKings,25.5,1,-105,UNDER,25.2,0.52,,,PASS,30,MISS,auto
 2026-10-06,saves,J. Allen,NJD,UTA,DraftKings,23.5,1,-105,OVER,23.8,0.52,,,PASS,26,HIT,auto
@@ -845,10 +845,10 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-06,saves,S. Varlamov,NYI,NYR,DraftKings,24.5,1,-135,UNDER,22.4,0.62,,,MED,19,HIT,auto
 2026-10-06,saves,I. Shesterkin,NYR,NYI,DraftKings,23.5,1,-110,OVER,24.3,0.55,,,PASS,17,MISS,auto; NYR faced 19 shots vs 28 expected
 2026-10-06,saves,J. Hofer,STL,CHI,DraftKings,22.5,1,-105,UNDER,21.7,0.55,,,PASS,17,HIT,auto
-2026-10-06,saves,S. Knight,CHI,STL,DraftKings,23.5,1,-105,OVER,24.3,0.55,,,PASS,26,HIT,auto
+2026-10-06,saves,S. Knight,CHI,STL,DraftKings,23.5,1,-105,OVER,24.3,0.55,,,PASS,25,HIT,auto; stat corrected 26→25
 2026-10-06,saves,J. Daccord,SEA,VGK,DraftKings,24.5,1,-130,OVER,25.0,0.53,,,PASS,16,MISS,auto; pulled after 40 min
 2026-10-06,saves,J. Markstrom,FLA,LAK,DraftKings,22.5,1,-125,OVER,24.5,0.62,,,MED,19,MISS,auto; FLA faced 20 shots vs 28 expected
-2026-10-06,saves,D. Kuemper,LAK,FLA,DraftKings,23.5,1,-120,UNDER,22.7,0.55,,,PASS,26,MISS,auto
+2026-10-06,saves,D. Kuemper,LAK,FLA,DraftKings,23.5,1,-120,UNDER,22.7,0.55,,,PASS,28,MISS,auto; stat corrected 26→28
 2026-10-06,sog,F. Forsberg,NSH,TOR,DraftKings,3.5,1,-170,UNDER,2.82,0.68,,,HIGH,2,HIT,auto
 2026-10-06,sog,S. Stamkos,NSH,TOR,DraftKings,2.5,1,-135,UNDER,2.54,0.55,,,PASS,3,MISS,auto; went to OT
 2026-10-06,sog,R. Josi,NSH,TOR,DraftKings,2.5,1,-140,UNDER,2.46,0.57,,,LOW,1,HIT,auto
@@ -871,7 +871,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-06,sog,N. Paul,TOR,NSH,DraftKings,1.5,1,-155,UNDER,1.49,0.57,,,LOW,2,MISS,auto; went to OT
 2026-10-06,sog,A. Svechnikov,CAR,MTL,DraftKings,2.5,1,105,UNDER,2.62,0.53,,,PASS,3,MISS,auto
 2026-10-06,sog,S. Aho,CAR,MTL,DraftKings,2.5,1,-110,UNDER,2.51,0.55,,,LOW,3,MISS,auto
-2026-10-06,sog,N. Ehlers,CAR,MTL,DraftKings,2.5,1,-115,UNDER,2.38,0.58,,,MED,3,MISS,auto
+2026-10-06,sog,N. Ehlers,CAR,MTL,DraftKings,2.5,1,-115,UNDER,2.38,0.58,,,MED,2,HIT,auto; stat corrected 3→2
 2026-10-06,sog,L. Stankoven,CAR,MTL,DraftKings,2.5,1,-160,UNDER,2.36,0.59,,,MED,1,HIT,auto
 2026-10-06,sog,J. Blake,CAR,MTL,DraftKings,2.5,1,-145,UNDER,2.21,0.62,,,HIGH,2,HIT,auto
 2026-10-06,sog,T. Hall,CAR,MTL,DraftKings,1.5,1,-160,OVER,1.96,0.56,,,LOW,4,HIT,auto
@@ -994,7 +994,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-06,sog,S. Reinhart,FLA,LAK,DraftKings,2.5,1,-140,UNDER,2.42,0.57,,,LOW,3,MISS,auto
 2026-10-06,sog,M. Tkachuk,FLA,LAK,DraftKings,2.5,1,-120,UNDER,2.36,0.59,,,MED,2,HIT,auto
 2026-10-06,sog,B. Marchand,FLA,LAK,DraftKings,2.5,1,-185,UNDER,2.21,0.63,,,HIGH,2,HIT,auto
-2026-10-06,sog,C. Verhaeghe,FLA,LAK,DraftKings,1.5,1,-190,OVER,2.19,0.62,,,MED,2,HIT,auto
+2026-10-06,sog,C. Verhaeghe,FLA,LAK,DraftKings,1.5,1,-190,OVER,2.19,0.62,,,MED,3,HIT,auto; stat corrected 2→3
 2026-10-06,sog,A. Lundell,FLA,LAK,DraftKings,1.5,1,-130,OVER,2.07,0.59,,,MED,3,HIT,auto
 2026-10-06,sog,S. Jones,FLA,LAK,DraftKings,1.5,1,-110,OVER,1.73,0.5,,,PASS,2,HIT,auto
 2026-10-06,sog,A. Kempe,LAK,FLA,DraftKings,3.5,1,-155,UNDER,2.67,0.72,,,HIGH,3,HIT,auto
@@ -1076,7 +1076,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-08,saves,J. Swayman,BOS,UTA,DraftKings,24.5,1,-115,OVER,25.2,0.54,,,PASS,36,HIT,auto
 2026-10-08,saves,J. Oettinger,DAL,BUF,DraftKings,22.5,1,-110,OVER,23.4,0.55,,,PASS,26,HIT,auto
 2026-10-08,saves,U. Luukkonen,BUF,DAL,DraftKings,21.5,1,-110,UNDER,21.3,0.51,,,PASS,14,HIT,auto
-2026-10-08,saves,J. Saros,NSH,MTL,DraftKings,26.5,1,-135,UNDER,23.7,0.66,,,HIGH,32,MISS,auto; NSH faced 34 shots vs 28 expected
+2026-10-08,saves,J. Saros,NSH,MTL,DraftKings,26.5,1,-135,UNDER,23.7,0.66,,,HIGH,31,MISS,auto; NSH faced 34 shots vs 28 expected; stat corrected 32→31
 2026-10-08,saves,J. Fowler,MTL,NSH,DraftKings,23.5,1,-130,OVER,24.3,0.55,,,PASS,15,MISS,auto; MTL faced 20 shots vs 28 expected
 2026-10-08,saves,J. Woll,PHI,OTT,DraftKings,25.5,1,-135,OVER,26.5,0.56,,,LOW,24,MISS,auto
 2026-10-08,saves,L. Ullmark,OTT,PHI,DraftKings,22.5,1,-130,UNDER,20.1,0.64,,,MED,28,MISS,auto
@@ -1133,7 +1133,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-08,sog,C. Caufield,MTL,NSH,DraftKings,3.5,1,-165,UNDER,2.97,0.65,,,HIGH,6,MISS,auto
 2026-10-08,sog,N. Suzuki,MTL,NSH,DraftKings,2.5,1,-125,UNDER,2.43,0.57,,,LOW,1,HIT,auto
 2026-10-08,sog,J. Slafkovský,MTL,NSH,DraftKings,2.5,1,-145,UNDER,2.35,0.59,,,MED,5,MISS,auto
-2026-10-08,sog,N. Dobson,MTL,NSH,DraftKings,1.5,1,-195,OVER,1.92,0.55,,,LOW,3,HIT,auto
+2026-10-08,sog,N. Dobson,MTL,NSH,DraftKings,1.5,1,-195,OVER,1.92,0.55,,,LOW,2,HIT,auto; stat corrected 3→2
 2026-10-08,sog,C. Kreider,MTL,NSH,DraftKings,1.5,1,115,UNDER,1.72,0.5,,,PASS,0,HIT,auto
 2026-10-08,sog,A. Newhook,MTL,NSH,DraftKings,1.5,1,105,UNDER,1.71,0.5,,,PASS,1,HIT,auto
 2026-10-08,sog,M. Matheson,MTL,NSH,DraftKings,1.5,1,-110,UNDER,1.67,0.52,,,PASS,0,HIT,auto
@@ -1186,7 +1186,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-08,sog,J. Blake,CAR,VAN,DraftKings,2.5,1,-175,UNDER,2.3,0.6,,,MED,5,MISS,auto
 2026-10-08,sog,T. Hall,CAR,VAN,DraftKings,1.5,1,-180,OVER,2.11,0.6,,,MED,2,HIT,auto
 2026-10-08,sog,S. Walker,CAR,VAN,DraftKings,2.5,1,-185,UNDER,1.99,0.68,,,HIGH,0,HIT,auto
-2026-10-08,sog,J. Martinook,CAR,VAN,DraftKings,1.5,1,-130,OVER,1.77,0.51,,,PASS,3,HIT,auto
+2026-10-08,sog,J. Martinook,CAR,VAN,DraftKings,1.5,1,-130,OVER,1.77,0.51,,,PASS,2,HIT,auto; stat corrected 3→2
 2026-10-08,sog,S. Gostisbehere,CAR,VAN,DraftKings,1.5,1,-135,OVER,1.74,0.5,,,PASS,2,HIT,auto
 2026-10-08,sog,J. Staal,CAR,VAN,DraftKings,1.5,1,-115,UNDER,1.7,0.51,,,PASS,0,HIT,auto
 2026-10-08,sog,J. Slavin,CAR,VAN,DraftKings,1.5,1,-140,UNDER,1.63,0.53,,,PASS,0,HIT,auto
@@ -1272,7 +1272,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-09,saves,J. Gibson,DET,SEA,DraftKings,23.5,1,-130,UNDER,21.3,0.63,,,MED,10,HIT,auto
 2026-10-09,saves,I. Shesterkin,NYR,WSH,DraftKings,25.5,1,-105,UNDER,23.3,0.62,,,MED,13,HIT,auto
 2026-10-09,saves,L. Thompson,WSH,NYR,DraftKings,22.5,1,-130,UNDER,22.4,0.51,,,PASS,21,HIT,auto
-2026-10-09,saves,S. Murashov,PIT,CBJ,DraftKings,24.5,1,100,UNDER,23.7,0.54,,,PASS,43,MISS,auto; PIT faced 45 shots vs 27 expected; went to OT
+2026-10-09,saves,S. Murashov,PIT,CBJ,DraftKings,24.5,1,100,UNDER,23.7,0.54,,,PASS,45,MISS,auto; PIT faced 45 shots vs 27 expected; went to OT; stat corrected 43→45
 2026-10-09,saves,C. Stevenson,WPG,ANA,DraftKings,23.5,1,-130,OVER,25.9,0.64,,,MED,12,MISS,auto; WPG faced 17 shots vs 30 expected
 2026-10-09,sog,B. McMann,SEA,DET,DraftKings,2.5,1,-140,UNDER,2.47,0.56,,,LOW,3,MISS,auto
 2026-10-09,sog,J. McCann,SEA,DET,DraftKings,2.5,1,-190,UNDER,2.26,0.61,,,MED,0,HIT,auto
@@ -1320,14 +1320,14 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-09,sog,T. Novak,PIT,CBJ,DraftKings,1.5,1,-125,UNDER,1.67,0.52,,,PASS,1,HIT,auto
 2026-10-09,sog,K. Letang,PIT,CBJ,DraftKings,1.5,1,-140,UNDER,1.6,0.54,,,PASS,2,MISS,auto; went to OT
 2026-10-09,sog,H. Lapierre,PIT,CBJ,DraftKings,1.5,1,-225,UNDER,0.91,0.77,,,HIGH,1,HIT,auto
-2026-10-09,sog,Z. Werenski,CBJ,PIT,DraftKings,3.5,1,-115,UNDER,3.02,0.64,,,HIGH,3,HIT,auto
+2026-10-09,sog,Z. Werenski,CBJ,PIT,DraftKings,3.5,1,-115,UNDER,3.02,0.64,,,HIGH,4,MISS,auto; stat corrected 3→4
 2026-10-09,sog,A. Fantilli,CBJ,PIT,DraftKings,2.5,1,-135,UNDER,2.38,0.58,,,MED,3,MISS,auto; went to OT
 2026-10-09,sog,V. Nichushkin,CBJ,PIT,DraftKings,1.5,1,-150,OVER,1.86,0.54,,,PASS,1,MISS,auto; went to OT
 2026-10-09,sog,M. Knies,CBJ,PIT,DraftKings,1.5,1,-135,OVER,1.79,0.52,,,PASS,3,HIT,auto
 2026-10-09,sog,C. Coyle,CBJ,PIT,DraftKings,1.5,1,-105,UNDER,1.67,0.52,,,PASS,7,MISS,auto; TOI 23.5 vs 18.0 expected; went to OT
 2026-10-09,sog,S. Monahan,CBJ,PIT,DraftKings,1.5,1,-120,UNDER,1.62,0.53,,,PASS,3,MISS,auto; went to OT
 2026-10-09,sog,K. Johnson,CBJ,PIT,DraftKings,1.5,1,110,UNDER,1.6,0.54,,,PASS,2,MISS,auto; TOI 18.2 vs 13.6 expected; went to OT
-2026-10-09,sog,M. Olivier,CBJ,PIT,DraftKings,1.5,1,-155,UNDER,1.59,0.54,,,PASS,4,MISS,auto; went to OT
+2026-10-09,sog,M. Olivier,CBJ,PIT,DraftKings,1.5,1,-155,UNDER,1.59,0.54,,,PASS,5,MISS,auto; went to OT; stat corrected 4→5
 2026-10-09,sog,C. Garland,CBJ,PIT,DraftKings,1.5,1,-150,UNDER,1.52,0.56,,,LOW,0,HIT,auto
 2026-10-09,sog,D. Voronkov,CBJ,PIT,DraftKings,1.5,1,-150,UNDER,1.43,0.59,,,MED,5,MISS,auto; went to OT
 2026-10-09,sog,C. Gauthier,ANA,WPG,DraftKings,3.5,1,-110,UNDER,3.48,0.56,,,LOW,1,HIT,auto
@@ -1355,7 +1355,7 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-10-10,saves,C. Ellis,BUF,UTA,DraftKings,24.5,1,-110,UNDER,22.7,0.6,,,MED,26,MISS,auto
 2026-10-10,saves,J. Fowler,MTL,DET,DraftKings,23.5,1,-110,OVER,25.9,0.64,,,MED,30,HIT,auto
 2026-10-10,saves,L. Ullmark,OTT,NSH,DraftKings,22.5,1,-120,UNDER,21.9,0.54,,,PASS,16,HIT,auto
-2026-10-10,saves,J. Oettinger,DAL,PIT,DraftKings,22.5,1,100,OVER,23.4,0.55,,,PASS,19,MISS,auto; DAL faced 20 shots vs 27 expected; went to OT
+2026-10-10,saves,J. Oettinger,DAL,PIT,DraftKings,22.5,1,100,OVER,23.4,0.55,,,PASS,20,MISS,auto; DAL faced 20 shots vs 27 expected; went to OT; stat corrected 19→20
 2026-10-10,saves,S. Knight,CHI,CAR,DraftKings,26.5,1,-125,OVER,27.6,0.56,,,LOW,34,HIT,auto
 2026-10-10,saves,J. Greaves,CBJ,STL,DraftKings,23.5,1,-130,OVER,23.7,0.51,,,PASS,22,MISS,auto
 2026-10-10,saves,J. Binnington,STL,CBJ,DraftKings,24.5,1,-115,UNDER,23.9,0.53,,,PASS,20,HIT,auto
@@ -6069,3 +6069,455 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-11-06,winner,BUF,BUF,CBJ,model,,,-170,BUF,,0.59,,-0.0606,,CBJ 2-5 BUF,HIT,
 2026-11-06,winner,MIN,MIN,SJS,model,,,-285,MIN,,0.72,,-0.0303,65%+,SJS 1-4 MIN,HIT,
 2026-11-06,winner,CGY,CGY,ANA,model,,,-148,CGY,,0.51,,-0.1464,,ANA 5-3 CGY,MISS,
+2026-11-07,saves,A. Schmid,FLA,WSH,DraftKings,24.5,1,-135,UNDER,22.21,0.643,0.5416,-0.0573,PASS,27,MISS,auto
+2026-11-07,saves,L. Thompson,WSH,FLA,DraftKings,23.5,1,-130,OVER,24.59,0.5642,0.5274,-0.0669,PASS,27,HIT,auto
+2026-11-07,saves,J. Hofer,STL,NSH,DraftKings,24.5,1,-105,OVER,24.11,0.4768,0.4759,-0.0709,PASS,26,HIT,auto
+2026-11-07,saves,J. Saros,NSH,STL,DraftKings,23.5,1,-110,OVER,23.39,0.493,0.4902,-0.0641,PASS,25,HIT,auto
+2026-11-07,saves,J. Daccord,SEA,NYR,DraftKings,24.5,1,-115,UNDER,23.61,0.5541,0.5037,-0.0584,PASS,7,HIT,auto
+2026-11-07,saves,J. Fowler,MTL,TOR,DraftKings,25.5,1,-125,UNDER,24.5,0.5592,0.5175,-0.0685,PASS,26,MISS,auto
+2026-11-07,saves,S. Bobrovsky,TOR,MTL,DraftKings,24.5,1,-130,OVER,25.28,0.5453,0.526,-0.0695,PASS,24,MISS,auto
+2026-11-07,saves,K. Vejmelka,UTA,OTT,DraftKings,24.5,1,-120,UNDER,22.92,0.5978,0.5159,-0.0541,PASS,17,HIT,auto
+2026-11-07,saves,S. Ersson,OTT,UTA,DraftKings,24.5,1,-125,UNDER,22.96,0.595,0.52,-0.0641,PASS,30,MISS,auto
+2026-11-07,saves,J. Allen,NJD,NYI,DraftKings,23.5,1,-110,UNDER,22.43,0.5677,0.4953,-0.0544,PASS,19,HIT,auto
+2026-11-07,saves,I. Sorokin,NYI,NJD,DraftKings,26.5,1,-105,UNDER,25.96,0.5307,0.4835,-0.0561,PASS,45,MISS,auto; NYI faced 50 shots vs 30 expected; went to OT
+2026-11-07,saves,S. Knight,CHI,CAR,DraftKings,29.5,1,-110,OVER,31.72,0.6077,0.4988,-0.0477,PASS,11,MISS,auto; pulled after 31 min
+2026-11-07,saves,P. Kochetkov,CAR,CHI,DraftKings,18.5,1,100,UNDER,17.19,0.5944,0.4747,-0.0507,PASS,18,HIT,auto
+2026-11-07,saves,A. Nedeljkovic,SJS,DAL,DraftKings,23.5,1,-135,OVER,25.25,0.6006,0.5393,-0.0612,PASS,26,HIT,auto
+2026-11-07,saves,J. Oettinger,DAL,SJS,DraftKings,22.5,1,-130,UNDER,19.44,0.7041,0.5367,-0.0505,PASS,20,HIT,auto
+2026-11-07,saves,D. Tarasov,DET,COL,DraftKings,27.5,1,-105,UNDER,26.59,0.5507,0.4809,-0.0611,PASS,25,HIT,auto
+2026-11-07,saves,M. Blackwood,COL,DET,DraftKings,22.5,1,-105,UNDER,22.67,0.4894,0.4766,-0.0694,PASS,27,MISS,auto
+2026-11-07,saves,S. Murashov,PIT,LAK,DraftKings,24.5,1,-105,UNDER,24.67,0.4897,0.4767,-0.0694,PASS,26,MISS,auto
+2026-11-07,saves,D. Kuemper,LAK,PIT,DraftKings,23.5,1,-110,UNDER,23.63,0.4922,0.4859,-0.0723,PASS,14,HIT,auto
+2026-11-07,saves,L. Meriläinen,VAN,EDM,DraftKings,25.5,1,-120,OVER,26.08,0.5329,0.507,-0.0706,PASS,26,HIT,auto
+2026-11-07,saves,D. Levi,EDM,VAN,DraftKings,21.5,1,-125,UNDER,19.28,0.6522,0.5291,-0.0477,PASS,20,HIT,auto
+2026-11-07,sog,B. Tkachuk,FLA,WSH,DraftKings,2.5,1,-160,OVER,3.63,0.6759,0.5695,-0.0745,PASS,7,HIT,auto
+2026-11-07,sog,S. Reinhart,FLA,WSH,DraftKings,2.5,1,-110,UNDER,2.59,0.5285,0.4853,-0.0735,PASS,2,HIT,auto
+2026-11-07,sog,S. Bennett,FLA,WSH,DraftKings,2.5,1,-165,UNDER,2.46,0.5606,0.578,-0.0717,PASS,4,MISS,auto
+2026-11-07,sog,M. Tkachuk,FLA,WSH,DraftKings,2.5,1,-125,UNDER,2.42,0.5717,0.5147,-0.0735,PASS,3,MISS,auto; TOI 23.9 vs 17.9 expected
+2026-11-07,sog,C. Verhaeghe,FLA,WSH,DraftKings,2.5,1,-120,UNDER,2.37,0.5844,0.5049,-0.0744,PASS,2,HIT,auto
+2026-11-07,sog,S. Jones,FLA,WSH,DraftKings,1.5,1,-160,OVER,1.87,0.5516,0.5695,-0.0745,PASS,1,MISS,auto
+2026-11-07,sog,J. Chychrun,WSH,FLA,DraftKings,2.5,1,-105,OVER,2.62,0.476,0.4754,-0.0719,PASS,2,MISS,auto
+2026-11-07,sog,A. Tuch,WSH,FLA,DraftKings,2.5,1,130,OVER,2.5,0.4505,0.4059,-0.0664,PASS,3,HIT,auto
+2026-11-07,sog,J. Kyrou,WSH,FLA,DraftKings,2.5,1,135,OVER,2.38,0.4191,0.396,-0.0695,PASS,1,MISS,auto
+2026-11-07,sog,A. Ovechkin,WSH,FLA,DraftKings,2.5,1,130,OVER,2.31,0.4026,0.4059,-0.0664,PASS,3,HIT,auto
+2026-11-07,sog,R. Leonard,WSH,FLA,DraftKings,1.5,1,-185,OVER,2.02,0.5836,0.604,-0.0695,PASS,3,HIT,auto
+2026-11-07,sog,T. Wilson,WSH,FLA,DraftKings,1.5,1,110,UNDER,1.91,0.4465,0.4425,-0.0708,PASS,0,HIT,auto
+2026-11-07,sog,D. Strome,WSH,FLA,DraftKings,1.5,1,115,UNDER,1.72,0.5012,0.4335,-0.068,PASS,3,MISS,auto
+2026-11-07,sog,A. Protas,WSH,FLA,DraftKings,1.5,1,-135,UNDER,1.64,0.5265,0.5347,-0.0693,PASS,2,MISS,auto
+2026-11-07,sog,C. Hutson,WSH,FLA,DraftKings,1.5,1,-115,OVER,1.63,0.4805,0.5,-0.0652,PASS,2,HIT,auto
+2026-11-07,sog,B. Jenner,WSH,FLA,DraftKings,1.5,1,110,OVER,1.61,0.4647,0.4425,-0.0708,PASS,4,HIT,auto
+2026-11-07,sog,P. Dubois,WSH,FLA,DraftKings,1.5,1,-135,UNDER,1.48,0.5741,0.5347,-0.0693,PASS,3,MISS,auto
+2026-11-07,sog,D. Holloway,STL,NSH,DraftKings,2.5,1,-160,UNDER,2.55,0.5386,0.5752,-0.0654,PASS,2,HIT,auto
+2026-11-07,sog,J. Snuggerud,STL,NSH,DraftKings,2.5,1,110,OVER,2.44,0.4328,0.4425,-0.0708,PASS,5,HIT,auto
+2026-11-07,sog,M. McTavish,STL,NSH,DraftKings,2.5,1,-145,UNDER,2.41,0.5742,0.5482,-0.0738,PASS,0,HIT,auto
+2026-11-07,sog,R. Thomas,STL,NSH,DraftKings,1.5,1,100,UNDER,1.73,0.4975,0.4615,-0.0769,PASS,0,HIT,auto
+2026-11-07,sog,P. Buchnevich,STL,NSH,DraftKings,1.5,1,-120,UNDER,1.73,0.4986,0.5049,-0.0744,PASS,3,MISS,auto
+2026-11-07,sog,C. McMichael,STL,NSH,DraftKings,1.5,1,-120,OVER,1.65,0.4786,0.5101,-0.0648,PASS,3,HIT,auto
+2026-11-07,sog,P. Broberg,STL,NSH,DraftKings,1.5,1,-130,OVER,1.6,0.4714,0.5246,-0.0719,PASS,1,MISS,auto; TOI 28.4 vs 24.3 expected
+2026-11-07,sog,J. Neighbours,STL,NSH,DraftKings,1.5,1,-135,UNDER,1.41,0.5981,0.5347,-0.0693,PASS,1,HIT,auto
+2026-11-07,sog,F. Forsberg,NSH,STL,DraftKings,2.5,1,-165,OVER,3.09,0.5838,0.578,-0.0717,PASS,3,HIT,auto
+2026-11-07,sog,R. Josi,NSH,STL,DraftKings,2.5,1,-120,UNDER,2.79,0.4837,0.5049,-0.0744,PASS,2,HIT,auto
+2026-11-07,sog,S. Stamkos,NSH,STL,DraftKings,2.5,1,110,OVER,2.58,0.4694,0.4425,-0.0708,PASS,5,HIT,auto
+2026-11-07,sog,R. O'Reilly,NSH,STL,DraftKings,1.5,1,105,UNDER,2.01,0.4211,0.4554,-0.0664,PASS,1,HIT,auto
+2026-11-07,sog,M. Bourque,NSH,STL,DraftKings,1.5,1,-165,OVER,1.93,0.5571,0.578,-0.0717,PASS,2,HIT,auto
+2026-11-07,sog,R. Colton,NSH,STL,DraftKings,1.5,1,-145,OVER,1.9,0.5494,0.5482,-0.0738,PASS,2,HIT,auto
+2026-11-07,sog,S. Wright,NSH,STL,DraftKings,1.5,1,-145,UNDER,1.3,0.6332,0.5541,-0.0637,PASS,0,HIT,auto
+2026-11-07,sog,P. Dorofeyev,NYR,SEA,DraftKings,2.5,1,110,UNDER,2.81,0.4782,0.4459,-0.0637,PASS,3,MISS,auto
+2026-11-07,sog,M. Zibanejad,NYR,SEA,DraftKings,2.5,1,-140,UNDER,2.39,0.5798,0.5446,-0.0664,PASS,1,HIT,auto
+2026-11-07,sog,A. Lafrenière,NYR,SEA,DraftKings,2.5,1,130,OVER,2.19,0.3724,0.4059,-0.0664,PASS,2,MISS,auto
+2026-11-07,sog,J. Miller,NYR,SEA,DraftKings,1.5,1,-135,OVER,2.01,0.5805,0.5347,-0.0693,PASS,2,HIT,auto
+2026-11-07,sog,W. Cuylle,NYR,SEA,DraftKings,1.5,1,100,UNDER,2.0,0.4226,0.4615,-0.0769,PASS,0,HIT,auto
+2026-11-07,sog,G. Perreault,NYR,SEA,DraftKings,1.5,1,-145,OVER,1.84,0.5338,0.5482,-0.0738,PASS,2,HIT,auto
+2026-11-07,sog,O. Bjorkstrand,NYR,SEA,DraftKings,1.5,1,-125,UNDER,1.78,0.4825,0.5147,-0.0735,PASS,0,HIT,auto
+2026-11-07,sog,A. Fox,NYR,SEA,DraftKings,1.5,1,105,UNDER,1.6,0.5312,0.4554,-0.0664,PASS,1,HIT,auto
+2026-11-07,sog,T. Kartye,NYR,SEA,DraftKings,1.5,1,-110,OVER,1.47,0.4213,0.4899,-0.0648,PASS,2,HIT,auto
+2026-11-07,sog,B. McMann,SEA,NYR,DraftKings,2.5,1,-135,OVER,2.66,0.4884,0.5347,-0.0693,PASS,2,MISS,auto
+2026-11-07,sog,B. Montour,SEA,NYR,DraftKings,2.5,1,-170,UNDER,2.53,0.5446,0.5862,-0.069,PASS,3,MISS,auto
+2026-11-07,sog,V. Dunn,SEA,NYR,DraftKings,1.5,1,140,UNDER,2.13,0.3793,0.3866,-0.0721,PASS,6,MISS,auto
+2026-11-07,sog,M. Samoskevich,SEA,NYR,DraftKings,2.5,1,130,OVER,2.09,0.3468,0.4059,-0.0664,PASS,0,MISS,auto
+2026-11-07,sog,J. Eberle,SEA,NYR,DraftKings,1.5,1,-170,OVER,1.97,0.5694,0.5862,-0.069,PASS,2,HIT,auto
+2026-11-07,sog,M. Wood,SEA,NYR,DraftKings,1.5,1,-135,OVER,1.65,0.4785,0.5347,-0.0693,PASS,1,MISS,auto
+2026-11-07,sog,M. Beniers,SEA,NYR,DraftKings,1.5,1,-135,UNDER,1.57,0.5475,0.5347,-0.0693,PASS,2,MISS,auto
+2026-11-07,sog,B. Catton,SEA,NYR,DraftKings,1.5,1,-120,OVER,1.48,0.4265,0.5101,-0.0648,PASS,0,MISS,auto
+2026-11-07,sog,F. Gaudreau,SEA,NYR,DraftKings,1.5,1,130,OVER,1.17,0.3213,0.4059,-0.0664,PASS,0,MISS,auto
+2026-11-07,sog,C. Caufield,MTL,TOR,DraftKings,2.5,1,-165,OVER,3.25,0.617,0.5835,-0.0629,PASS,3,HIT,auto
+2026-11-07,sog,N. Suzuki,MTL,TOR,DraftKings,2.5,1,-140,UNDER,2.52,0.5465,0.5385,-0.0769,PASS,1,HIT,auto
+2026-11-07,sog,J. Slafkovský,MTL,TOR,DraftKings,2.5,1,-160,UNDER,2.35,0.5875,0.5752,-0.0654,PASS,2,HIT,auto
+2026-11-07,sog,N. Dobson,MTL,TOR,DraftKings,1.5,1,-185,OVER,2.02,0.5912,0.604,-0.0695,PASS,3,HIT,auto
+2026-11-07,sog,L. Hutson,MTL,TOR,DraftKings,1.5,1,-115,OVER,1.59,0.4665,0.5,-0.0652,PASS,2,HIT,auto
+2026-11-07,sog,A. Newhook,MTL,TOR,DraftKings,1.5,1,-125,UNDER,1.56,0.5505,0.5147,-0.0735,PASS,2,MISS,auto
+2026-11-07,sog,Z. Bolduc,MTL,TOR,DraftKings,1.5,1,100,UNDER,1.52,0.5624,0.4615,-0.0769,PASS,3,MISS,auto
+2026-11-07,sog,A. Texier,MTL,TOR,DraftKings,1.5,1,-145,UNDER,1.42,0.5924,0.5541,-0.0637,PASS,4,MISS,auto
+2026-11-07,sog,A. Matthews,TOR,MTL,DraftKings,3.5,1,125,OVER,3.59,0.4718,0.4165,-0.0629,PASS,3,MISS,auto
+2026-11-07,sog,W. Nylander,TOR,MTL,DraftKings,2.5,1,-110,OVER,2.89,0.5404,0.4899,-0.0648,PASS,4,HIT,auto
+2026-11-07,sog,D. Raddysh,TOR,MTL,DraftKings,2.5,1,-165,UNDER,2.82,0.478,0.578,-0.0717,PASS,1,HIT,auto
+2026-11-07,sog,J. Tavares,TOR,MTL,DraftKings,2.5,1,-165,UNDER,2.4,0.5754,0.578,-0.0717,PASS,4,MISS,auto
+2026-11-07,sog,J. Roslovic,TOR,MTL,DraftKings,1.5,1,140,UNDER,2.26,0.3592,0.3887,-0.067,PASS,3,MISS,auto
+2026-11-07,sog,G. McKenna,TOR,MTL,DraftKings,1.5,1,-115,UNDER,1.82,0.4712,0.4951,-0.0744,PASS,4,MISS,auto
+2026-11-07,sog,E. Cowan,TOR,MTL,DraftKings,1.5,1,-110,UNDER,1.77,0.4851,0.4853,-0.0735,PASS,1,HIT,auto
+2026-11-07,sog,N. Paul,TOR,MTL,DraftKings,1.5,1,-180,UNDER,1.5,0.5681,0.5965,-0.072,PASS,1,HIT,auto
+2026-11-07,sog,D. Guenther,UTA,OTT,DraftKings,2.5,1,-135,OVER,2.77,0.5137,0.5347,-0.0693,PASS,0,MISS,auto
+2026-11-07,sog,C. Keller,UTA,OTT,DraftKings,2.5,1,-145,UNDER,2.48,0.5565,0.5541,-0.0637,PASS,6,MISS,auto
+2026-11-07,sog,A. Lee,UTA,OTT,DraftKings,1.5,1,-125,OVER,2.28,0.6454,0.5203,-0.0635,PASS,1,MISS,auto
+2026-11-07,sog,N. Schmaltz,UTA,OTT,DraftKings,2.5,1,140,OVER,2.19,0.3724,0.3887,-0.067,PASS,1,MISS,auto
+2026-11-07,sog,B. Hayton,UTA,OTT,DraftKings,1.5,1,-130,OVER,1.92,0.5555,0.5246,-0.0719,PASS,3,HIT,auto
+2026-11-07,sog,M. Sergachev,UTA,OTT,DraftKings,1.5,1,145,UNDER,1.8,0.4686,0.3818,-0.0647,PASS,5,MISS,auto
+2026-11-07,sog,M. Weegar,UTA,OTT,DraftKings,1.5,1,-110,UNDER,1.75,0.4854,0.4853,-0.0735,PASS,2,MISS,auto
+2026-11-07,sog,L. Cooley,UTA,OTT,DraftKings,1.5,1,120,UNDER,1.63,0.5279,0.4248,-0.0654,PASS,2,MISS,auto; TOI 20.3 vs 16.1 expected
+2026-11-07,sog,V. Trocheck,UTA,OTT,DraftKings,1.5,1,-125,UNDER,1.61,0.5345,0.5147,-0.0735,PASS,1,HIT,auto
+2026-11-07,sog,T. Stützle,OTT,UTA,DraftKings,2.5,1,115,OVER,2.35,0.41,0.4335,-0.068,PASS,3,HIT,auto
+2026-11-07,sog,D. Cozens,OTT,UTA,DraftKings,2.5,1,-170,UNDER,2.31,0.5979,0.5862,-0.069,PASS,2,HIT,auto
+2026-11-07,sog,D. Batherson,OTT,UTA,DraftKings,2.5,1,-180,UNDER,2.14,0.6418,0.6017,-0.064,PASS,1,HIT,auto
+2026-11-07,sog,F. Zetterlund,OTT,UTA,DraftKings,1.5,1,-185,OVER,2.12,0.6066,0.604,-0.0695,PASS,1,MISS,auto
+2026-11-07,sog,S. Pinto,OTT,UTA,DraftKings,1.5,1,-185,OVER,2.05,0.5911,0.604,-0.0695,PASS,1,MISS,auto
+2026-11-07,sog,J. Sanderson,OTT,UTA,DraftKings,1.5,1,130,UNDER,1.99,0.4155,0.4059,-0.0664,PASS,1,HIT,auto
+2026-11-07,sog,T. Chabot,OTT,UTA,DraftKings,1.5,1,-120,UNDER,1.84,0.4585,0.5049,-0.0744,PASS,2,MISS,auto
+2026-11-07,sog,C. Giroux,OTT,UTA,DraftKings,1.5,1,-135,OVER,1.59,0.4612,0.5347,-0.0693,PASS,1,MISS,auto
+2026-11-07,sog,J. Hughes,NJD,NYI,DraftKings,3.5,1,-120,UNDER,3.55,0.5366,0.5049,-0.0744,PASS,5,MISS,auto; went to OT
+2026-11-07,sog,T. Meier,NJD,NYI,DraftKings,2.5,1,-135,OVER,2.97,0.558,0.5347,-0.0693,PASS,8,HIT,auto
+2026-11-07,sog,D. Hamilton,NJD,NYI,DraftKings,2.5,1,145,OVER,2.39,0.425,0.3818,-0.0647,PASS,4,HIT,auto
+2026-11-07,sog,L. Evangelista,NJD,NYI,DraftKings,1.5,1,-170,OVER,2.21,0.6285,0.5862,-0.069,PASS,5,HIT,auto
+2026-11-07,sog,A. Gritsyuk,NJD,NYI,DraftKings,1.5,1,-185,OVER,2.19,0.6251,0.604,-0.0695,PASS,6,HIT,auto
+2026-11-07,sog,N. Hischier,NJD,NYI,DraftKings,2.5,1,-180,UNDER,2.13,0.644,0.5965,-0.072,PASS,6,MISS,auto; went to OT
+2026-11-07,sog,L. Hughes,NJD,NYI,DraftKings,2.5,1,-170,UNDER,2.11,0.6476,0.5862,-0.069,PASS,1,HIT,auto
+2026-11-07,sog,J. Bratt,NJD,NYI,DraftKings,1.5,1,-165,OVER,1.96,0.5663,0.578,-0.0717,PASS,4,HIT,auto
+2026-11-07,sog,E. Rodrigues,NJD,NYI,DraftKings,1.5,1,110,OVER,1.75,0.5084,0.4425,-0.0708,PASS,2,HIT,auto
+2026-11-07,sog,B. Horvat,NYI,NJD,DraftKings,2.5,1,115,UNDER,3.07,0.4203,0.4335,-0.068,PASS,2,HIT,auto
+2026-11-07,sog,M. Schaefer,NYI,NJD,DraftKings,3.5,1,130,OVER,2.97,0.346,0.4059,-0.0664,PASS,3,MISS,auto; went to OT
+2026-11-07,sog,K. Palmieri,NYI,NJD,DraftKings,2.5,1,145,OVER,2.16,0.3633,0.3818,-0.0647,PASS,2,MISS,auto; went to OT
+2026-11-07,sog,E. Heineman,NYI,NJD,DraftKings,1.5,1,-125,UNDER,1.62,0.5312,0.5203,-0.0635,PASS,2,MISS,auto; went to OT
+2026-11-07,sog,B. Schenn,NYI,NJD,DraftKings,1.5,1,-115,OVER,1.55,0.4483,0.5,-0.0652,PASS,3,HIT,auto
+2026-11-07,sog,T. DeAngelo,NYI,NJD,DraftKings,1.5,1,125,OVER,1.54,0.4518,0.4165,-0.0629,PASS,3,HIT,auto
+2026-11-07,sog,V. Eklund,NYI,NJD,DraftKings,1.5,1,-110,OVER,1.46,0.4198,0.4899,-0.0648,PASS,2,HIT,auto
+2026-11-07,sog,S. Holmstrom,NYI,NJD,DraftKings,1.5,1,-110,UNDER,1.3,0.6319,0.4853,-0.0735,PASS,2,MISS,auto; went to OT
+2026-11-07,sog,C. Bedard,CHI,CAR,DraftKings,2.5,1,-110,UNDER,2.52,0.5452,0.4853,-0.0735,PASS,1,HIT,auto
+2026-11-07,sog,A. Frondell,CHI,CAR,DraftKings,1.5,1,100,UNDER,1.86,0.4599,0.4615,-0.0769,PASS,0,HIT,auto
+2026-11-07,sog,F. Nazar,CHI,CAR,DraftKings,1.5,1,-120,OVER,1.59,0.4594,0.5101,-0.0648,PASS,2,HIT,auto
+2026-11-07,sog,R. Kantserov,CHI,CAR,DraftKings,1.5,1,-120,OVER,1.49,0.4295,0.5101,-0.0648,PASS,2,HIT,auto
+2026-11-07,sog,T. Bertuzzi,CHI,CAR,DraftKings,1.5,1,155,OVER,1.39,0.3953,0.3649,-0.0695,PASS,1,MISS,auto
+2026-11-07,sog,A. Svechnikov,CAR,CHI,DraftKings,2.5,1,-120,UNDER,2.82,0.4742,0.5049,-0.0744,PASS,5,MISS,auto
+2026-11-07,sog,S. Jarvis,CAR,CHI,DraftKings,2.5,1,-160,UNDER,2.77,0.4873,0.5752,-0.0654,PASS,2,HIT,auto
+2026-11-07,sog,S. Aho,CAR,CHI,DraftKings,2.5,1,-120,UNDER,2.76,0.489,0.5049,-0.0744,PASS,1,HIT,auto
+2026-11-07,sog,L. Stankoven,CAR,CHI,DraftKings,2.5,1,-125,UNDER,2.72,0.4981,0.5147,-0.0735,PASS,0,HIT,auto
+2026-11-07,sog,N. Ehlers,CAR,CHI,DraftKings,2.5,1,-140,UNDER,2.58,0.5314,0.5446,-0.0664,PASS,1,HIT,auto
+2026-11-07,sog,J. Blake,CAR,CHI,DraftKings,2.5,1,-140,UNDER,2.48,0.5575,0.5446,-0.0664,PASS,2,HIT,auto
+2026-11-07,sog,S. Walker,CAR,CHI,DraftKings,1.5,1,110,UNDER,2.1,0.3867,0.4425,-0.0708,PASS,1,HIT,auto
+2026-11-07,sog,T. Hall,CAR,CHI,DraftKings,1.5,1,140,UNDER,2.05,0.4107,0.3866,-0.0721,PASS,3,MISS,auto
+2026-11-07,sog,S. Gostisbehere,CAR,CHI,DraftKings,1.5,1,-125,UNDER,1.81,0.467,0.5147,-0.0735,PASS,3,MISS,auto
+2026-11-07,sog,J. Slavin,CAR,CHI,DraftKings,1.5,1,-115,OVER,1.66,0.4888,0.5,-0.0652,PASS,1,MISS,auto
+2026-11-07,sog,W. Carrier,CAR,CHI,DraftKings,1.5,1,-145,UNDER,1.52,0.5627,0.5541,-0.0637,PASS,2,MISS,auto
+2026-11-07,sog,M. Jankowski,CAR,CHI,DraftKings,1.5,1,-110,UNDER,1.43,0.5894,0.4853,-0.0735,PASS,3,MISS,auto
+2026-11-07,sog,M. Celebrini,SJS,DAL,DraftKings,3.5,1,-145,UNDER,3.25,0.5946,0.5482,-0.0738,PASS,6,MISS,auto; TOI 28.1 vs 22.0 expected
+2026-11-07,sog,W. Smith,SJS,DAL,DraftKings,1.5,1,-185,OVER,2.08,0.5984,0.6091,-0.0617,PASS,3,HIT,auto
+2026-11-07,sog,T. Toffoli,SJS,DAL,DraftKings,1.5,1,-130,OVER,1.8,0.5215,0.5246,-0.0719,PASS,2,HIT,auto
+2026-11-07,sog,K. Sherwood,SJS,DAL,DraftKings,1.5,1,-115,OVER,1.78,0.5169,0.5,-0.0652,PASS,1,MISS,auto
+2026-11-07,sog,M. Marchment,SJS,DAL,DraftKings,1.5,1,-105,OVER,1.58,0.4567,0.4754,-0.0719,PASS,1,MISS,auto
+2026-11-07,sog,M. Misa,SJS,DAL,DraftKings,1.5,1,-160,UNDER,1.36,0.6118,0.5752,-0.0654,PASS,1,HIT,auto
+2026-11-07,sog,I. Stenberg,SJS,DAL,DraftKings,1.5,1,145,OVER,1.29,0.3651,0.3818,-0.0647,PASS,2,HIT,auto
+2026-11-07,sog,J. Robertson,DAL,SJS,DraftKings,3.5,1,-145,UNDER,3.59,0.5283,0.5482,-0.0738,PASS,3,HIT,auto
+2026-11-07,sog,W. Johnston,DAL,SJS,DraftKings,2.5,1,-145,OVER,2.71,0.4988,0.5482,-0.0738,PASS,5,HIT,auto
+2026-11-07,sog,M. Rantanen,DAL,SJS,DraftKings,2.5,1,-165,UNDER,2.29,0.6027,0.578,-0.0717,PASS,3,MISS,auto
+2026-11-07,sog,R. Hintz,DAL,SJS,DraftKings,2.5,1,-180,UNDER,2.19,0.6294,0.5965,-0.072,PASS,4,MISS,auto
+2026-11-07,sog,T. Harley,DAL,SJS,DraftKings,2.5,1,-125,UNDER,2.05,0.6626,0.5203,-0.0635,PASS,2,HIT,auto
+2026-11-07,sog,T. Seguin,DAL,SJS,DraftKings,1.5,1,105,UNDER,1.9,0.4486,0.4554,-0.0664,PASS,2,MISS,auto
+2026-11-07,sog,A. Hyry,DAL,SJS,DraftKings,1.5,1,-180,OVER,1.88,0.5442,0.5965,-0.072,PASS,0,MISS,auto
+2026-11-07,sog,J. Benn,DAL,SJS,DraftKings,1.5,1,-125,UNDER,1.54,0.5556,0.5147,-0.0735,PASS,3,MISS,auto
+2026-11-07,sog,E. Lindell,DAL,SJS,DraftKings,1.5,1,110,OVER,1.14,0.3147,0.4425,-0.0708,PASS,2,HIT,auto
+2026-11-07,sog,N. Lundkvist,DAL,SJS,DraftKings,0.5,1,-220,OVER,1.04,0.6357,0.6456,-0.0609,PASS,1,HIT,auto
+2026-11-07,sog,B. Hagel,TBL,MIN,DraftKings,2.5,1,110,UNDER,3.13,0.4066,0.4425,-0.0708,PASS,0,HIT,auto
+2026-11-07,sog,N. Kucherov,TBL,MIN,DraftKings,3.5,1,-170,UNDER,2.98,0.6523,0.5862,-0.069,PASS,9,MISS,auto; TOI 25.5 vs 20.3 expected; went to OT
+2026-11-07,sog,J. Guentzel,TBL,MIN,DraftKings,2.5,1,-110,OVER,2.69,0.4942,0.4899,-0.0648,PASS,7,HIT,auto
+2026-11-07,sog,B. Point,TBL,MIN,DraftKings,2.5,1,115,OVER,2.1,0.3494,0.4335,-0.068,PASS,2,MISS,auto; went to OT
+2026-11-07,sog,J. Carlson,TBL,MIN,DraftKings,2.5,1,-135,UNDER,1.85,0.7168,0.5347,-0.0693,PASS,1,HIT,auto
+2026-11-07,sog,A. Cirelli,TBL,MIN,DraftKings,1.5,1,-115,UNDER,1.6,0.5382,0.4951,-0.0744,PASS,2,MISS,auto; went to OT
+2026-11-07,sog,C. D'Astous,TBL,MIN,DraftKings,1.5,1,-145,UNDER,1.19,0.6698,0.5482,-0.0738,PASS,3,MISS,auto; TOI 24.6 vs 17.8 expected; went to OT
+2026-11-07,sog,M. Boldy,MIN,TBL,DraftKings,3.5,1,115,OVER,3.39,0.4351,0.4335,-0.068,PASS,2,MISS,auto; went to OT
+2026-11-07,sog,K. Kaprizov,MIN,TBL,DraftKings,3.5,1,-160,UNDER,2.89,0.6716,0.5752,-0.0654,PASS,5,MISS,auto; went to OT
+2026-11-07,sog,J. Eriksson Ek,MIN,TBL,DraftKings,2.5,1,115,UNDER,2.75,0.4903,0.4335,-0.068,PASS,2,HIT,auto
+2026-11-07,sog,Q. Hughes,MIN,TBL,DraftKings,2.5,1,-140,UNDER,2.3,0.5993,0.5446,-0.0664,PASS,1,HIT,auto
+2026-11-07,sog,B. Coleman,MIN,TBL,DraftKings,2.5,1,135,OVER,2.07,0.3405,0.396,-0.0695,PASS,1,MISS,auto; went to OT
+2026-11-07,sog,M. Shabanov,MIN,TBL,DraftKings,1.5,1,-140,UNDER,1.32,0.627,0.5446,-0.0664,PASS,3,MISS,auto; went to OT
+2026-11-07,sog,D. Yurov,MIN,TBL,DraftKings,1.5,1,-135,UNDER,1.24,0.6544,0.5347,-0.0693,PASS,0,HIT,auto
+2026-11-07,sog,J. Brodin,MIN,TBL,DraftKings,1.5,1,150,OVER,1.13,0.3116,0.3731,-0.0673,PASS,2,HIT,auto
+2026-11-07,sog,A. DeBrincat,DET,COL,DraftKings,3.5,1,110,OVER,3.34,0.4247,0.4425,-0.0708,PASS,2,MISS,auto
+2026-11-07,sog,V. Arvidsson,DET,COL,DraftKings,2.5,1,-110,OVER,2.7,0.4963,0.4899,-0.0648,PASS,3,HIT,auto
+2026-11-07,sog,L. Raymond,DET,COL,DraftKings,2.5,1,-125,UNDER,2.36,0.5853,0.5203,-0.0635,PASS,2,HIT,auto
+2026-11-07,sog,M. Seider,DET,COL,DraftKings,1.5,1,-165,OVER,1.98,0.5818,0.578,-0.0717,PASS,0,MISS,auto; TOI 19.4 vs 25.9 expected
+2026-11-07,sog,E. Finnie,DET,COL,DraftKings,1.5,1,115,UNDER,1.73,0.4974,0.4335,-0.068,PASS,1,HIT,auto
+2026-11-07,sog,M. Brandsegg-Nygård,DET,COL,DraftKings,1.5,1,-130,OVER,1.57,0.4548,0.5246,-0.0719,PASS,3,HIT,auto
+2026-11-07,sog,A. Copp,DET,COL,DraftKings,1.5,1,110,OVER,1.48,0.4269,0.4425,-0.0708,PASS,1,MISS,auto
+2026-11-07,sog,N. MacKinnon,COL,DET,DraftKings,3.5,1,-110,UNDER,3.68,0.5106,0.4853,-0.0735,PASS,4,MISS,auto
+2026-11-07,sog,N. Kadri,COL,DET,DraftKings,2.5,1,-135,UNDER,2.56,0.536,0.5347,-0.0693,PASS,3,MISS,auto
+2026-11-07,sog,C. Makar,COL,DET,DraftKings,2.5,1,-115,UNDER,2.52,0.5481,0.4951,-0.0744,PASS,2,HIT,auto
+2026-11-07,sog,M. Necas,COL,DET,DraftKings,2.5,1,-135,UNDER,2.34,0.5911,0.5347,-0.0693,PASS,2,HIT,auto
+2026-11-07,sog,T. Hughes,COL,DET,DraftKings,2.5,1,135,OVER,2.18,0.3691,0.396,-0.0695,PASS,4,HIT,auto
+2026-11-07,sog,A. Lehkonen,COL,DET,DraftKings,1.5,1,-180,OVER,2.0,0.5777,0.6017,-0.064,PASS,2,HIT,auto
+2026-11-07,sog,G. Landeskog,COL,DET,DraftKings,1.5,1,-115,UNDER,1.79,0.4795,0.4951,-0.0744,PASS,1,HIT,auto
+2026-11-07,sog,S. Malinski,COL,DET,DraftKings,1.5,1,-115,OVER,1.78,0.5234,0.5,-0.0652,PASS,0,MISS,auto
+2026-11-07,sog,J. Schwartz,COL,DET,DraftKings,1.5,1,-125,UNDER,1.64,0.5258,0.5147,-0.0735,PASS,0,HIT,auto
+2026-11-07,sog,B. Burns,COL,DET,DraftKings,1.5,1,100,UNDER,1.63,0.521,0.4615,-0.0769,PASS,2,MISS,auto
+2026-11-07,sog,D. Toews,COL,DET,DraftKings,1.5,1,-135,UNDER,1.59,0.5327,0.5347,-0.0693,PASS,1,HIT,auto
+2026-11-07,sog,R. Rakell,PIT,LAK,DraftKings,2.5,1,-140,UNDER,2.58,0.5309,0.5446,-0.0664,PASS,0,HIT,auto
+2026-11-07,sog,S. Crosby,PIT,LAK,DraftKings,2.5,1,130,OVER,2.24,0.3841,0.4059,-0.0664,PASS,3,HIT,auto
+2026-11-07,sog,E. Malkin,PIT,LAK,DraftKings,1.5,1,-170,OVER,2.09,0.6007,0.5862,-0.069,PASS,1,MISS,auto
+2026-11-07,sog,E. Karlsson,PIT,LAK,DraftKings,1.5,1,-170,OVER,2.09,0.6105,0.5862,-0.069,PASS,0,MISS,auto
+2026-11-07,sog,B. Kindel,PIT,LAK,DraftKings,1.5,1,140,UNDER,1.96,0.4331,0.3887,-0.067,PASS,2,MISS,auto
+2026-11-07,sog,N. Robertson,PIT,LAK,DraftKings,1.5,1,-105,OVER,1.76,0.5115,0.4754,-0.0719,PASS,1,MISS,auto
+2026-11-07,sog,T. Novak,PIT,LAK,DraftKings,1.5,1,110,UNDER,1.73,0.4996,0.4459,-0.0637,PASS,2,MISS,auto
+2026-11-07,sog,K. Letang,PIT,LAK,DraftKings,1.5,1,110,OVER,1.46,0.4242,0.4425,-0.0708,PASS,3,HIT,auto
+2026-11-07,sog,A. Kempe,LAK,PIT,DraftKings,2.5,1,-165,OVER,2.91,0.5459,0.578,-0.0717,PASS,2,MISS,auto
+2026-11-07,sog,A. Panarin,LAK,PIT,DraftKings,2.5,1,-160,OVER,2.91,0.5458,0.5695,-0.0745,PASS,3,HIT,auto
+2026-11-07,sog,A. Laferriere,LAK,PIT,DraftKings,2.5,1,-115,OVER,2.79,0.5176,0.5,-0.0652,PASS,7,HIT,auto
+2026-11-07,sog,Q. Byfield,LAK,PIT,DraftKings,2.5,1,-135,UNDER,2.35,0.5896,0.5347,-0.0693,PASS,1,HIT,auto
+2026-11-07,sog,T. Moore,LAK,PIT,DraftKings,1.5,1,110,UNDER,2.26,0.3582,0.4459,-0.0637,PASS,1,HIT,auto
+2026-11-07,sog,B. Clarke,LAK,PIT,DraftKings,1.5,1,-110,OVER,1.7,0.5013,0.4899,-0.0648,PASS,1,MISS,auto
+2026-11-07,sog,C. Perry,LAK,PIT,DraftKings,1.5,1,110,OVER,1.69,0.4897,0.4425,-0.0708,PASS,3,HIT,auto
+2026-11-07,sog,S. Laughton,LAK,PIT,DraftKings,1.5,1,110,OVER,1.5,0.4316,0.4425,-0.0708,PASS,0,MISS,auto
+2026-11-07,sog,J. DeBrusk,VAN,EDM,DraftKings,2.5,1,-135,UNDER,2.3,0.6022,0.5347,-0.0693,PASS,2,HIT,auto
+2026-11-07,sog,B. Boeser,VAN,EDM,DraftKings,1.5,1,-180,OVER,1.93,0.5591,0.6017,-0.064,PASS,2,HIT,auto
+2026-11-07,sog,E. Pettersson,VAN,EDM,DraftKings,2.5,1,145,OVER,1.65,0.2344,0.3818,-0.0647,PASS,0,MISS,auto
+2026-11-07,sog,F. Hronek,VAN,EDM,DraftKings,1.5,1,-125,UNDER,1.5,0.5609,0.5147,-0.0735,PASS,1,HIT,auto
+2026-11-07,sog,M. Rossi,VAN,EDM,DraftKings,1.5,1,-115,OVER,1.39,0.3964,0.5,-0.0652,PASS,1,MISS,auto
+2026-11-07,sog,C. McDavid,EDM,VAN,DraftKings,3.5,1,-135,UNDER,3.63,0.5203,0.5347,-0.0693,PASS,3,HIT,auto
+2026-11-07,sog,L. Draisaitl,EDM,VAN,DraftKings,3.5,1,-160,UNDER,3.31,0.5824,0.5695,-0.0745,PASS,7,MISS,auto
+2026-11-07,sog,E. Bouchard,EDM,VAN,DraftKings,2.5,1,-165,OVER,2.93,0.5463,0.578,-0.0717,PASS,1,MISS,auto
+2026-11-07,sog,Z. Hyman,EDM,VAN,DraftKings,2.5,1,110,OVER,2.64,0.4832,0.4425,-0.0708,PASS,2,MISS,auto
+2026-11-07,sog,R. Nugent-Hopkins,EDM,VAN,DraftKings,2.5,1,130,OVER,2.06,0.3393,0.4059,-0.0664,PASS,0,MISS,auto; TOI 6.6 vs 18.9 expected
+2026-11-07,sog,V. Podkolzin,EDM,VAN,DraftKings,1.5,1,130,UNDER,1.99,0.4257,0.4059,-0.0664,PASS,1,HIT,auto
+2026-11-07,sog,K. Kapanen,EDM,VAN,DraftKings,1.5,1,-170,OVER,1.95,0.5649,0.5862,-0.069,PASS,2,HIT,auto
+2026-11-07,sog,M. Ekholm,EDM,VAN,DraftKings,1.5,1,-120,UNDER,1.57,0.5403,0.5049,-0.0744,PASS,1,HIT,auto
+2026-11-07,sog,A. Formenton,EDM,VAN,DraftKings,1.5,1,125,OVER,1.31,0.37,0.4165,-0.0629,PASS,0,MISS,auto
+2026-11-07,sog,C. Murphy,EDM,VAN,DraftKings,1.5,1,-240,UNDER,1.15,0.6817,0.66,-0.065,PASS,3,MISS,auto
+2026-11-07,points,B. Tkachuk,FLA,WSH,DraftKings,0.5,1,-165,OVER,0.93,0.6056,0.5992,-0.0377,PASS,2,HIT,auto
+2026-11-07,points,S. Reinhart,FLA,WSH,DraftKings,0.5,1,-165,OVER,0.9,0.594,0.5935,-0.0468,PASS,1,HIT,auto
+2026-11-07,points,S. Bennett,FLA,WSH,DraftKings,0.5,1,105,OVER,0.63,0.4651,0.4583,-0.0604,PASS,1,HIT,auto
+2026-11-07,points,M. Tkachuk,FLA,WSH,DraftKings,0.5,1,-205,OVER,1.08,0.6603,0.6548,-0.0258,PASS,3,HIT,auto
+2026-11-07,points,C. Verhaeghe,FLA,WSH,DraftKings,0.5,1,-120,OVER,0.78,0.5402,0.5261,-0.0354,PASS,0,MISS,auto
+2026-11-07,points,S. Jones,FLA,WSH,DraftKings,0.5,1,100,UNDER,0.66,0.5191,0.4862,-0.0276,PASS,1,MISS,auto
+2026-11-07,points,S. Vilmanis,FLA,WSH,DraftKings,0.5,1,165,OVER,0.5,0.3922,0.3722,-0.0138,PASS,0,MISS,auto
+2026-11-07,points,G. Forsling,FLA,WSH,DraftKings,0.5,1,-340,UNDER,0.29,0.75,0.7291,-0.0565,PASS,0,HIT,auto
+2026-11-07,points,A. Ekblad,FLA,WSH,DraftKings,0.5,1,220,OVER,0.38,0.3132,0.3066,-0.0187,PASS,0,MISS,auto
+2026-11-07,points,E. Luostarinen,FLA,WSH,DraftKings,0.5,1,-230,UNDER,0.41,0.6674,0.6534,-0.0626,PASS,0,HIT,auto
+2026-11-07,points,J. Chychrun,WSH,FLA,DraftKings,0.5,1,-120,OVER,0.73,0.5192,0.5125,-0.0604,PASS,0,MISS,auto
+2026-11-07,points,A. Tuch,WSH,FLA,DraftKings,0.5,1,-120,OVER,0.79,0.5446,0.5252,-0.0371,PASS,1,HIT,auto
+2026-11-07,points,J. Kyrou,WSH,FLA,DraftKings,0.5,1,-150,OVER,0.85,0.5703,0.5695,-0.0508,PASS,0,MISS,auto
+2026-11-07,points,A. Ovechkin,WSH,FLA,DraftKings,0.5,1,125,OVER,0.63,0.4663,0.4376,-0.0154,PASS,0,MISS,auto
+2026-11-07,points,R. Leonard,WSH,FLA,DraftKings,0.5,1,140,OVER,0.59,0.4426,0.4122,-0.0106,PASS,1,HIT,auto
+2026-11-07,points,T. Wilson,WSH,FLA,DraftKings,0.5,1,-110,OVER,0.69,0.4939,0.489,-0.0665,PASS,0,MISS,auto
+2026-11-07,points,D. Strome,WSH,FLA,DraftKings,0.5,1,125,UNDER,0.84,0.434,0.4154,-0.0654,PASS,0,HIT,auto
+2026-11-07,points,A. Protas,WSH,FLA,DraftKings,0.5,1,155,OVER,0.61,0.4569,0.4042,0.0308,PASS,2,HIT,auto
+2026-11-07,points,C. Hutson,WSH,FLA,DraftKings,0.5,1,125,OVER,0.66,0.4836,0.4439,-0.0012,PASS,0,MISS,auto
+2026-11-07,points,P. Dubois,WSH,FLA,DraftKings,0.5,1,100,OVER,0.68,0.4891,0.4752,-0.0496,PASS,2,HIT,auto
+2026-11-07,points,I. Protas,WSH,FLA,DraftKings,0.5,1,175,OVER,0.48,0.3807,0.3603,-0.0093,PASS,0,MISS,auto
+2026-11-07,points,D. Holloway,STL,NSH,DraftKings,0.5,1,-110,OVER,0.77,0.5373,0.5126,-0.0215,PASS,0,MISS,auto
+2026-11-07,points,J. Snuggerud,STL,NSH,DraftKings,0.5,1,105,UNDER,0.74,0.4756,0.461,-0.0549,PASS,1,MISS,auto
+2026-11-07,points,M. McTavish,STL,NSH,DraftKings,0.5,1,-110,UNDER,0.64,0.5289,0.5045,-0.0369,PASS,0,HIT,auto
+2026-11-07,points,R. Thomas,STL,NSH,DraftKings,0.5,1,-190,OVER,1.0,0.631,0.6314,-0.0363,PASS,1,HIT,auto
+2026-11-07,points,P. Buchnevich,STL,NSH,DraftKings,0.5,1,130,OVER,0.58,0.4392,0.4213,-0.031,PASS,0,MISS,auto
+2026-11-07,points,C. McMichael,STL,NSH,DraftKings,0.5,1,125,OVER,0.53,0.4114,0.4158,-0.0644,PASS,0,MISS,auto
+2026-11-07,points,P. Broberg,STL,NSH,DraftKings,0.5,1,-125,UNDER,0.51,0.5984,0.5449,-0.0193,PASS,1,MISS,auto
+2026-11-07,points,J. Neighbours,STL,NSH,DraftKings,0.5,1,-140,UNDER,0.54,0.584,0.5538,-0.0506,PASS,0,HIT,auto
+2026-11-07,points,C. Fowler,STL,NSH,DraftKings,0.5,1,-295,UNDER,0.33,0.7231,0.7035,-0.058,PASS,0,HIT,auto
+2026-11-07,points,F. Forsberg,NSH,STL,DraftKings,0.5,1,-210,OVER,1.03,0.644,0.6509,-0.0391,PASS,1,HIT,auto
+2026-11-07,points,R. Josi,NSH,STL,DraftKings,0.5,1,-175,OVER,0.89,0.587,0.5997,-0.0576,PASS,2,HIT,auto
+2026-11-07,points,S. Stamkos,NSH,STL,DraftKings,0.5,1,-150,OVER,0.86,0.5761,0.5724,-0.046,PASS,2,HIT,auto
+2026-11-07,points,R. O'Reilly,NSH,STL,DraftKings,0.5,1,-170,OVER,0.9,0.5946,0.5987,-0.0491,PASS,0,MISS,auto
+2026-11-07,points,M. Bourque,NSH,STL,DraftKings,0.5,1,-150,UNDER,0.44,0.6483,0.589,-0.0183,PASS,1,MISS,auto
+2026-11-07,points,R. Colton,NSH,STL,DraftKings,0.5,1,200,OVER,0.42,0.3429,0.3297,-0.0108,PASS,1,HIT,auto
+2026-11-07,points,S. Wright,NSH,STL,DraftKings,0.5,1,-220,UNDER,0.41,0.6683,0.6467,-0.0594,PASS,0,HIT,auto
+2026-11-07,points,P. Dorofeyev,NYR,SEA,DraftKings,0.5,1,115,UNDER,0.67,0.5128,0.4648,-0.0007,PASS,1,MISS,auto
+2026-11-07,points,M. Zibanejad,NYR,SEA,DraftKings,0.5,1,145,UNDER,0.88,0.414,0.3851,-0.0566,PASS,2,MISS,auto
+2026-11-07,points,A. Lafrenière,NYR,SEA,DraftKings,0.5,1,120,UNDER,0.74,0.4768,0.4433,-0.0248,PASS,2,MISS,auto
+2026-11-07,points,J. Miller,NYR,SEA,DraftKings,0.5,1,-145,OVER,0.87,0.5786,0.568,-0.0402,PASS,0,MISS,auto
+2026-11-07,points,W. Cuylle,NYR,SEA,DraftKings,0.5,1,140,OVER,0.5,0.3929,0.3927,-0.0574,PASS,0,MISS,auto
+2026-11-07,points,G. Perreault,NYR,SEA,DraftKings,0.5,1,-150,UNDER,0.53,0.5888,0.567,-0.055,PASS,1,MISS,auto
+2026-11-07,points,O. Bjorkstrand,NYR,SEA,DraftKings,0.5,1,150,OVER,0.52,0.4014,0.3877,-0.0307,PASS,1,HIT,auto
+2026-11-07,points,A. Fox,NYR,SEA,DraftKings,0.5,1,-185,OVER,0.98,0.6236,0.6265,-0.0348,PASS,1,HIT,auto
+2026-11-07,points,T. Kartye,NYR,SEA,DraftKings,0.5,1,130,OVER,0.55,0.4192,0.4125,-0.0513,PASS,1,HIT,auto
+2026-11-07,points,V. Gavrikov,NYR,SEA,DraftKings,0.5,1,-245,UNDER,0.37,0.695,0.6711,-0.0549,PASS,0,HIT,auto
+2026-11-07,points,B. McMann,SEA,NYR,DraftKings,0.5,1,-150,UNDER,0.56,0.5745,0.5618,-0.0637,PASS,0,HIT,auto
+2026-11-07,points,B. Montour,SEA,NYR,DraftKings,0.5,1,-155,UNDER,0.55,0.5762,0.5678,-0.0659,PASS,1,MISS,auto
+2026-11-07,points,V. Dunn,SEA,NYR,DraftKings,0.5,1,-130,UNDER,0.59,0.557,0.5356,-0.0524,PASS,1,MISS,auto
+2026-11-07,points,M. Samoskevich,SEA,NYR,DraftKings,0.5,1,-160,UNDER,0.53,0.5926,0.5757,-0.0646,PASS,0,HIT,auto
+2026-11-07,points,J. Eberle,SEA,NYR,DraftKings,0.5,1,-105,UNDER,0.62,0.5379,0.4991,-0.0256,PASS,1,MISS,auto
+2026-11-07,points,M. Wood,SEA,NYR,DraftKings,0.5,1,-190,UNDER,0.43,0.6525,0.6228,-0.0494,PASS,1,MISS,auto
+2026-11-07,points,M. Beniers,SEA,NYR,DraftKings,0.5,1,-110,UNDER,0.54,0.5837,0.5246,0.0014,PASS,1,MISS,auto
+2026-11-07,points,B. Catton,SEA,NYR,DraftKings,0.5,1,-180,UNDER,0.47,0.6271,0.6046,-0.0596,PASS,2,MISS,auto
+2026-11-07,points,F. Gaudreau,SEA,NYR,DraftKings,0.5,1,170,OVER,0.42,0.3441,0.35,-0.055,PASS,0,MISS,auto
+2026-11-07,points,K. Kakko,SEA,NYR,DraftKings,0.5,1,115,OVER,0.6,0.4498,0.4417,-0.0502,PASS,1,HIT,auto
+2026-11-07,points,C. Stephenson,SEA,NYR,DraftKings,0.5,1,-120,UNDER,0.61,0.5466,0.52,-0.0467,PASS,1,MISS,auto
+2026-11-07,points,C. Caufield,MTL,TOR,DraftKings,0.5,1,-190,OVER,0.94,0.6089,0.6207,-0.0526,PASS,1,HIT,auto
+2026-11-07,points,N. Suzuki,MTL,TOR,DraftKings,0.5,1,-245,OVER,1.18,0.6904,0.6919,-0.0257,PASS,0,MISS,auto
+2026-11-07,points,J. Slafkovský,MTL,TOR,DraftKings,0.5,1,105,UNDER,0.77,0.4656,0.456,-0.0651,PASS,0,HIT,auto
+2026-11-07,points,N. Dobson,MTL,TOR,DraftKings,0.5,1,-150,UNDER,0.49,0.6118,0.5755,-0.0408,PASS,0,HIT,auto
+2026-11-07,points,L. Hutson,MTL,TOR,DraftKings,0.5,1,-165,OVER,0.93,0.6039,0.5984,-0.039,PASS,1,HIT,auto
+2026-11-07,points,A. Newhook,MTL,TOR,DraftKings,0.5,1,-160,UNDER,0.52,0.5972,0.5807,-0.0564,PASS,2,MISS,auto
+2026-11-07,points,Z. Bolduc,MTL,TOR,DraftKings,0.5,1,-145,UNDER,0.45,0.6382,0.5796,-0.0206,PASS,1,MISS,auto
+2026-11-07,points,C. Kreider,MTL,TOR,DraftKings,0.5,1,-165,UNDER,0.51,0.6048,0.5852,-0.0601,PASS,1,MISS,auto
+2026-11-07,points,A. Texier,MTL,TOR,DraftKings,0.5,1,195,OVER,0.4,0.3231,0.3258,-0.0388,PASS,0,MISS,auto
+2026-11-07,points,A. Matthews,TOR,MTL,DraftKings,1.5,1,-235,UNDER,1.07,0.7091,0.6699,-0.0451,PASS,1,HIT,auto
+2026-11-07,points,W. Nylander,TOR,MTL,DraftKings,0.5,1,-230,OVER,1.18,0.6914,0.6849,-0.0173,PASS,1,HIT,auto
+2026-11-07,points,D. Raddysh,TOR,MTL,DraftKings,0.5,1,-125,OVER,0.73,0.5172,0.5174,-0.0687,PASS,1,HIT,auto
+2026-11-07,points,J. Tavares,TOR,MTL,DraftKings,0.5,1,-140,OVER,0.82,0.5573,0.5553,-0.048,PASS,0,MISS,auto
+2026-11-07,points,J. Roslovic,TOR,MTL,DraftKings,0.5,1,100,UNDER,0.67,0.5149,0.4824,-0.0353,PASS,0,HIT,auto
+2026-11-07,points,G. McKenna,TOR,MTL,DraftKings,0.5,1,110,OVER,0.62,0.46,0.4509,-0.0532,PASS,1,HIT,auto
+2026-11-07,points,E. Cowan,TOR,MTL,DraftKings,0.5,1,110,OVER,0.61,0.4561,0.4494,-0.0562,PASS,0,MISS,auto
+2026-11-07,points,M. Rielly,TOR,MTL,DraftKings,0.5,1,170,OVER,0.49,0.3843,0.3649,-0.0148,PASS,0,MISS,auto
+2026-11-07,points,N. Paul,TOR,MTL,DraftKings,0.5,1,-215,UNDER,0.41,0.6648,0.6417,-0.0599,PASS,0,HIT,auto
+2026-11-07,points,O. Ekman-Larsson,TOR,MTL,DraftKings,0.5,1,245,OVER,0.33,0.2765,0.281,-0.0305,PASS,0,MISS,auto
+2026-11-07,points,D. Guenther,UTA,OTT,DraftKings,0.5,1,125,UNDER,0.83,0.4361,0.4164,-0.063,PASS,0,HIT,auto
+2026-11-07,points,C. Keller,UTA,OTT,DraftKings,0.5,1,-235,OVER,1.07,0.6553,0.6689,-0.0464,PASS,2,HIT,auto
+2026-11-07,points,A. Lee,UTA,OTT,DraftKings,0.5,1,145,OVER,0.52,0.405,0.3931,-0.037,PASS,1,HIT,auto
+2026-11-07,points,N. Schmaltz,UTA,OTT,DraftKings,0.5,1,125,UNDER,0.79,0.4556,0.4277,-0.0376,PASS,0,HIT,auto
+2026-11-07,points,B. Hayton,UTA,OTT,DraftKings,0.5,1,-165,UNDER,0.49,0.6129,0.5915,-0.05,PASS,1,MISS,auto
+2026-11-07,points,M. Sergachev,UTA,OTT,DraftKings,0.5,1,130,UNDER,0.8,0.4514,0.4193,-0.0357,PASS,0,HIT,auto
+2026-11-07,points,M. Weegar,UTA,OTT,DraftKings,0.5,1,-210,UNDER,0.41,0.6666,0.6413,-0.0533,PASS,1,MISS,auto
+2026-11-07,points,L. Cooley,UTA,OTT,DraftKings,0.5,1,135,UNDER,0.75,0.472,0.4236,-0.0045,PASS,0,HIT,auto
+2026-11-07,points,V. Trocheck,UTA,OTT,DraftKings,0.5,1,105,OVER,0.64,0.472,0.463,-0.0508,PASS,0,MISS,auto
+2026-11-07,points,L. Crouse,UTA,OTT,DraftKings,0.5,1,205,OVER,0.4,0.3275,0.3213,-0.0201,PASS,0,MISS,auto
+2026-11-07,points,J. McBain,UTA,OTT,DraftKings,0.5,1,235,OVER,0.33,0.2753,0.2849,-0.0455,PASS,0,MISS,auto
+2026-11-07,points,T. Stützle,OTT,UTA,DraftKings,0.5,1,-245,OVER,1.12,0.6748,0.6846,-0.0359,PASS,1,HIT,auto
+2026-11-07,points,D. Cozens,OTT,UTA,DraftKings,0.5,1,-110,UNDER,0.67,0.5136,0.4989,-0.0475,PASS,0,HIT,auto
+2026-11-07,points,D. Batherson,OTT,UTA,DraftKings,0.5,1,-185,OVER,0.93,0.6055,0.6147,-0.053,PASS,0,MISS,auto
+2026-11-07,points,F. Zetterlund,OTT,UTA,DraftKings,0.5,1,140,OVER,0.52,0.4036,0.3979,-0.045,PASS,1,HIT,auto
+2026-11-07,points,S. Pinto,OTT,UTA,DraftKings,0.5,1,100,OVER,0.67,0.4848,0.4737,-0.0527,PASS,2,HIT,auto
+2026-11-07,points,J. Sanderson,OTT,UTA,DraftKings,0.5,1,110,UNDER,0.78,0.4571,0.4441,-0.0674,PASS,0,HIT,auto
+2026-11-07,points,T. Chabot,OTT,UTA,DraftKings,0.5,1,-155,UNDER,0.54,0.5841,0.5707,-0.0611,PASS,1,MISS,auto
+2026-11-07,points,C. Giroux,OTT,UTA,DraftKings,0.5,1,100,UNDER,0.59,0.5569,0.5,0.0,PASS,1,MISS,auto
+2026-11-07,points,J. Hughes,NJD,NYI,DraftKings,1.5,1,-230,UNDER,1.14,0.6838,0.6595,-0.0538,PASS,2,MISS,auto
+2026-11-07,points,T. Meier,NJD,NYI,DraftKings,0.5,1,-160,UNDER,0.49,0.6164,0.5878,-0.0449,PASS,0,HIT,auto
+2026-11-07,points,D. Hamilton,NJD,NYI,DraftKings,0.5,1,170,OVER,0.5,0.3921,0.3678,-0.007,PASS,1,HIT,auto
+2026-11-07,points,L. Evangelista,NJD,NYI,DraftKings,0.5,1,115,OVER,0.62,0.4602,0.4455,-0.0421,PASS,2,HIT,auto
+2026-11-07,points,A. Gritsyuk,NJD,NYI,DraftKings,0.5,1,-140,UNDER,0.56,0.5747,0.5541,-0.0501,PASS,1,MISS,auto
+2026-11-07,points,N. Hischier,NJD,NYI,DraftKings,0.5,1,105,UNDER,0.69,0.5043,0.4748,-0.0266,PASS,1,MISS,auto
+2026-11-07,points,L. Hughes,NJD,NYI,DraftKings,0.5,1,-125,UNDER,0.58,0.5596,0.5306,-0.0448,PASS,1,MISS,auto
+2026-11-07,points,J. Bratt,NJD,NYI,DraftKings,0.5,1,-150,OVER,0.83,0.5636,0.5662,-0.0563,PASS,1,HIT,auto
+2026-11-07,points,E. Rodrigues,NJD,NYI,DraftKings,0.5,1,175,OVER,0.41,0.3329,0.3425,-0.0581,PASS,1,HIT,auto
+2026-11-07,points,A. Mantha,NJD,NYI,DraftKings,0.5,1,150,OVER,0.61,0.4565,0.4079,0.0198,PASS,1,HIT,auto
+2026-11-07,points,C. Brown,NJD,NYI,DraftKings,0.5,1,-190,UNDER,0.39,0.6815,0.6336,-0.0329,PASS,0,HIT,auto
+2026-11-07,points,B. Horvat,NYI,NJD,DraftKings,0.5,1,135,UNDER,0.83,0.4353,0.4067,-0.0441,PASS,2,MISS,auto
+2026-11-07,points,M. Schaefer,NYI,NJD,DraftKings,0.5,1,125,UNDER,0.84,0.4311,0.4139,-0.0686,PASS,1,MISS,auto
+2026-11-07,points,K. Palmieri,NYI,NJD,DraftKings,0.5,1,-155,UNDER,0.54,0.5828,0.5702,-0.0619,PASS,1,MISS,auto
+2026-11-07,points,E. Heineman,NYI,NJD,DraftKings,0.5,1,-215,UNDER,0.35,0.7104,0.6588,-0.0348,PASS,1,MISS,auto
+2026-11-07,points,B. Schenn,NYI,NJD,DraftKings,0.5,1,-130,UNDER,0.57,0.5694,0.5401,-0.0444,PASS,1,MISS,auto
+2026-11-07,points,T. DeAngelo,NYI,NJD,DraftKings,0.5,1,175,OVER,0.41,0.3333,0.3427,-0.0577,PASS,1,HIT,auto
+2026-11-07,points,V. Eklund,NYI,NJD,DraftKings,0.5,1,135,OVER,0.52,0.3999,0.4023,-0.0546,PASS,1,HIT,auto
+2026-11-07,points,S. Holmstrom,NYI,NJD,DraftKings,0.5,1,-135,UNDER,0.52,0.5989,0.557,-0.0304,PASS,2,MISS,auto
+2026-11-07,points,J. Pageau,NYI,NJD,DraftKings,0.5,1,195,OVER,0.49,0.3822,0.3478,0.0259,PASS,1,HIT,auto
+2026-11-07,points,L. Stanley,NYI,NJD,DraftKings,0.5,1,235,OVER,0.35,0.2922,0.2922,-0.0211,PASS,0,MISS,auto
+2026-11-07,points,C. Bedard,CHI,CAR,DraftKings,0.5,1,-150,OVER,0.85,0.5742,0.5715,-0.0475,PASS,2,HIT,auto
+2026-11-07,points,A. Frondell,CHI,CAR,DraftKings,0.5,1,-185,UNDER,0.49,0.6141,0.6043,-0.0691,PASS,0,HIT,auto
+2026-11-07,points,F. Nazar,CHI,CAR,DraftKings,0.5,1,-175,UNDER,0.48,0.6202,0.6005,-0.0563,PASS,0,HIT,auto
+2026-11-07,points,R. Kantserov,CHI,CAR,DraftKings,0.5,1,125,OVER,0.53,0.4113,0.4158,-0.0645,PASS,1,HIT,auto
+2026-11-07,points,T. Bertuzzi,CHI,CAR,DraftKings,0.5,1,145,OVER,0.52,0.4026,0.3934,-0.0362,PASS,0,MISS,auto
+2026-11-07,points,A. Svechnikov,CAR,CHI,DraftKings,0.5,1,150,UNDER,0.9,0.4081,0.3782,-0.0545,PASS,2,MISS,auto
+2026-11-07,points,S. Jarvis,CAR,CHI,DraftKings,0.5,1,-140,OVER,0.88,0.5826,0.5678,-0.0266,PASS,1,HIT,auto
+2026-11-07,points,S. Aho,CAR,CHI,DraftKings,1.5,1,-220,UNDER,1.1,0.6976,0.6576,-0.0434,PASS,3,MISS,auto
+2026-11-07,points,L. Stankoven,CAR,CHI,DraftKings,0.5,1,-105,UNDER,0.73,0.4841,0.4773,-0.0682,PASS,1,MISS,auto
+2026-11-07,points,N. Ehlers,CAR,CHI,DraftKings,0.5,1,155,UNDER,0.93,0.3969,0.3689,-0.0594,PASS,1,MISS,auto
+2026-11-07,points,J. Blake,CAR,CHI,DraftKings,0.5,1,140,UNDER,0.83,0.4343,0.4005,-0.0388,PASS,1,MISS,auto
+2026-11-07,points,S. Walker,CAR,CHI,DraftKings,0.5,1,-250,UNDER,0.36,0.6966,0.6749,-0.0552,PASS,1,MISS,auto
+2026-11-07,points,T. Hall,CAR,CHI,DraftKings,0.5,1,-125,UNDER,0.61,0.548,0.5264,-0.0525,PASS,1,MISS,auto
+2026-11-07,points,S. Gostisbehere,CAR,CHI,DraftKings,0.5,1,100,UNDER,0.75,0.4734,0.4636,-0.0728,PASS,2,MISS,auto
+2026-11-07,points,J. Slavin,CAR,CHI,DraftKings,0.5,1,-290,UNDER,0.29,0.7465,0.7099,-0.0453,PASS,0,HIT,auto
+2026-11-07,points,K. Miller,CAR,CHI,DraftKings,0.5,1,180,OVER,0.43,0.3485,0.3451,-0.0337,PASS,1,HIT,auto
+2026-11-07,points,J. Chatfield,CAR,CHI,DraftKings,0.5,1,-300,UNDER,0.3,0.7401,0.7105,-0.0526,PASS,0,HIT,auto
+2026-11-07,points,W. Carrier,CAR,CHI,DraftKings,0.5,1,-195,UNDER,0.4,0.6786,0.6367,-0.0368,PASS,2,MISS,auto
+2026-11-07,points,M. Jankowski,CAR,CHI,DraftKings,0.5,1,-155,UNDER,0.49,0.6126,0.5812,-0.0438,PASS,0,HIT,auto
+2026-11-07,points,M. Celebrini,SJS,DAL,DraftKings,0.5,1,-215,OVER,1.11,0.671,0.6647,-0.0261,PASS,3,HIT,auto
+2026-11-07,points,W. Smith,SJS,DAL,DraftKings,0.5,1,-110,UNDER,0.68,0.5099,0.4948,-0.0554,PASS,2,MISS,auto
+2026-11-07,points,T. Toffoli,SJS,DAL,DraftKings,0.5,1,-180,UNDER,0.49,0.6132,0.5994,-0.0676,PASS,0,HIT,auto
+2026-11-07,points,K. Sherwood,SJS,DAL,DraftKings,0.5,1,175,OVER,0.44,0.3553,0.3517,-0.0328,PASS,0,MISS,auto
+2026-11-07,points,M. Marchment,SJS,DAL,DraftKings,0.5,1,-150,UNDER,0.52,0.5974,0.5702,-0.0496,PASS,1,MISS,auto
+2026-11-07,points,M. Misa,SJS,DAL,DraftKings,0.5,1,135,OVER,0.56,0.4248,0.4114,-0.0331,PASS,1,HIT,auto
+2026-11-07,points,I. Stenberg,SJS,DAL,DraftKings,0.5,1,-165,UNDER,0.47,0.628,0.5938,-0.0464,PASS,1,MISS,auto
+2026-11-07,points,J. Robertson,DAL,SJS,DraftKings,1.5,1,-190,UNDER,1.21,0.6589,0.6252,-0.0458,PASS,1,HIT,auto
+2026-11-07,points,W. Johnston,DAL,SJS,DraftKings,1.5,1,-245,UNDER,1.05,0.7167,0.6793,-0.0434,PASS,2,MISS,auto
+2026-11-07,points,M. Rantanen,DAL,SJS,DraftKings,1.5,1,-155,UNDER,1.23,0.6534,0.5963,-0.019,PASS,2,MISS,auto
+2026-11-07,points,R. Hintz,DAL,SJS,DraftKings,0.5,1,140,UNDER,0.89,0.4126,0.3885,-0.0675,PASS,2,MISS,auto
+2026-11-07,points,T. Harley,DAL,SJS,DraftKings,0.5,1,140,UNDER,0.62,0.538,0.4485,0.0763,LOW,3,MISS,auto
+2026-11-07,points,T. Seguin,DAL,SJS,DraftKings,0.5,1,120,OVER,0.66,0.4813,0.4481,-0.0142,PASS,0,MISS,auto
+2026-11-07,points,A. Hyry,DAL,SJS,DraftKings,0.5,1,-225,UNDER,0.41,0.6664,0.6496,-0.0618,PASS,0,HIT,auto
+2026-11-07,points,J. Benn,DAL,SJS,DraftKings,0.5,1,100,OVER,0.65,0.4767,0.4684,-0.0632,PASS,1,HIT,auto
+2026-11-07,points,J. Hryckowian,DAL,SJS,DraftKings,0.5,1,210,OVER,0.37,0.3062,0.3101,-0.0388,PASS,0,MISS,auto
+2026-11-07,points,E. Lindell,DAL,SJS,DraftKings,0.5,1,-225,UNDER,0.34,0.7145,0.6676,-0.0357,PASS,0,HIT,auto
+2026-11-07,points,N. Lundkvist,DAL,SJS,DraftKings,0.5,1,275,OVER,0.27,0.2352,0.2522,-0.0544,PASS,0,MISS,auto
+2026-11-07,points,B. Hagel,TBL,MIN,DraftKings,0.5,1,-140,OVER,1.01,0.6338,0.5927,0.0161,PASS,0,MISS,auto
+2026-11-07,points,N. Kucherov,TBL,MIN,DraftKings,1.5,1,115,OVER,1.46,0.4294,0.4324,-0.0702,PASS,2,HIT,auto
+2026-11-07,points,J. Guentzel,TBL,MIN,DraftKings,0.5,1,-215,OVER,1.03,0.6432,0.6542,-0.0415,PASS,3,HIT,auto
+2026-11-07,points,B. Point,TBL,MIN,DraftKings,0.5,1,135,UNDER,0.84,0.4323,0.4038,-0.051,PASS,2,MISS,auto
+2026-11-07,points,J. Carlson,TBL,MIN,DraftKings,0.5,1,-120,UNDER,0.54,0.5847,0.5339,-0.0211,PASS,2,MISS,auto
+2026-11-07,points,A. Cirelli,TBL,MIN,DraftKings,0.5,1,-125,UNDER,0.62,0.5381,0.5261,-0.053,PASS,0,HIT,auto
+2026-11-07,points,V. Hedman,TBL,MIN,DraftKings,0.5,1,170,OVER,0.48,0.3791,0.3639,-0.0176,PASS,0,MISS,auto
+2026-11-07,points,C. D'Astous,TBL,MIN,DraftKings,0.5,1,-150,UNDER,0.43,0.6532,0.5908,-0.0153,PASS,3,MISS,auto
+2026-11-07,points,G. Goncalves,TBL,MIN,DraftKings,0.5,1,170,OVER,0.44,0.3533,0.3543,-0.0434,PASS,0,MISS,auto
+2026-11-07,points,M. Boldy,MIN,TBL,DraftKings,0.5,1,165,UNDER,0.95,0.3868,0.3556,-0.0577,PASS,0,HIT,auto
+2026-11-07,points,K. Kaprizov,MIN,TBL,DraftKings,1.5,1,-190,UNDER,1.16,0.6759,0.6315,-0.0361,PASS,1,HIT,auto
+2026-11-07,points,J. Eriksson Ek,MIN,TBL,DraftKings,0.5,1,105,UNDER,0.7,0.5015,0.4717,-0.0331,PASS,1,MISS,auto
+2026-11-07,points,Q. Hughes,MIN,TBL,DraftKings,1.5,1,-220,UNDER,1.1,0.698,0.6604,-0.0394,PASS,1,HIT,auto
+2026-11-07,points,B. Coleman,MIN,TBL,DraftKings,0.5,1,-205,UNDER,0.43,0.6542,0.6328,-0.0585,PASS,1,MISS,auto
+2026-11-07,points,M. Shabanov,MIN,TBL,DraftKings,0.5,1,-175,UNDER,0.51,0.6048,0.5949,-0.0652,PASS,2,MISS,auto
+2026-11-07,points,B. Brink,MIN,TBL,DraftKings,0.5,1,190,OVER,0.43,0.3486,0.3383,-0.0191,PASS,0,MISS,auto
+2026-11-07,points,J. Brodin,MIN,TBL,DraftKings,0.5,1,-300,UNDER,0.32,0.7288,0.7062,-0.0584,PASS,0,HIT,auto
+2026-11-07,points,A. DeBrincat,DET,COL,DraftKings,0.5,1,-175,OVER,0.96,0.6152,0.6135,-0.036,PASS,0,MISS,auto
+2026-11-07,points,V. Arvidsson,DET,COL,DraftKings,0.5,1,-135,OVER,0.81,0.5521,0.5468,-0.0481,PASS,0,MISS,auto
+2026-11-07,points,L. Raymond,DET,COL,DraftKings,0.5,1,-165,OVER,0.93,0.6031,0.598,-0.0396,PASS,0,MISS,auto
+2026-11-07,points,M. Seider,DET,COL,DraftKings,0.5,1,-120,UNDER,0.64,0.5304,0.514,-0.0576,PASS,0,HIT,auto
+2026-11-07,points,E. Finnie,DET,COL,DraftKings,0.5,1,-120,UNDER,0.49,0.6119,0.5439,-0.0028,PASS,0,HIT,auto
+2026-11-07,points,A. Copp,DET,COL,DraftKings,0.5,1,140,OVER,0.49,0.3866,0.393,-0.0568,PASS,0,MISS,auto
+2026-11-07,points,N. MacKinnon,COL,DET,DraftKings,1.5,1,-160,UNDER,1.43,0.5825,0.5753,-0.0651,PASS,3,MISS,auto
+2026-11-07,points,N. Kadri,COL,DET,DraftKings,0.5,1,-105,UNDER,0.7,0.4951,0.4828,-0.0574,PASS,0,HIT,auto
+2026-11-07,points,C. Makar,COL,DET,DraftKings,0.5,1,-200,OVER,1.0,0.63,0.6392,-0.0413,PASS,3,HIT,auto
+2026-11-07,points,M. Necas,COL,DET,DraftKings,1.5,1,-225,UNDER,1.09,0.7035,0.6634,-0.0417,PASS,4,MISS,auto
+2026-11-07,points,T. Hughes,COL,DET,DraftKings,0.5,1,-155,UNDER,0.41,0.6649,0.6006,-0.012,PASS,1,MISS,auto
+2026-11-07,points,A. Lehkonen,COL,DET,DraftKings,0.5,1,-105,UNDER,0.72,0.4876,0.4791,-0.0647,PASS,0,HIT,auto
+2026-11-07,points,G. Landeskog,COL,DET,DraftKings,0.5,1,130,OVER,0.57,0.4337,0.4193,-0.0357,PASS,0,MISS,auto
+2026-11-07,points,S. Malinski,COL,DET,DraftKings,0.5,1,210,OVER,0.42,0.3458,0.3249,0.0071,PASS,0,MISS,auto
+2026-11-07,points,J. Schwartz,COL,DET,DraftKings,0.5,1,130,OVER,0.52,0.4003,0.4055,-0.0673,PASS,0,MISS,auto
+2026-11-07,points,D. Toews,COL,DET,DraftKings,0.5,1,120,OVER,0.55,0.4196,0.4255,-0.064,PASS,1,HIT,auto
+2026-11-07,points,R. Rakell,PIT,LAK,DraftKings,0.5,1,-130,OVER,0.74,0.5245,0.527,-0.0676,PASS,0,MISS,auto
+2026-11-07,points,S. Crosby,PIT,LAK,DraftKings,0.5,1,-205,OVER,0.96,0.6149,0.633,-0.0581,PASS,2,HIT,auto
+2026-11-07,points,E. Malkin,PIT,LAK,DraftKings,0.5,1,-130,OVER,0.81,0.5534,0.5414,-0.0421,PASS,3,HIT,auto
+2026-11-07,points,E. Karlsson,PIT,LAK,DraftKings,0.5,1,125,UNDER,0.78,0.457,0.4284,-0.0361,PASS,1,MISS,auto
+2026-11-07,points,B. Kindel,PIT,LAK,DraftKings,0.5,1,-120,UNDER,0.45,0.6372,0.5565,0.0202,PASS,1,MISS,auto
+2026-11-07,points,T. Novak,PIT,LAK,DraftKings,0.5,1,-125,UNDER,0.61,0.544,0.5249,-0.0552,PASS,2,MISS,auto
+2026-11-07,points,K. Letang,PIT,LAK,DraftKings,0.5,1,-210,UNDER,0.38,0.6881,0.6493,-0.0415,PASS,2,MISS,auto
+2026-11-07,points,A. Kempe,LAK,PIT,DraftKings,0.5,1,-195,OVER,0.98,0.6254,0.6329,-0.0425,PASS,1,HIT,auto
+2026-11-07,points,A. Panarin,LAK,PIT,DraftKings,1.5,1,165,OVER,1.22,0.3461,0.3551,-0.059,PASS,1,MISS,auto
+2026-11-07,points,A. Laferriere,LAK,PIT,DraftKings,0.5,1,110,UNDER,0.66,0.5202,0.4729,-0.007,PASS,1,MISS,auto
+2026-11-07,points,Q. Byfield,LAK,PIT,DraftKings,0.5,1,-105,UNDER,0.65,0.5233,0.4938,-0.036,PASS,0,HIT,auto
+2026-11-07,points,T. Moore,LAK,PIT,DraftKings,0.5,1,165,OVER,0.52,0.4023,0.3768,-0.0014,PASS,0,MISS,auto
+2026-11-07,points,B. Clarke,LAK,PIT,DraftKings,0.5,1,125,OVER,0.53,0.4115,0.4175,-0.0607,PASS,0,MISS,auto
+2026-11-07,points,C. Perry,LAK,PIT,DraftKings,0.5,1,185,OVER,0.51,0.3986,0.3598,0.0253,PASS,1,HIT,auto
+2026-11-07,points,D. Doughty,LAK,PIT,DraftKings,0.5,1,-210,UNDER,0.41,0.6658,0.641,-0.0537,PASS,0,HIT,auto
+2026-11-07,points,E. Gustafsson,LAK,PIT,DraftKings,0.5,1,-165,UNDER,0.4,0.6702,0.6094,-0.0212,PASS,1,MISS,auto
+2026-11-07,points,J. DeBrusk,VAN,EDM,DraftKings,0.5,1,-130,UNDER,0.55,0.5771,0.543,-0.0394,PASS,0,HIT,auto
+2026-11-07,points,B. Boeser,VAN,EDM,DraftKings,0.5,1,-120,OVER,0.71,0.5079,0.5069,-0.0707,PASS,1,HIT,auto
+2026-11-07,points,E. Pettersson,VAN,EDM,DraftKings,0.5,1,125,UNDER,0.81,0.4458,0.4229,-0.0486,PASS,1,MISS,auto
+2026-11-07,points,F. Hronek,VAN,EDM,DraftKings,0.5,1,-120,UNDER,0.59,0.5551,0.5262,-0.0352,PASS,1,MISS,auto
+2026-11-07,points,J. Lekkerimäki,VAN,EDM,DraftKings,0.5,1,-145,UNDER,0.57,0.5682,0.5538,-0.0642,PASS,0,HIT,auto
+2026-11-07,points,M. Rossi,VAN,EDM,DraftKings,0.5,1,125,OVER,0.53,0.4106,0.4155,-0.065,PASS,0,MISS,auto
+2026-11-07,points,Z. Buium,VAN,EDM,DraftKings,0.5,1,-330,UNDER,0.29,0.7482,0.7258,-0.0542,PASS,0,HIT,auto
+2026-11-07,points,C. McDavid,EDM,VAN,DraftKings,1.5,1,-195,OVER,2.07,0.6119,0.6264,-0.0524,PASS,3,HIT,auto
+2026-11-07,points,L. Draisaitl,EDM,VAN,DraftKings,1.5,1,115,UNDER,1.77,0.4708,0.4455,-0.0422,PASS,3,MISS,auto
+2026-11-07,points,E. Bouchard,EDM,VAN,DraftKings,1.5,1,-150,UNDER,1.43,0.5827,0.5648,-0.0587,PASS,1,HIT,auto
+2026-11-07,points,Z. Hyman,EDM,VAN,DraftKings,0.5,1,120,UNDER,0.76,0.4669,0.4367,-0.0394,PASS,1,MISS,auto
+2026-11-07,points,R. Nugent-Hopkins,EDM,VAN,DraftKings,0.5,1,-185,OVER,0.94,0.6076,0.6158,-0.0514,PASS,0,MISS,auto
+2026-11-07,points,V. Podkolzin,EDM,VAN,DraftKings,0.5,1,-120,UNDER,0.61,0.5467,0.52,-0.0466,PASS,0,HIT,auto
+2026-11-07,points,K. Kapanen,EDM,VAN,DraftKings,0.5,1,-130,UNDER,0.62,0.5379,0.5286,-0.0647,PASS,0,HIT,auto
+2026-11-07,points,M. Ekholm,EDM,VAN,DraftKings,0.5,1,120,OVER,0.57,0.4342,0.4308,-0.0522,PASS,1,HIT,auto
+2026-11-07,points,C. Murphy,EDM,VAN,DraftKings,0.5,1,-270,UNDER,0.25,0.7819,0.7147,-0.0206,PASS,0,HIT,auto
+2026-11-07,points,J. Dickinson,EDM,VAN,DraftKings,0.5,1,-280,UNDER,0.32,0.7306,0.7006,-0.0492,PASS,1,MISS,auto
+2026-11-07,points,R. Shea,EDM,VAN,DraftKings,0.5,1,-175,UNDER,0.45,0.6377,0.607,-0.0461,PASS,0,HIT,auto
+2026-11-07,winner,WSH,WSH,FLA,model,,,-130,WSH,,0.52,,-0.088,,FLA 3-4 WSH,HIT,
+2026-11-07,winner,NSH,NSH,STL,model,,,-110,NSH,,0.54,,0.0269,,STL 1-3 NSH,HIT,
+2026-11-07,winner,SEA,SEA,NYR,model,,,114,SEA,,0.5,,0.079,,NYR 4-3 SEA,MISS,
+2026-11-07,winner,TOR,TOR,MTL,model,,,102,TOR,,0.52,,0.0437,,MTL 4-2 TOR,MISS,
+2026-11-07,winner,OTT,OTT,UTA,model,,,100,OTT,,0.54,,0.0792,,UTA 2-4 OTT,HIT,
+2026-11-07,winner,NJD,NJD,NYI,model,,,-148,NJD,,0.53,,-0.108,,NJD 5-4 NYI OT/SO,HIT,
+2026-11-07,winner,CAR,CAR,CHI,model,,,-440,CAR,,0.81,,-0.0108,65%+,CHI 2-9 CAR,HIT,
+2026-11-07,winner,DAL,DAL,SJS,model,,,-290,DAL,,0.69,,-0.0672,65%+,SJS 3-4 DAL,HIT,
+2026-11-07,winner,MIN,MIN,TBL,model,,,114,MIN,,0.55,,0.1813,,TBL 4-3 MIN OT/SO,MISS,
+2026-11-07,winner,COL,COL,DET,model,,,-225,COL,,0.63,,-0.0862,,DET 0-4 COL,HIT,
+2026-11-07,winner,LAK,LAK,PIT,model,,,-122,LAK,,0.58,,0.0476,,PIT 5-2 LAK,MISS,
+2026-11-07,winner,EDM,EDM,VAN,model,,,-375,EDM,,0.74,,-0.0684,65%+,VAN 2-4 EDM,HIT,
