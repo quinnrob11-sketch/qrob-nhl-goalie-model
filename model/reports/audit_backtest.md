@@ -1,8 +1,8 @@
 # Audit backtest: before / after
 
-Built 2026-11-08 09:24 UTC by `python model/backtest_audit.py`. Seasons: 2024-25, 2025-26, 2026-27 (every player-game), plus this season's real graded lines.
+Built 2026-11-08 10:28 UTC by `python model/backtest_audit.py`. Seasons: 2024-25, 2025-26, 2026-27 (every player-game), plus this season's real graded lines.
 
-**Read sections 1-2 carefully:** the shipped shots parameters are fitted on 2025-26, so the 2024-25 and 2025-26 player-game rows are scored with parameters that saw 2025-26 (in-sample; an honest refit on 2024-25 alone shows a bias about 0.5 point larger at 1.5 / 2.5). Only the 2026-27 rows and the real-line sections are out of sample.
+**Read sections 1-2 carefully:** the shipped shots parameters are fitted on 2025-26, so the 2024-25 and 2025-26 player-game rows are scored with parameters that saw 2025-26 (in-sample; an honest refit on 2024-25 alone shows a bias about 0.5 point larger at 1.5 / 2.5). Only the 2026-27 rows and the real-line sections are out of sample, with three exceptions chosen with this season's lines in view: the shots projection's design (attempt rate, two-scale ice time), the 50/50 mean-blend weight (the in-sample log-loss optimum; a weight chosen week by week on earlier weeks scores 0.68478 against DK's 0.68592 on the same lines) and the SOG rule's 62% / 55% bars (bars re-chosen each week from earlier weeks give the same record within one standard error).
 
 ## 1. Shots distribution (item 4): dispersion by position and volume tier
 
@@ -75,7 +75,7 @@ By projection tier (new; predicted / actual):
 | 2026-27 | More | 3.5+ | 48 | 53.3% | 58.3% | +5.0 |
 | 2026-27 | Less | 3.5+ | 917 | 66.4% | 67.7% | +1.4 |
 
-### Real graded DraftKings lines, this season, walk-forward
+### Real graded DraftKings lines, this season, walk-forward (SOG's 'mean blend 50/50 (live)' row: weight chosen on these lines)
 
 **saves**: 418 lines 2026-10-01 to 2026-11-06. Model weight in the blend **0.047** (log-loss fit 0.05, shrink 0.939, walk-forward (297 lines)); side-split slopes b 0.9026 / b_under 0.8172; per-line intercepts not used (no walk-forward gain).
 
@@ -175,8 +175,8 @@ Model's side where it and DK no-vig disagree (walk-forward): 30-29 (50.8%), agai
 
 ## 3. Rule-passing legs on real lines (items 3 and 9)
 
-Walk-forward on every graded DK line with a pre-game price. New = the live TAKE rule choosing as if the side were a 1x DFS leg: market support (its own side ≥ 55%) and blended p over the bar (SOG: the 50/50 mean blend at ≥ 62%, no model-agrees check; its bars were chosen on these dates, so SOG 'new' is in-sample for the bars; points: the fitted blend at ≥ 58%, model agrees). Old = calibrated model blended 60/40 at p ≥ 58%. Both rules on the same warm weeks.
-Each pick is settled three ways. **1x** is hypothetical: DFS boards discount exactly these sides (on Nov 3-8 Pick6 paid ≥1x on 0 sides DK priced at 54%+), so it overstates. **DK price** is DraftKings' own odds. **Real DFS** settles only the sides a Pick6-style board would offer at ≥ 1x, at that multiplier. ± is one standard error.
+Walk-forward on every DK line the tracker logged with a pre-game price (one line per player and date: the line in the last pre-game call; an independent recompute on every DK quote, 4,358 SOG lines, gives the same SOG record within one standard error). New = the live TAKE rule choosing as if the side were a 1x DFS leg: market support (its own side ≥ 55%) and blended p over the bar (SOG: the 50/50 mean blend at ≥ 62%, no model-agrees check; its bars were chosen on these dates, so SOG 'new' is in-sample for the bars; points: the fitted blend at ≥ 58%, model agrees). Old = calibrated model blended 60/40 at p ≥ 58%. Both rules on the same warm weeks.
+Each pick is settled three ways. **1x** is hypothetical: DFS boards discount exactly these sides (on Nov 3-8 Pick6 paid ≥1x on 0 sides DK priced at 54%+), so it overstates. **DK price** is DraftKings' own odds. **Real DFS** settles only the sides a Pick6-style board would offer at ≥ 1x, at that multiplier, using the measured map (DK no-vig under 50%: 1.00x, 50-54%: 0.94x, 54%+: 0.8x). A rule that needs the market's side at 55%+ therefore has 0 real DFS legs by construction; the data agrees (of 1,999 graded Pick6 SOG legs, none qualified at ≥ 1x). ± is one standard error.
 
 | market | rule | legs | record | hit % | units 1x (hypothetical) | ROI at DK price | real DFS legs | ROI real DFS |
 |---|---|---|---|---|---|---|---|---|

@@ -8,8 +8,8 @@
 :root{
   color-scheme: light;
   --bg:#f6f6f4; --surface:#fcfcfb; --surface-2:#f0efec; --border:#e2e1dc;
-  --text:#0b0b0b; --text-2:#52514e; --muted:#7a7974;
-  --accent:#2a78d6; --accent-soft:#cde2fb;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#6b6a63;
+  --accent:#2a78d6; --accent-soft:#cde2fb; --accent-text:#1f66c1;
   --over:#0f7a3d; --over-bg:#e3f4ea; --under:#c23b3a; --under-bg:#fbe7e6;
   --warn:#9a6700; --warn-bg:#fff4d6; --grid:#e8e7e3;
   /* scale (theme independent): spacing, type, radii */
@@ -22,7 +22,7 @@
     color-scheme: dark;
     --bg:#121211; --surface:#1a1a19; --surface-2:#242422; --border:#34332f;
     --text:#ffffff; --text-2:#c3c2b7; --muted:#8f8e86;
-    --accent:#3987e5; --accent-soft:#1c3553;
+    --accent:#3987e5; --accent-soft:#1c3553; --accent-text:#5b9cf0;
     --over:#4cc47f; --over-bg:#15301f; --under:#f07472; --under-bg:#3a1b1a;
     --warn:#e0b44a; --warn-bg:#352a10; --grid:#2c2c29;
   }
@@ -31,7 +31,7 @@
   color-scheme: dark;
   --bg:#121211; --surface:#1a1a19; --surface-2:#242422; --border:#34332f;
   --text:#ffffff; --text-2:#c3c2b7; --muted:#8f8e86;
-  --accent:#3987e5; --accent-soft:#1c3553;
+  --accent:#3987e5; --accent-soft:#1c3553; --accent-text:#5b9cf0;
   --over:#4cc47f; --over-bg:#15301f; --under:#f07472; --under-bg:#3a1b1a;
   --warn:#e0b44a; --warn-bg:#352a10; --grid:#2c2c29;
 }
@@ -46,7 +46,7 @@ h1{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0}
 .gear[aria-expanded="true"]{background:var(--surface-2);color:var(--text)}
 #dfsPanel{margin-top:var(--sp-2);font-size:var(--fs-s);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:10px 12px;max-width:760px}
 #dfsPanel .row{gap:10px;align-items:center}
-nav{display:flex;gap:4px;overflow-x:auto;padding:10px 16px 0;max-width:1200px;margin:0 auto;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;background:var(--bg);scrollbar-width:none}
+nav{display:flex;gap:4px;overflow-x:auto;padding:10px 16px 0;border-bottom:1px solid var(--border);scrollbar-width:none}
 nav::-webkit-scrollbar{display:none}
 nav button{background:none;border:0;border-bottom:2px solid transparent;color:var(--text-2);padding:8px 12px;font:inherit;cursor:pointer;white-space:nowrap}
 nav button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
@@ -197,9 +197,9 @@ details.info>p{margin:0}
   nav{padding:6px 6px 0}
   nav button{padding:8px 10px}
 }
-/* ---------- source strip (Board and SOG): one line, dot + age + rows per book, then Updated + refresh ---------- */
+/* ---------- source strip (Board and SOG): one line, dot + age + lines per book, then Updated + refresh ---------- */
 /* tabular numerals on number columns only: in running text this font widens hyphens */
-.x-src,.x-bet,.x-pcol,.x-game,.x-bookc,.x-projc,.x-needc,.x-edgec,.x-ladder,.x-chip .n,.x-sec .n,.stat .v,.mk .big{font-variant-numeric:tabular-nums}
+.x-src,.x-side,.x-pj,.x-pcol,.x-game,.x-bookc,.x-projc,.x-diffc,.x-needc,.x-edgec,.x-ladder,.x-chip .n,.x-sec .n,.x-sum,.x-l10cap,.stat .v,.mk .big{font-variant-numeric:tabular-nums}
 .x-src{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-1) var(--sp-3);font-size:var(--fs-s);color:var(--text-2);margin:0 0 var(--sp-3);min-height:30px}
 .x-src .s{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:default}
 .x-src .d{width:8px;height:8px;border-radius:50%;background:var(--over);flex:none}
@@ -207,88 +207,111 @@ details.info>p{margin:0}
 .x-src .s.is-off .d{background:var(--under)}
 .x-src .n{color:var(--muted)}
 .x-src .upd{margin-left:auto;display:inline-flex;align-items:center;gap:var(--sp-2);white-space:nowrap}
-.x-src .refresh{font-size:var(--fs-s);padding:3px 10px;min-height:30px}
+.refresh{font-size:var(--fs-s);padding:3px 10px;min-height:32px;min-width:40px}
 .x-refmsg{font-size:var(--fs-xs);color:var(--muted);text-align:right;margin:-6px 0 var(--sp-3)}
-.hd-upd{display:none;margin-left:auto;align-items:center;gap:var(--sp-2);font-size:var(--fs-s);color:var(--text-2);white-space:nowrap;align-self:center}
-.hd-upd .refresh{font-size:var(--fs-s);padding:2px 10px;min-height:30px}
-@media (max-width:760px){ .hd-upd{display:inline-flex} .x-src .upd{display:none} }
+.hd-upd{display:none;margin-left:auto;align-items:center;gap:6px;font-size:var(--fs-s);color:var(--text-2);white-space:nowrap;align-self:center}
+@media (max-width:760px){
+  .hd-upd{display:inline-flex} .x-src .upd{display:none} #meta{display:none}
+  .hd-upd .refresh{min-height:40px;min-width:42px;margin:-5px 0}
+  .gear{min-width:44px}
+}
 .x-alert{background:var(--warn-bg);border-radius:8px;padding:var(--sp-2) var(--sp-3);font-size:var(--fs-s);margin:0 0 var(--sp-3);color:var(--text)}
 /* ---------- sections and lists ---------- */
 .x-sec{margin:0 0 var(--sp-5)}
 .x-sec>h3,.x-sec>summary{display:flex;align-items:baseline;gap:var(--sp-2);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--text-2);margin:0 0 var(--sp-2);font-weight:700}
 .x-sec .n{color:var(--muted);font-weight:600;letter-spacing:0}
 .x-sec .r{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400}
-details.x-sec>summary{cursor:pointer;list-style:none;min-height:24px}
+details.x-sec>summary{cursor:pointer;list-style:none;min-height:40px;align-items:center;margin:0}
+details.x-sec[open]>summary{margin-bottom:var(--sp-2)}
 details.x-sec>summary::-webkit-details-marker{display:none}
 details.x-sec>summary::before{content:"▸";color:var(--muted)}
 details.x-sec[open]>summary::before{content:"▾"}
-.x-link{font:inherit;font-size:var(--fs-s);color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:400}
+.x-link{font:inherit;font-size:var(--fs-s);color:var(--accent-text);background:none;border:0;padding:8px 0;margin:-8px 0;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:400;text-align:left}
 .x-link:hover{text-decoration:underline}
 .x-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden}
 .x-empty{font-size:var(--fs-s);color:var(--text-2);padding:var(--sp-3) var(--sp-4);background:var(--surface);border:1px dashed var(--border);border-radius:var(--r-card)}
 .x-empty .x-link{margin-left:var(--sp-1)}
-.x-more{display:block;width:100%;font:inherit;font-size:var(--fs-s);background:none;border:0;border-top:1px solid var(--border);color:var(--accent);padding:12px;cursor:pointer}
-/* ---------- the pick row: one component for every pick list; phone = 3-line card, >= 1000px = one aligned grid ---------- */
-.x-row{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--sp-3);row-gap:1px;padding:10px var(--sp-3) 10px 15px;border-top:1px solid var(--border);cursor:pointer;align-items:center;-webkit-tap-highlight-color:transparent}
+.x-none{font-size:var(--fs-s);color:var(--text-2);margin:0;line-height:1.45}
+.x-none .x-link{white-space:nowrap}
+.x-foot{font-size:var(--fs-s);color:var(--text-2);margin:calc(-1 * var(--sp-3)) 0 var(--sp-4)}
+.x-more{display:block;width:100%;font:inherit;font-size:var(--fs-s);background:none;border:0;border-top:1px solid var(--border);color:var(--accent-text);padding:12px;cursor:pointer;min-height:44px}
+.x-div{padding:7px var(--sp-3) 7px 15px;font-size:var(--fs-xs);font-weight:600;color:var(--text-2);background:var(--surface-2);border-top:1px solid var(--border)}
+/* ---------- the pick row: one component for every pick list; phone = 3-line card, >= 1080px = one aligned grid ---------- */
+.x-row{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--sp-3);row-gap:2px;padding:10px var(--sp-3) 10px 15px;border-top:1px solid var(--border);cursor:pointer;align-items:center;-webkit-tap-highlight-color:transparent}
 .x-cols+.x-row{border-top:0}
 .x-row:hover,.x-row[aria-expanded="true"]{background:var(--surface-2)}
 .x-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .x-row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:transparent}
 .x-row.t-lock::before{background:var(--over)}
-.x-row.t-strong::before{background:var(--over);opacity:.45}
+.x-row.t-strong::before{background:var(--over);opacity:.7}
 .x-row.t-near::before{background:var(--warn)}
-.x-row.t-check::before{background:var(--warn);opacity:.6}
-.x-who{grid-column:1;grid-row:1;display:flex;align-items:baseline;gap:6px;min-width:0}
+.x-row.t-check::before{background:var(--warn);opacity:.7}
+.x-who{grid-column:1;grid-row:1;min-width:0}
+.x-nm{display:flex;align-items:baseline;gap:6px;min-width:0}
 .x-name{font-size:var(--fs-m);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .x-meta{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .x-flag{font-size:var(--fs-xs);color:var(--warn);font-weight:700;white-space:nowrap;flex:none}
-.x-bet{grid-column:1;grid-row:2;display:flex;align-items:baseline;gap:6px;font-size:var(--fs-s);color:var(--text-2);min-width:0;white-space:nowrap;overflow:hidden}
+/* line 2: the bet and the projection against it; line 3: where (book, price, line age) and the game. Both wrap
+   instead of cutting text on very narrow phones. */
+.x-bet{grid-column:1;grid-row:2;font-size:var(--fs-s);color:var(--text-2);min-width:0;overflow:hidden}
+.x-w{display:flex;flex-wrap:wrap;align-items:baseline;margin-left:-12px}
+.x-w>*{white-space:nowrap}
+.x-w>*::before{content:"";display:inline-block;width:12px;text-align:center;font-weight:400;color:var(--muted)}
+.x-w>.dot::before{content:"·"}
 .x-side{font-weight:700;color:var(--text);letter-spacing:.01em}
 .x-side .ar{display:inline-block;margin-right:4px;font-size:.85em}
-.x-book b{font-weight:600;color:var(--text)}
-.x-stale{color:var(--under);font-weight:600;white-space:nowrap}
-.x-mk{font-size:11px;font-weight:700;color:var(--text-2);border:1px solid var(--border);border-radius:4px;padding:0 4px;line-height:15px;letter-spacing:.02em}
-.x-ctx{grid-column:1;grid-row:3;font-size:var(--fs-xs);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.x-pj{color:var(--text-2)}
 .df.against{color:var(--under)}
+.x-ctx{grid-column:1;grid-row:3;font-size:var(--fs-xs);color:var(--muted);min-width:0;overflow:hidden}
+.x-book{color:var(--text-2)} .x-book b,.x-bookc b{font-weight:600;color:var(--text)}
+.x-stale{color:var(--under);font-weight:600;white-space:nowrap}
+.x-mk{font-size:11px;font-weight:700;color:var(--text-2);letter-spacing:.02em}
+.x-mk b{font-weight:700;border:1px solid var(--border);border-radius:4px;padding:0 4px;line-height:15px;display:inline-block}
 .x-pcol{grid-column:2;grid-row:1 / span 3;display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right}
 .x-p{font-size:var(--fs-l);font-weight:700;line-height:1.1}
-.x-row.t-pass .x-p,.x-row.t-check .x-p{color:var(--text-2);font-weight:600}
+.x-row.t-pass .x-p{color:var(--text-2);font-weight:600}
+.x-row.is-blk .x-p{color:var(--muted)}
 .x-needs{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
 .x-tier{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:var(--r-chip);padding:1px 8px;line-height:16px;white-space:nowrap}
 .x-tier.lock{background:var(--over);color:var(--surface)}
 .x-tier.strong{background:var(--over-bg);color:var(--over)}
 .x-tier.near{border:1px solid var(--warn);color:var(--warn);padding:0 7px}
 .x-tier.check{border:1px dashed var(--warn);color:var(--warn);padding:0 7px}
-.x-cols,.x-tcol,.x-game,.x-bookc,.x-projc,.x-needc,.x-edgec,.x-chev,.x-d-only{display:none}
-.x-tcol,.x-game,.x-bookc,.x-projc,.x-needc,.x-edgec,.x-chev{font-size:var(--fs-s);color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.x-bookc b{color:var(--text);font-weight:600}
+.x-cols,.x-tcol,.x-game,.x-bookc,.x-projc,.x-diffc,.x-needc,.x-edgec,.x-chev,.x-d-only{display:none}
+.x-tcol,.x-game,.x-bookc,.x-projc,.x-diffc,.x-needc,.x-edgec,.x-chev{font-size:var(--fs-s);color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .x-chev{color:var(--muted);transition:transform .15s;overflow:visible;font-size:var(--fs-m);line-height:1}
 .x-row[aria-expanded="true"] .x-chev{transform:rotate(90deg)}
 .x-edgec.pos{color:var(--over);font-weight:600}
-.x-projc .df{color:var(--muted);margin-left:4px}
-.x-projc .df.against{color:var(--under)}
-.x-pass{font-size:var(--fs-xs);color:var(--muted)}
-@media (min-width:1000px){
-  .x-cols,.x-row{grid-template-columns:70px minmax(140px,2fr) minmax(112px,1.1fr) 128px minmax(118px,1.2fr) 80px 52px 72px 50px 12px;column-gap:10px}
+@media (min-width:1080px){
+  .x-cols,.x-row{grid-template-columns:var(--tc,70px) minmax(140px,2fr) 106px 120px 44px 48px minmax(132px,1fr) 58px 84px 48px 12px;column-gap:10px}
+  .x-list.nt{--tc:0px}
+  .x-cols .bk,.x-row .x-bookc{padding-left:12px}
   .x-cols{display:grid;padding:8px var(--sp-3) 8px 15px;font-size:var(--fs-xs);color:var(--text-2);font-weight:600;border-bottom:1px solid var(--border)}
   .x-cols .num{text-align:right}
   .x-row{grid-template-rows:auto;row-gap:0;min-height:48px;padding:8px var(--sp-3) 8px 15px}
   .x-row>*{grid-row:1!important}
   .x-row .x-tcol{grid-column:1;display:block}
-  .x-row .x-who{grid-column:2;flex-wrap:wrap;column-gap:6px;row-gap:0}
-  .x-row .x-who .x-meta{flex-basis:100%}
+  .x-row .x-who{grid-column:2}
   .x-row .x-game{grid-column:3;display:block}
   .x-row .x-bet{grid-column:4}
-  .x-row .x-bookc{grid-column:5;display:block}
-  .x-row .x-projc{grid-column:6;display:block;text-align:right}
-  .x-row .x-pcol{grid-column:7;display:block}
-  .x-row .x-needc{grid-column:8;display:block;text-align:right}
-  .x-row .x-edgec{grid-column:9;display:block;text-align:right}
-  .x-row .x-chev{grid-column:10;display:block}
+  .x-row .x-bet .x-w{flex-wrap:nowrap;margin-left:-6px}
+  .x-row .x-bet .x-w>*::before{width:6px}
+  .x-row .x-projc{grid-column:5;display:block;text-align:right}
+  .x-row .x-diffc{grid-column:6;display:block;text-align:right}
+  .x-row .x-bookc{grid-column:7;display:block}
+  .x-row .x-bookc .x-stale{display:block;font-size:var(--fs-xs);line-height:1.3}
+  .x-row .x-pcol{grid-column:8;display:block}
+  .x-row .x-needc{grid-column:9;display:block;text-align:right}
+  .x-row .x-needc.tag{font-size:var(--fs-xs);color:var(--muted)}
+  .x-row .x-edgec{grid-column:10;display:block;text-align:right}
+  .x-row .x-chev{grid-column:11;display:block}
   .x-row .x-m-only{display:none!important}
   .x-row .x-d-only{display:block}
   .x-row .x-p{font-size:var(--fs-m)}
+  .x-div{padding-left:calc(25px + var(--tc,70px))}
 }
+/* tablets: the phone card, kept to a readable width */
+@media (min-width:761px) and (max-width:1079px){ #proj>.x-sec,#sogBox{max-width:720px} }
 /* ---------- the panel under a row (tap to open) ---------- */
 .x-det{display:none;padding:var(--sp-2) var(--sp-4) var(--sp-4) 15px;background:var(--surface-2);border-top:1px solid var(--border);font-size:var(--fs-s);color:var(--text);cursor:default}
 .x-row[aria-expanded="true"]+.x-det{display:block}
@@ -297,14 +320,16 @@ details.x-sec[open]>summary::before{content:"▾"}
 .x-sum{font-size:var(--fs-m);margin:0 0 var(--sp-3);color:var(--text-2)}
 .x-sum b{color:var(--text)} .x-sum b.good{color:var(--over)}
 .x-kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-2) var(--sp-3);margin:0 0 var(--sp-3)}
-@media (min-width:1000px){ .x-kv{grid-template-columns:repeat(7,minmax(0,1fr))} }
+@media (min-width:1080px){ .x-kv{grid-template-columns:repeat(7,minmax(0,1fr))} }
 .x-kv div{display:flex;flex-direction:column;min-width:0}
 .x-kv i{font-style:normal;font-size:var(--fs-xs);color:var(--muted)}
 .x-kv b{font-weight:600;overflow-wrap:anywhere}
+/* last 10 games against the line: a game the shown side would have won is accent, a loss muted, a push faint */
 .x-l10{position:relative;display:flex;gap:3px;align-items:flex-end;height:34px;width:max-content;margin:2px 0 var(--sp-1)}
-.x-l10 span{width:14px;background:var(--grid);border-radius:2px 2px 0 0}
-.x-l10 span.ov{background:var(--accent)}
-.x-l10 .ln{position:absolute;left:-3px;right:-3px;border-top:1px dashed var(--text-2);opacity:.75}
+.x-l10 span{width:14px;background:var(--muted);opacity:.55;border-radius:2px 2px 0 0}
+.x-l10 span.hit{background:var(--accent);opacity:1}
+.x-l10 span.push{opacity:.35}
+.x-l10 .ln{position:absolute;left:-3px;right:-3px;border-top:1px dashed var(--text);opacity:.8}
 #betRules,#boardBox,#editBox{scroll-margin-top:56px}
 .x-l10cap{font-size:var(--fs-xs);color:var(--text-2);margin-bottom:var(--sp-3)}
 .x-ladder{width:100%;max-width:560px;border-collapse:separate;border-spacing:0;font-size:var(--fs-s);margin:0 0 var(--sp-3);background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
@@ -318,33 +343,46 @@ details.x-sec[open]>summary::before{content:"▾"}
 .x-ladder .src{font-size:11px;color:var(--muted);font-weight:600}
 .x-note{font-size:var(--fs-xs);color:var(--text-2);margin:var(--sp-1) 0 0}
 .x-warn{color:var(--warn);font-weight:600}
-.x-own{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px dashed var(--border);font-size:var(--fs-s)}
-.x-own b{font-weight:600}
+details.x-ownd{margin-top:var(--sp-3);padding-top:var(--sp-2);border-top:1px dashed var(--border)}
+details.x-ownd>summary{display:inline-flex;align-items:center;min-height:36px;cursor:pointer;color:var(--accent-text);font-size:var(--fs-s);list-style:none}
+details.x-ownd>summary::-webkit-details-marker{display:none}
+details.x-ownd[open]>summary{color:var(--text);font-weight:600}
+.x-own{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;font-size:var(--fs-s)}
 .x-own input{width:76px}
 .x-own label{flex-direction:row;align-items:center;gap:4px;font-size:var(--fs-s);color:var(--text-2)}
 .x-own .x-note{flex-basis:100%;margin:0}
-@media (max-width:760px){ .x-own>b{flex-basis:100%} .x-own input{width:62px} .x-own select{width:68px;padding:5px 4px} }
-@media (max-width:999px){ .x-ladder th,.x-ladder td{padding:6px} }
+@media (max-width:760px){ .x-own input{width:68px} .x-own select{width:68px;padding:5px 4px} }
+@media (max-width:1079px){ .x-ladder th,.x-ladder td{padding:6px} }
 /* ---------- SOG tab: header, record, filters ---------- */
-.x-head{display:flex;align-items:baseline;gap:var(--sp-2);flex-wrap:wrap;margin:0 0 var(--sp-1)}
+.x-head{display:flex;align-items:baseline;gap:var(--sp-1) var(--sp-3);flex-wrap:wrap;margin:0 0 var(--sp-1)}
 .x-head h2{font-size:var(--fs-xl);margin:0;font-weight:700;letter-spacing:-.01em}
-.x-head .x-date{color:var(--text-2);font-size:var(--fs-m)}
 .x-head .x-link{margin-left:auto}
 .x-record{font-size:var(--fs-s);color:var(--text-2);margin:0 0 var(--sp-3)}
+/* a select shown as its current value: the native select sits on top, invisible, so phones keep their own picker */
+.x-pick{position:relative;display:inline-flex;flex-direction:row;align-items:center;gap:4px;font-size:var(--fs-s);color:var(--text-2);cursor:pointer;white-space:nowrap;border-radius:6px;padding:0 2px;min-height:36px;margin:-6px 0}
+.x-pick b{color:var(--text);font-weight:600}
+.x-pick .cv{color:var(--muted);font-size:11px}
+.x-pick select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;padding:0;border:0;-webkit-appearance:none;appearance:none}
+.x-pick:focus-within{outline:2px solid var(--accent);outline-offset:1px}
+.x-pick.x-date{font-size:var(--fs-m)}
 .x-chips{display:flex;gap:var(--sp-2);overflow-x:auto;padding:2px 0 var(--sp-1);margin:0 0 var(--sp-2);scrollbar-width:none}
 .x-chips::-webkit-scrollbar{display:none}
-.x-chip{flex:none;font:inherit;font-size:var(--fs-s);border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:var(--r-chip);padding:6px 12px;cursor:pointer;white-space:nowrap;min-height:32px}
-.x-chip .n{color:var(--muted);margin-left:4px}
+.x-chip{flex:none;display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:var(--fs-s);border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:var(--r-chip);padding:4px 6px 4px 12px;cursor:pointer;white-space:nowrap;min-height:36px}
+.x-chip .n{color:var(--text-2);background:var(--surface-2);border-radius:var(--r-chip);padding:1px 7px;font-size:var(--fs-xs);font-weight:600}
 .x-chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
-.x-chip.on .n{color:var(--bg);opacity:.7}
+.x-chip.on .n{color:var(--text);background:var(--bg)}
 .x-filters{display:flex;gap:var(--sp-2) var(--sp-3);flex-wrap:wrap;align-items:center;margin:0 0 var(--sp-4)}
 .x-seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--r-seg);overflow:hidden;background:var(--surface)}
-.x-seg button{font:inherit;font-size:var(--fs-s);border:0;background:none;color:var(--text-2);padding:6px 12px;cursor:pointer;min-height:32px;white-space:nowrap}
+.x-seg button{font:inherit;font-size:var(--fs-s);border:0;background:none;color:var(--text-2);padding:6px 12px;cursor:pointer;min-height:36px;white-space:nowrap}
 .x-seg button+button{border-left:1px solid var(--border)}
 .x-seg button.on{background:var(--surface-2);color:var(--text);font-weight:600}
-.x-sort{font-size:var(--fs-s);color:var(--text-2);display:inline-flex;flex-direction:row;gap:6px;align-items:center}
-.x-sort select{font-size:var(--fs-s);padding:4px 8px}
-@media (max-width:760px){ .x-filters{gap:var(--sp-2)} .x-seg button{padding:6px 10px} }
+@media (max-width:760px){ .x-filters{gap:var(--sp-2)} .x-seg button{padding:6px 10px} .x-head h2{font-size:20px} }
+.nw-s{display:none}
+@media (max-width:359px){ .nw-l{display:none} .nw-s{display:inline} .x-seg button{padding:6px 9px} }
+/* the tab row scrolls on phones: a fade on the right says there is more */
+.navwrap{position:sticky;top:0;z-index:20;background:var(--bg);max-width:1200px;margin:0 auto}
+.navwrap::after{content:"";position:absolute;top:0;right:0;bottom:1px;width:44px;background:linear-gradient(90deg,rgba(255,255,255,0),var(--bg));pointer-events:none;opacity:0;transition:opacity .15s}
+.navwrap.more::after{opacity:1}
 </style>
 </head>
 <body>
@@ -364,7 +402,7 @@ details.x-sec[open]>summary::before{content:"▾"}
     <p class="muted" id="dfsBE" style="margin:6px 0 0"></p>
   </div>
 </header>
-<nav id="tabs">
+<div class="navwrap" id="navWrap"><nav id="tabs">
   <button data-t="proj" class="on">Board</button>
   <button data-t="sogt">SOG</button>
   <button data-t="res">Results</button>
@@ -375,7 +413,7 @@ details.x-sec[open]>summary::before{content:"▾"}
   <button data-t="goalies">Goalies</button>
   <button data-t="teams">Teams</button>
   <button data-t="logic">Logic</button>
-</nav>
+</nav></div>
 <main>
 <section id="proj" class="on">
   <div id="srcBar"></div>
@@ -747,8 +785,10 @@ function alarmByDate(items){
   return Object.fromEntries(Object.entries(by).map(([k, ds]) => [k, nightAlarm(ds)]));
 }
 function alarmLines(label, A, dateF){
-  return Object.entries(A || {}).filter(([d, a]) => a.alarm && (!dateF || d === dateF)).sort().map(([d, a]) =>
-    `⚠ <b>One-sided board: ${label}, ${d}</b>: ${a.side === "UNDER" ? a.under : a.over} of ${a.plays} plays are <b class="${a.side === "OVER" ? "good" : "bad"}">${a.side}</b> (${pct(a.share, 0)}; OVER ${a.over} / UNDER ${a.under}). A lean this hard is more likely the model than the slate. Size down.`);
+  return Object.entries(A || {}).filter(([d, a]) => a.alarm && (!dateF || d === dateF)).sort().map(([d, a]) => {
+    const n = a.side === "UNDER" ? a.under : a.over, who = n === a.plays ? (n === 2 ? "Both" : `All ${n}`) : `${n} of ${a.plays}`;
+    return `⚠ <b>One-sided board</b>: ${who} ${label} plays ${d === TODAY_CT ? "tonight" : "on " + dayLabel(d)} are ${a.side === "OVER" ? "MORE" : "LESS"}. A lean this one-sided is more often the model than the slate, so size down.`;
+  });
 }
 const evTxt = d => !d || d.kind === "none" ? "–" : (d.ev > 0 ? "+" : "") + (100 * d.ev).toFixed(1) + "%";
 const priceTxt = d => !d ? "" : d.kind === "book" ? amer(d.price) : d.kind === "dfs" ? d.mult + "x" : "";
@@ -793,26 +833,28 @@ const lineCT = at => { const t = new Date(at); return isNaN(t) ? "–" : ctFmt(t
 // a line's age as text: "7m", "2.6h"
 const ageTx = a => a == null ? "" : a < 60 ? Math.max(0, Math.round(a)) + "m" : (a / 60).toFixed(a < 600 ? 1 : 0) + "h";
 const rowAge = r => lineAge(r.fetched_at || (rowSrc(r) || {}).fetched_at);
-const rowStale = r => { const a = rowAge(r); return a != null && a > STALE_MIN; };
-function staleBadge(r){
-  const s = rowSrc(r); if (!s) return "";
+const rowStale = r => { const a = rowAge(r); return a == null ? !!rowSrc(r) : a > STALE_MIN; };
+// the line's age after its price when it is older than STALE_MIN ("⏱2.6h"; "⏱?" when the fetch time is unknown)
+function staleTag(r){
+  const s = rowSrc(r); if (!s || !rowStale(r)) return "";
   const a = rowAge(r);
-  return a != null && a > STALE_MIN ? ` <span class="x-stale" title="Line fetched ${ageTx(a)} ago${s.status === "fallback" ? " (this build's pull failed; last good lines)" : ""}; the price may have moved">⏱${ageTx(a)}</span>` : "";
+  return `<span class="x-stale" title="${a == null ? "Fetch time unknown" : `Line fetched ${ageLong(a)} ago`}${s.status === "fallback" ? " (this build's pull failed; last good lines)" : ""}; check the price in the app">⏱${a == null ? "?" : ageTx(a)}</span>`;
 }
+const staleBadge = r => { const t = staleTag(r); return t ? " " + t : ""; };
 // the rows each tab shows (set when it renders): the source strip counts them and checks their age
 const SHOWN = {board: [], sog: []};
 // one line per tab: a dot per book (green fresh, amber older than STALE_MIN, red off), its age and the rows it
 // supplies, then the build time and the Refresh button. One calm notice when a displayed line is stale.
 function srcStrip(rows){
   const one = (name, short, s, key) => {
-    const n = rows.filter(r => bookKey(r.source) === key).length;
+    const n = rows.filter(r => r.primary !== false && bookKey(r.source) === key).length;
     if (!s && !n) return "";
     s = s || {status: "fresh"};
     const a = lineAge(s.fetched_at), off = s.status === "error" || (s.status === "fallback" && !n), old = a == null || a > STALE_MIN;
     const st = s.status === "error" ? (/403|block/i.test(s.error || "") ? "blocked" : "error") : s.status;
     const tip = `${name}: ${st}${s.fetched_at ? ", fetched " + lineCT(s.fetched_at) : ""}${s.error ? " (" + s.error + ")" : ""}${n ? `, ${n} line${n === 1 ? "" : "s"} shown` : ""}`;
     const label = `<span class="lbl-l">${name}</span><span class="lbl-s">${short}</span>`;
-    return `<span class="s${off ? " is-off" : old ? " is-old" : ""}" title="${esc(tip)}"><i class="d"></i>${label} ${off ? "off" : ageTx(a)}${n && !off ? `<span class="n"> · ${n}</span>` : ""}</span>`;
+    return `<span class="s${off ? " is-off" : old ? " is-old" : ""}" title="${esc(tip)}"><i class="d"></i>${label} ${off ? "off" : a == null ? "age ?" : ageTx(a)}${n && !off ? `<span class="n lbl-l"> · ${n} line${n === 1 ? "" : "s"}</span>` : ""}</span>`;
   };
   const ppS = PP_FETCHED_AT ? {status: "fresh", fetched_at: PP_FETCHED_AT} : SRC.pp;
   const stale = rows.some(rowStale);
@@ -825,8 +867,12 @@ const updTx = pre => `${pre}${isNaN(builtAt) ? D.built : lineTm(builtAt)}<button
 function renderSources(){
   $("#srcBar").innerHTML = srcStrip(SHOWN.board);
   $("#sogSrc").innerHTML = srcStrip(SHOWN.sog);
-  $("#hdUpd").innerHTML = updTx("");
+  $("#hdUpd").innerHTML = updTx("Updated ");
+  navHint();
 }
+// the tab row scrolls on phones: fade its right edge while more tabs are off screen
+function navHint(){ const n = $("#tabs"); $("#navWrap").classList.toggle("more", n.scrollWidth - n.clientWidth - n.scrollLeft > 4); }
+$("#tabs").addEventListener("scroll", navHint, {passive: true}); addEventListener("resize", navHint);
 const STALE = !isNaN(BUILD_AGE_H) && BUILD_AGE_H > 6 && (D.slate || []).some(g => g.date === TODAY_CT);
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
@@ -1065,8 +1111,9 @@ function renderSlate(){
   const ppBlocked = !nPP && !(D.board && (D.board.rows || []).some(r => r.source === "PrizePicks")) && (ppLive.state === "fail" || (ppLive.state !== "ok" && D.pp_status === "unavailable"));
   const pill = (txt, ok) => `<span class="pill ${ok ? "HIGH" : ok === null ? "LOW" : ""}" style="${ok === false ? "background:var(--under-bg);color:var(--under)" : ""}">${txt}</span>`;
   const nDF = (D.starters || []).filter(r => String(r.status).toLowerCase() === "confirmed").length;
-  SRC_PILLS = [pill(ppBlocked ? "PrizePicks: blocked" : ppLive.state === "ok" || nPP ? "PrizePicks: ok" : "PrizePicks: no props", !ppBlocked),
-    pill(nDK ? `DraftKings: ${nDK} goalies` : "DraftKings: none yet", nDK > 0),
+  const nPPs = ppLive.state === "ok" ? ppLive.n : nPP;
+  SRC_PILLS = [pill(ppBlocked ? "PrizePicks saves: blocked" : `PrizePicks saves: ${nPPs ? nPPs + " props" : "none"}`, ppBlocked ? false : nPPs ? true : null),
+    pill(nDK ? `DraftKings saves: ${nDK} goalies` : "DraftKings saves: none yet", nDK > 0 ? true : null),
     pill(D.starters_status === "ok" ? `DailyFaceoff: ${nDF} confirmed` : `DailyFaceoff: ${D.starters_status ? String(D.starters_status).split(":")[0] : "not pulled"}`, D.starters_status === "ok"),
     pill(`Your board: ${(BOARD.rows || []).length} props`, (BOARD.rows || []).length > 0 ? true : null),
     pill(`Line combos: ${D.lines_status ? String(D.lines_status).split(":")[0] : "not pulled"}`, D.lines_status ? String(D.lines_status).startsWith("ok") : null)].join(" ");
@@ -1370,13 +1417,13 @@ function propDetail(r){
   const alts = (r.alts || []).slice().sort((a, b) => a.line - b.line);
   const why = !isTake(r) && r.reason ? r.reason.replace(/^needs review: /, "") : "";
   return kvList([
-    ["", `${isTake(r) ? verdictPill(r) : `<b>PASS</b>`}${why ? ` <span class="muted">${why}</span>` : ""}`, true],
+    ["", `${isTake(r) ? verdictPill(r) : `<b>PASS</b>`}${why ? ` <span class="muted">${esc(why)}</span>` : ""}`, true],
     ["Model", pc0(side(r.p_model))], ["Market", r.p_mkt != null ? pc0(side(r.p_mkt)) : null],
     ["vs break-even", be == null ? null : (be > 0 ? "+" : "−") + (100 * Math.abs(be)).toFixed(1) + " pts"],
     ["Pays", r.mult != null || r.dk_over != null ? multCell(r) : r.mo != null ? `${r.mo}x / ${r.mu}x` : null],
     ["Game", `${r.team || "?"}${r.opp ? " vs " + r.opp : ""}${r.start ? " · " + ctCell(r) + " CT" : ""}`],
-    ["Source", r.source + (r.fetched_at ? ` · ${lineTm(r.fetched_at)}` : "")], ["Role", r.role || null],
-    ["⚠ Conflicts", r.conflicts && r.conflicts.length ? r.conflicts.join(", ") : null, true]]) +
+    ["Source", esc(r.source) + (r.fetched_at ? ` · ${lineTm(r.fetched_at)}` : "")], ["Role", r.role ? esc(r.role) : null],
+    ["⚠ Conflicts", r.conflicts && r.conflicts.length ? esc(r.conflicts.join(", ")) : null, true]]) +
     (alts.length ? `<div class="alts"><span><i>Other lines</i></span>${alts.map(altTxt).join("")}</div>` : "");
 }
 const SHORT_LBL = {SOG: "SOG", Points: "PTS", Saves: "SV"};
@@ -1387,12 +1434,12 @@ function altTxt(a){
   const p = a.p == null ? null : flip ? 1 - a.p : a.p;
   const m = !a.side ? null : (side === "more" ? a.mo : a.mu);
   const pays = m != null ? ` · ${+m}x` : a.dk_over != null ? ` · ${amer(side === "more" ? a.dk_over : a.dk_under)}` : "";
-  return `<span>${n1(a.line)} ${side} <b>${pc0(p)}</b>${pays} <span class="muted">${a.source}${isTake(a) ? " · " + a.verdict : ""}</span></span>`;
+  return `<span>${n1(a.line)} ${side} <b>${pc0(p)}</b>${pays} <span class="muted">${esc(a.source)}${isTake(a) ? " · " + a.verdict : ""}</span></span>`;
 }
 function propRow(r){
   const d = r.proj != null && r.line != null ? r.proj - r.line : null;
   const flags = (r.conflicts && r.conflicts.length ? ' <span class="bad" title="Conflicts: tap for details">⚠</span>' : "") + staleBadge(r) + roleBadge(r);
-  return `<tr class="pk${isTake(r) ? "" : " pass"}"><td class="l pin"><b>${r.name}</b><span class="tm">${r.team || ""}</span>${flags}</td>
+  return `<tr class="pk${isTake(r) ? "" : " pass"}"><td class="l pin"><b>${esc(r.name)}</b><span class="tm">${esc(r.team || "")}</span>${flags}</td>
     <td class="l nw"><span class="lbl-l">${r.label}</span><span class="lbl-s">${SHORT_LBL[r.label] || r.label}</span> ${n1(r.line)}</td><td class="num">${n1(r.proj)}</td>
     <td class="num ${d == null ? "" : diffCls(d, r.side, r.market === "saves" ? 0.5 : 0.15)}">${sgnD(d)}</td>
     <td class="l">${pickCell(r)}</td><td class="num"><b>${pc0(r.p)}</b></td></tr>` + detRow(6, propDetail(r));
@@ -1436,15 +1483,23 @@ const bookName = s => { s = String(s || ""); return s.startsWith("DraftKings") ?
 const bookKey = s => { const b = bookName(s); return BOOKS.includes(b) ? b : "Yours"; };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 const pc1 = x => x == null || isNaN(x) ? "–" : (100 * x).toFixed(1) + "%";
+// a chance printed beside its bar: one decimal for both when whole percents would read the same (57.6% vs 58%)
+const pcPair = (p, need) => p != null && need != null && pc0(p) === pc0(need) && Math.abs(p - need) > 1e-9 ? [pc1(p), pc1(need)] : [pc0(p), pc0(need)];
+// the edge in percentage points from the chance and needs as printed (one decimal), so chance − needs = edge on screen
+const edgePts = v => (Math.round(1000 * v.p) - Math.round(1000 * v.needs)) / 10;
+const edgeTx = v => { const e = edgePts(v); return !e ? "0.0" : (e > 0 ? "+" : "−") + Math.abs(e).toFixed(1); };
 // a signed differential that never reads "−0.0"
 const sgnD = x => x == null || isNaN(x) ? "–" : Math.abs(x) < 0.05 ? "0.0" : sgn1(x);
-const ptsTx = x => x == null || isNaN(x) ? "–" : Math.abs(x) < 0.0005 ? "0.0" : (x > 0 ? "+" : "−") + (100 * Math.abs(x)).toFixed(1);
 const amerTx = o => !hasVal(o) ? "–" : +o > 0 ? "+" + (+o) : "−" + Math.abs(+o);
 const sideWord = s => s === "OVER" ? "MORE" : "LESS";
 const sideCap = s => s === "OVER" ? "More" : "Less";
 const arrow = s => s === "OVER" ? "▲" : s === "UNDER" ? "▼" : "";
 const pctIn = s => (String(s).match(/\d+%/) || [""])[0];
 const ageLong = a => a == null ? "" : a < 60 ? Math.max(0, Math.round(a)) + " min" : (a / 60).toFixed(1) + " h";
+const dayLabel = d => d ? new Date(d + "T12:00:00").toLocaleDateString("en-US", {weekday: "short", month: "short", day: "numeric"}) : "All dates";
+// lines you type carry the skater list's short name ("B. Kindel"): show the roster's full name
+const fullName = r => { const p = r.player_id != null && /^\w\.\s/.test(r.name || "") && (ROSTER[pmTeam(r.team)] || []).find(x => x.id === r.player_id);
+  return p ? `${p.first} ${p.last}` : r.name; };
 
 // what a side of a line pays: DraftKings rows at DraftKings' own odds, pick'em rows at their multiplier (0 = not offered)
 const isBookRow = r => bookName(r.source) === "DraftKings";
@@ -1474,39 +1529,76 @@ function dispSide(r){
 }
 const bestSide = r => [sideView(r, "OVER"), sideView(r, "UNDER")].filter(Boolean).sort((a, b) => b.edge - a.edge)[0] || null;
 const priceTx = v => !v ? "–" : v.o.kind === "book" ? amerTx(v.o.price) : (+v.o.mult) + "x";
-// status = colour: lock / strong (plays), near, check (review first), pass
+// a review line (role change, team mismatch, a name that matched more than one player) as it would be called once
+// checked: finishRow's own verdictFor call with the player matched, then selectSog's class with the review flags
+// cleared. Display only: it tells a line worth checking (it would be a play or a near miss) from one that is a pass anyway.
+const AFTER = new WeakMap();
+function afterCheck(r){
+  if (AFTER.has(r)) return AFTER.get(r);
+  let a = null;
+  if (r.p_blend != null && r.line != null){
+    const u = verdictFor(r.market, r.p_blend, r.p_model, r.line, r.proj, r.mo, r.mu, true, r.confirmed !== false, {over: r.dk_over, under: r.dk_under}, r.p_mkt);
+    const x = {...r, ...u, matched: true, role_change: null, team_mismatch: false};
+    const [t, note] = r.market === "sog" ? sogClass(x) : [isTake(x) ? "Strong" : x.tier, ""];
+    a = {could: t in SOG_RANK, reason: u.reason || note || ""};
+  }
+  AFTER.set(r, a);
+  return a;
+}
+const inReview = r => r.sog_section === "review" || /^needs review/.test(r.reason || "") || r.matched === false;
+// status = colour: lock / strong (plays), near, check (worth a look first: it can be a play once checked), pass
 function statusOf(r){
   if (isTake(r)) return r.tier === "Lock" ? "lock" : "strong";
   if (r.tier === "Near miss") return "near";
-  if (r.sog_section === "review" || /^needs review/.test(r.reason || "") || r.role_change || r.matched === false) return "check";
+  if (inReview(r)){ const a = afterCheck(r); return !a || a.could ? "check" : "pass"; }
   return "pass";
 }
-const infoOnly = r => /^sportsbook price/.test(r.reason || "") || (/^DK price break-even/.test(r.reason || "") && !RULE.priced_takes);
-// a pass that is NOT about the probability (reaching "needs" would still not make it a play): a short tag for it
+// the reason a row is shown with: a review line that is a pass anyway shows why it would pass once checked
+const whyOf = r => { const w = String(r.reason || ""); if (!/^needs review/.test(w)) return w; const a = afterCheck(r); return a && !a.could ? a.reason : w; };
+const infoOnly = r => { const w = whyOf(r); return /^sportsbook price/.test(w) || (/^DK price break-even/.test(w) && !RULE.priced_takes); };
+// a pass that is NOT about the chance (reaching "needs" would still not make it a play): a short tag naming the rule
 function blockTag(r, v){
-  const why = String(r.reason || "");
+  const why = whyOf(r);
   if (v && v.flipped) return "";
   if (infoOnly(r)) return "info only";
   if (/^no market price/.test(why)) return "no market";
-  if (/^market only/.test(why)) return "market " + pctIn(why);
-  if (/^model alone/.test(why)) return "model " + pctIn(why);
+  if (/^market only/.test(why)) return `mkt < ${pc0(RULE.mkt_min)}`;
+  if (/^model alone/.test(why)) return "model ≤ 50%";
   if (/^saves overs/.test(why)) return "overs off";
   if (/^points .*unders/.test(why)) return "unders off";
   if (/^starter not confirmed/.test(why)) return "unconfirmed";
-  if (/^edge /.test(why)) return "edge " + sgnD(r.edge);
+  if (/^edge /.test(why)) return `edge ${sgnD(r.edge)} sv`;
   if (/^conflict/.test(why)) return "conflict";
   if (/^alt line/.test(why)) return "alt line";
-  if (/^(unmatched|no projection|no game|not on tonight)/.test(why)) return "no projection";
-  if (/^pays /.test(why) && v && v.p >= v.needs) return "below 1x";
+  if (/^(unmatched|no projection|no game|not on tonight)/.test(why)) return "no proj";
+  if (/^pays /.test(why)) return "pays < 1x";
   if (!v) return "not offered";
   return "";
 }
+// why nothing is a play, from the tags the rows show: "37 lines are sportsbook odds (info only), 16 have ..."
+const tagKey = t => /^edge /.test(t) ? "edge" : /^mkt < /.test(t) ? "mkt" : t;
+const NONE_TX = {
+  "info only": ["are sportsbook odds (info only)", "is sportsbook odds (info only)"], "no market": ["have no market price", "has no market price"],
+  mkt: [() => `have the market under ${pc0(RULE.mkt_min)}`, () => `has the market under ${pc0(RULE.mkt_min)}`], "": ["are short of the chance bar", "is short of the chance bar"],
+  "pays < 1x": ["pay under 1x", "pays under 1x"], "model ≤ 50%": ["have the model disagreeing", "has the model disagreeing"],
+  "overs off": ["are saves overs (off)", "is a saves over (off)"], "unders off": ["are points unders (off at that line)", "is a points under (off at that line)"],
+  unconfirmed: ["have an unconfirmed starter", "has an unconfirmed starter"], edge: ["have the projection too close to the line", "has the projection too close to the line"],
+  conflict: ["lost a conflict", "lost a conflict"]};
+function noneWhy(rows){
+  const c = new Map();
+  for (const r of rows){ if (statusOf(r) !== "pass") continue; const k = tagKey(blockTag(r, dispSide(r))); c.set(k, (c.get(k) || 0) + 1); }
+  const all = [...c].sort((a, b) => b[1] - a[1]), top = all.filter(([k]) => NONE_TX[k]).slice(0, 3);
+  const rest = all.reduce((s, [, n]) => s + n, 0) - top.reduce((s, [, n]) => s + n, 0);
+  const parts = top.map(([k, n]) => { const t = NONE_TX[k][n === 1 ? 1 : 0]; return `${n} ${typeof t === "function" ? t() : t}`; })
+    .concat(rest ? [`${rest} ${top.length ? "more" : ""} fail${rest === 1 ? "s" : ""} other checks`.replace("  ", " ")] : []);
+  return parts.length > 1 ? parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1] : parts[0] || "";
+}
 // the verdict in plain English, one line
-function whyText(r, v){
-  const why = String(r.reason || ""), lab = MK_TAG[r.market] || r.label || "", S = v ? v.side : r.side, st = statusOf(r);
+function whyText(r, v, check){
+  const why = whyOf(r), lab = MK_TAG[r.market] || r.label || "", S = v ? v.side : r.side, st = check ? "check" : statusOf(r);
   const m = t => ` <span class="muted">· ${t}</span>`;
   if (isTake(r)) return `Take <b>${sideWord(S)} ${n1(r.line)} ${lab}</b> on ${esc(bookName(r.source))} at ${priceTx(v)}.`;
-  if (st === "near") return `Near miss${m(`${pc0(v ? v.p : r.p)}, needs ${pc0(v ? v.needs : takeP(r.market))} to be a play`)}`;
+  if (st === "near"){ const [a, b] = pcPair(v ? v.p : r.p, v ? v.needs : takeP(r.market)); return `Near miss${m(`${a}, needs ${b} to be a play`)}`; }
   if (st === "check") return `Check first${m(esc(why.replace(/^needs review: /, "") || (r.role_change ? `role change ${r.role_change} (old → new line)` : "unmatched player")))}`;
   if (v && v.flipped) return `Pass${m(`only ${sideCap(v.side)} is offered on ${n1(r.line)}; it is ${pc0(v.p)} and needs ${pc0(v.needs)}`)}`;
   if (infoOnly(r)) return `Info only${m(`${esc(bookName(r.source))} price (no edge over the book's own odds)`)}`;
@@ -1515,11 +1607,11 @@ function whyText(r, v){
   if (/^model alone/.test(why)) return `Pass${m(`the market likes ${sideCap(S)} but the model alone does not (${pctIn(why)})`)}`;
   if (/^saves overs/.test(why)) return `Pass${m("saves overs are off: they lost at every threshold")}`;
   if (/^points .*unders/.test(why)) return `Pass${m(`points ${n1(r.line)} unders are off: the model is overconfident there`)}`;
-  if (/^pays /.test(why) && v && v.o.kind === "dfs") return v.p < v.needs
-    ? `Pass${m(`${sideCap(v.side)} pays ${+v.o.mult}x, so it needs ${pc0(v.needs)}; it is ${pc0(v.p)}`)}`
-    : `Pass${m(`${sideCap(v.side)} pays ${+v.o.mult}x; sides under 1x are off in your pick'em settings (⚙)`)}`;
+  if (/^pays /.test(why) && v && v.o.kind === "dfs") return `Pass${m(r.market === "sog"
+    ? `${sideCap(v.side)} pays ${+v.o.mult}x: shots-on-goal sides under ${RULE.min_mult}x are never plays`
+    : `${sideCap(v.side)} pays ${+v.o.mult}x: sides under ${RULE.min_mult}x are off in your pick'em settings (⚙)`)}`;
   if (/break-even/.test(why) && v) return `Pass${m(`at ${priceTx(v)} it needs ${pc1(v.needs)}; it is ${pc1(v.p)}`)}`;
-  if (/(near miss|^\d+% < )/.test(why) && v) return `Pass${m(`${pc0(v.p)} is under the ${pc0(takeP(r.market))} bar`)}`;
+  if (/(near miss|^\d+% < )/.test(why) && v){ const [a, b] = pcPair(v.p, takeP(r.market)); return `Pass${m(`${a} is under the ${b} bar`)}`; }
   if (/^conflict/.test(why)) return `Pass${m(`conflicts with ${esc(why.replace(/^conflict: /, ""))}, which has the higher chance`)}`;
   if (/^alt line/.test(why)) return `Pass${m(esc(why.replace(/^alt line \(best is (.+)\)$/, "another of his lines is the pick: $1")))}`;
   if (/^edge /.test(why)){
@@ -1532,15 +1624,15 @@ function whyText(r, v){
 }
 function sumTx(r, v){
   if (!v) return "";
-  const full = statusOf(r) !== "check" && !blockTag(r, v);
-  return `<div class="x-sum"><b>${pc1(v.p)}</b> chance${full ? ` · needs <b>${pc1(v.needs)}</b> · edge <b class="${v.edge > 0 ? "good" : ""}">${ptsTx(v.edge)}</b>` : ""}</div>`;
+  const full = !blockTag(r, v);
+  return `<div class="x-sum"><b>${pc1(v.p)}</b> chance${full ? ` · needs <b>${pc1(v.needs)}</b> · edge <b class="${edgePts(v) > 0 ? "good" : ""}">${edgeTx(v)} pts</b>` : ""}</div>`;
 }
 function factsTx(r, v){
   const S = v ? v.side : r.side, sideP = x => x == null || !S ? null : S === "OVER" ? +x : 1 - x;
   const src = r.mkt_src || "DraftKings", w = r.w ?? blendW((CAL[r.market] || {}).cal);
-  const from = r.p_mkt == null || w >= 1 ? "model" : w <= 0 ? `${esc(src)} no\u2011vig` : `${Math.round(100 * w)}% model + ${Math.round(100 * (1 - w))}% ${esc(src)}`;
+  const from = r.p_mkt == null ? "the model alone" : w >= 1 ? "model" : w <= 0 ? `${esc(src)} no‑vig` : `${Math.round(100 * w)}% model + ${Math.round(100 * (1 - w))}% ${esc(src)}`;
   const kv = [["Chance from", from], ["Model alone", pc0(sideP(r.p_model))],
-    ["Market no\u2011vig", r.p_mkt != null ? `${pc0(sideP(r.p_mkt))} <span class="muted">${esc(src)}</span>` : `none on ${n1(r.line)}`],
+    ["Market no‑vig", r.p_mkt != null ? `${pc0(sideP(r.p_mkt))} <span class="muted">${esc(src)}</span>` : `none on ${n1(r.line)}`],
     ["Projection", r.proj == null ? "–" : `${n1(r.proj)} (${sgnD(r.proj - r.line)})`]];
   const pl = SKATER[r.player_id];
   if (r.market !== "saves" && pl){
@@ -1551,14 +1643,17 @@ function factsTx(r, v){
   if (r.role) kv.push(["Role", esc(r.role) + (r.role_change ? ` <span class="x-warn">was ${esc(String(r.role_change).split("→")[0])}</span>` : "")]);
   return `<div class="x-kv">${kv.map(([k, x]) => `<div><i>${k}</i><b>${x}</b></div>`).join("")}</div>`;
 }
-// last 10 games, oldest to newest, against the line (the dashed rule)
-function l10Tx(r){
+// last 10 games, oldest to newest, against the line (the dashed rule), scored for the side shown
+function l10Tx(r, v){
   const pl = SKATER[r.player_id] || {};
   const l10 = r.market === "points" ? pl.pl10 : r.market === "sog" ? pl.l10 : r.market === "saves" ? (G[r.player_id] || {}).last10 : null;
   if (!l10 || !l10.length || r.line == null) return "";
-  const mx = Math.max(r.line + 1, ...l10), h = x => Math.max(3, Math.round(34 * x / mx)), over = l10.filter(x => x > r.line).length;
-  return `<div class="x-l10" aria-hidden="true">${l10.map(x => `<span class="${x > r.line ? "ov" : ""}" style="height:${h(x)}px"></span>`).join("")}<i class="ln" style="bottom:${Math.round(34 * r.line / mx)}px"></i></div>
-    <div class="x-l10cap">Last ${l10.length} (oldest → newest): ${l10.join(" ")} · over ${n1(r.line)} in <b>${over}/${l10.length}</b></div>`;
+  const S = (v && v.side) || r.side || "OVER", L = +r.line;
+  const res = x => x === L ? "push" : (S === "OVER" ? x > L : x < L) ? "hit" : "miss";
+  const mx = Math.max(L + 1, ...l10), h = x => Math.max(3, Math.round(34 * x / mx));
+  const hits = l10.filter(x => res(x) === "hit").length, push = l10.filter(x => res(x) === "push").length;
+  return `<div class="x-l10" aria-hidden="true">${l10.map(x => `<span class="${res(x)}" style="height:${h(x)}px"></span>`).join("")}<i class="ln" style="bottom:${Math.round(34 * L / mx)}px"></i></div>
+    <div class="x-l10cap">Last ${l10.length} (oldest → newest): ${l10.join(" ")} · ${sideWord(S)} ${n1(L)} hit in <b>${hits}/${l10.length}</b>${push ? ` (${push} push${push === 1 ? "" : "es"})` : ""}</div>`;
 }
 // a ladder rung's call, short
 function callTag(x, b){
@@ -1567,7 +1662,7 @@ function callTag(x, b){
   if (statusOf(x) === "check") return ["check", ""];
   if (!b) return ["n/a", ""];
   if (b.side === x.side){ const t = blockTag(x, b); if (t) return [t, ""]; }
-  if (b.o.kind === "dfs" && b.o.mult < RULE.min_mult - 1e-9) return ["< 1x", ""];
+  if (b.o.kind === "dfs" && b.o.mult < RULE.min_mult - 1e-9) return ["pays < 1x", ""];
   if (b.p < takeP(x.market) - 1e-9) return ["< " + pc0(takeP(x.market)), ""];
   if (b.p <= b.be + 1e-9) return ["< price", ""];
   return ["pass", ""];
@@ -1589,35 +1684,37 @@ function ladderTx(r, v, alts){
 }
 function noteTx(r){
   let t = /^your line/i.test(r.source || "") ? "Your line (saved in this browser)" : `${esc(r.source || "–")}${r.via ? " via " + esc(r.via) : ""} line`;
-  if (r.fetched_at) t += `, fetched ${lineTm(r.fetched_at)} CT (${ageLong(rowAge(r))} ago)`;
+  const at = r.fetched_at || (rowSrc(r) || {}).fetched_at;
+  if (at && !isNaN(Date.parse(at))) t += `, fetched ${lineTm(at)} CT (${ageLong(rowAge(r))} ago)`;
+  else if (rowSrc(r)) t += ", fetch time unknown";
   t += ".";
   if (r.conflicts && r.conflicts.length) t += ` <span class="x-warn">⚠ Conflicts with ${esc(r.conflicts.join(", "))}.</span>`;
   if (r.capped) t += ` Saves calls of ${pc0(RULE.saves_cap_at)}+ have hit 46%; the Saves table shows them as ${pc0(RULE.saves_cap_to)}.`;
   return `<p class="x-note">${t}</p>`;
 }
-// "Use my own line" (SOG): writes SOGL / SOGM for that player and date; clientLines() feeds the line into propBoard
+// "Use my own line" (SOG): writes SOGL for that player and date; clientLines() feeds the line into propBoard at 1x
+// both ways. The More / Less multipliers (SOGM) are offered only once clientLines() prices typed lines with them.
 const OWN_MULTS = [1.2, 1.1, 1, 0.9, 0.85, 0.8, 0.75];
+const OWN_MULTS_PRICED = /SOGM/.test(String(clientLines));
 function ownTx(r){
   if (r.market !== "sog" || r.player_id == null || !SKATER[r.player_id] || !r.date) return "";
   const k = r.date + "|" + r.player_id, cur = SOGL[k], m = SOGM[k] || {}, mo = +(m.o ?? 1), mu = +(m.u ?? 1);
   const sel = (side, val) => `<select data-own="${side}" aria-label="${side === "o" ? "More" : "Less"} multiplier">${[...new Set([...OWN_MULTS, val])].sort((a, b) => b - a)
     .map(x => `<option value="${x}" ${x === val ? "selected" : ""}>${x}x</option>`).join("")}</select>`;
-  // the board prices a typed line through clientLines(); say so when it is not at the multipliers set here
-  const used = r.source === "your line" ? [+(r.mo ?? 1), +(r.mu ?? 1)] : null;
-  const off = cur != null && used && (used[0] !== mo || used[1] !== mu);
-  return `<form class="x-own" data-k="${esc(k)}"><b>Use my own line</b>
+  return `<details class="x-ownd"${cur != null ? " open" : ""}><summary>${cur != null ? `Your line: ${n1(cur)}` : "Use my own line…"}</summary><form class="x-own" data-k="${esc(k)}">
     <input type="number" step="0.5" min="0" inputmode="decimal" name="line" value="${cur ?? ""}" placeholder="${n1(r.line)}" aria-label="Your line">
-    <label><span class="lbl-l">More</span><span class="lbl-s">▲</span> ${sel("o", mo)}</label><label><span class="lbl-l">Less</span><span class="lbl-s">▼</span> ${sel("u", mu)}</label>
+    ${OWN_MULTS_PRICED ? `<label>More ${sel("o", mo)}</label><label>Less ${sel("u", mu)}</label>` : ""}
     <button class="btn" type="submit">Save</button>${cur != null ? ` <button class="ghost" type="button" data-own-clear>Remove mine</button>` : ""}
-    ${off ? `<p class="x-note">Typed lines are priced at ${used[0]}x More / ${used[1]}x Less for now; the multipliers you set are saved.</p>` : ""}</form>`;
+    ${OWN_MULTS_PRICED ? "" : `<p class="x-note">Priced as a pick'em line at 1x More / 1x Less.</p>`}</form></details>`;
 }
 function xDetail(r, v, opt){
-  return `<div class="x-why">${whyText(r, v)}</div>${sumTx(r, v)}${factsTx(r, v)}${l10Tx(r)}${ladderTx(r, v, r.alts || (opt.alts && opt.alts.get(r)) || [])}${noteTx(r)}${ownTx(r)}`;
+  return `<div class="x-why">${whyText(r, v, opt.check)}</div>${sumTx(r, v)}${factsTx(r, v)}${l10Tx(r, v)}${ladderTx(r, v, (opt.alts && opt.alts.get(r)) || r.alts || [])}${noteTx(r)}${ownTx(r)}`;
 }
 // open rows stay open across re-renders; panels are filled on first open
 const XR = {n: 0, rows: new Map(), ids: {}, open: new Set(), keep: {}};
 const xKey = (r, ctx) => `${ctx}|${r.player_id ?? r.name}|${r.game}|${r.market}`;
 function xBegin(ctx){ for (const id of XR.ids[ctx] || []) XR.rows.delete(id); XR.ids[ctx] = []; }
+// phone: name / bet + projection / book, price and game, with the chance on the right. >= 1080px: one grid row.
 function xRow(r, ctx, opt = {}){
   const v = dispSide(r), st = opt.check ? "check" : statusOf(r);
   const S = v ? v.side : r.side && offered(r, r.side) ? r.side : null, lab = MK_TAG[r.market] || r.label || "";
@@ -1626,33 +1723,43 @@ function xRow(r, ctx, opt = {}){
   const pos = r.pos || (SKATER[r.player_id] || {}).pos || (r.market === "saves" ? "G" : "");
   const start = r.start || g.start, t = start ? ctFmt(new Date(start), {hour: "numeric", minute: "2-digit"}) : "";
   const tShort = t.replace(/ ([AP])M$/, (_, x) => x.toLowerCase());
-  const a = rowAge(r), staleTx = a != null && a > STALE_MIN ? ` <span class="x-stale" title="Line fetched ${ageLong(a)} ago">⏱${ageTx(a)}</span>` : "";
+  const stale = staleTag(r);
+  // the differential is red only when the projection points against the side by more than the tables' neutral band
   const diff = r.proj != null && r.line != null ? r.proj - r.line : null;
-  const against = diff != null && S && (S === "OVER" ? diff < -0.05 : diff > 0.05);
+  const against = diff != null && S && Math.abs(diff) >= (r.market === "saves" ? 0.5 : 0.15) && (S === "OVER" ? diff < 0 : diff > 0);
+  const df = `<span class="df${against ? " against" : ""}">${sgnD(diff)}</span>`;
   const chip = {lock: "Lock", strong: "Strong", near: "Near", check: "Check"}[st];
   const chipTx = chip ? `<span class="x-tier ${st}">${chip}</span>` : "";
   const lost = /^conflict/.test(r.reason || ""), won = r.conflicts && r.conflicts.length;
   const flags = (won || lost ? `<span class="x-flag" title="${esc(lost ? r.reason.replace(/^conflict: /, "Conflicts with ") : "Conflicts with " + r.conflicts.join(", "))}">⚠</span>` : "") +
     (r.role_change ? `<span class="x-flag" title="Line change: ${esc(r.role_change)}">${esc(r.role_change)}</span>` : "");
-  const book = esc(bookName(r.source)), price = priceTx(v), mk = opt.market ? `<span class="x-mk">${lab}</span>` : "";
-  const blocked = st === "pass" ? blockTag(r, v) : "", p = v ? v.p : S ? r.p : null;
+  const book = esc(bookName(r.source)), price = priceTx(v), mk = opt.market ? `<span class="x-mk"><b>${lab}</b></span>` : "";
+  const blocked = st === "pass" ? blockTag(r, v) : "", nums = v && !blocked, p = v ? v.p : S ? r.p : null;
+  const [pPh, nPh] = v ? pcPair(v.p, v.needs) : [pc0(p), ""];
+  const game = [r.team && opp ? `${esc(r.team)} ${at} ${esc(opp)}` : esc(r.team || ""), tShort].filter(Boolean).join(" ");
   const key = xKey(r, ctx), id = "xd" + (++XR.n), open = XR.open.has(key);
   XR.rows.set(id, {r, v, opt}); (XR.ids[ctx] ||= []).push(id);
-  return `<div class="x-row t-${st}" role="button" tabindex="0" aria-expanded="${open}" aria-controls="${id}" data-k="${esc(key)}">` +
-    `<span class="x-tcol">${chipTx || `<span class="x-pass">${infoOnly(r) ? "info" : "pass"}</span>`}</span>` +
-    `<div class="x-who"><span class="x-name">${esc(r.name)}</span>${flags}<span class="x-meta x-d-only">${[r.team, pos, r.role].filter(Boolean).map(esc).join(" · ")}</span></div>` +
-    `<div class="x-bet"><span class="x-side"><span class="ar">${arrow(S)}</span>${S ? sideWord(S) : "–"} ${n1(r.line)}</span>${mk}<span class="x-m-only x-book">· <b>${book}</b> ${price}${staleTx}</span></div>` +
-    `<div class="x-ctx x-m-only">${esc([r.team, pos].filter(Boolean).join(" "))}${opp ? ` · ${at} ${esc(opp)} ${tShort}` : ""} · proj ${n1(r.proj)} <span class="df${against ? " against" : ""}">(${sgnD(diff)})</span></div>` +
-    `<span class="x-game">${opp ? `${at} ${esc(opp)} · ${t}` : t}</span>` +
-    `<span class="x-bookc"><b>${book}</b> · ${price}${staleTx}</span>` +
-    `<span class="x-projc">${n1(r.proj)}<span class="df${against ? " against" : ""}">${sgnD(diff)}</span></span>` +
-    `<div class="x-pcol"><span class="x-p">${pc0(p)}</span><span class="x-m-only">${chipTx || `<span class="x-needs">${blocked || (v ? "needs " + pc0(v.needs) : "")}</span>`}</span></div>` +
-    `<span class="x-needc">${blocked || (v ? pc1(v.needs) : "–")}</span>` +
-    `<span class="x-edgec${v && !blocked && st !== "check" && v.edge > 0 ? " pos" : ""}">${v && !blocked && st !== "check" ? ptsTx(v.edge) : "–"}</span>` +
+  return `<div class="x-row t-${st}${blocked ? " is-blk" : ""}" role="button" tabindex="0" aria-expanded="${open}" aria-controls="${id}" data-k="${esc(key)}">` +
+    `<span class="x-tcol">${chipTx}</span>` +
+    `<div class="x-who"><div class="x-nm"><span class="x-name">${esc(fullName(r))}</span>${flags}</div><div class="x-meta x-d-only">${[r.team, pos, r.role].filter(Boolean).map(esc).join(" · ")}</div></div>` +
+    `<span class="x-game">${opp ? `${at} ${esc(opp)} ${t}` : t}</span>` +
+    `<div class="x-bet"><div class="x-w"><span class="x-side"><span class="ar">${arrow(S)}</span>${S ? sideWord(S) : "–"} ${n1(r.line)}</span>${mk}${r.proj != null ? `<span class="x-pj x-m-only dot">proj ${n1(r.proj)} (${df})</span>` : ""}</div></div>` +
+    `<span class="x-projc">${n1(r.proj)}</span><span class="x-diffc">${df}</span>` +
+    `<div class="x-ctx x-m-only"><div class="x-w"><span class="x-book"><b>${book}</b> ${price}</span>${stale}${game ? `<span class="dot">${game}</span>` : ""}</div></div>` +
+    `<span class="x-bookc"><b>${book}</b> · ${price}${stale}</span>` +
+    `<div class="x-pcol"><span class="x-p"><span class="x-m-only">${pPh}</span><span class="x-d-only">${v ? pc1(v.p) : pc0(p)}</span></span>` +
+    `<span class="x-m-only">${chipTx || `<span class="x-needs">${blocked || (v ? "needs " + nPh : "")}</span>`}</span></div>` +
+    `<span class="x-needc${blocked ? " tag" : ""}">${blocked || (v ? pc1(v.needs) : "–")}</span>` +
+    `<span class="x-edgec${nums && edgePts(v) > 0 ? " pos" : ""}">${nums ? edgeTx(v) : "–"}</span>` +
     `<span class="x-chev" aria-hidden="true">›</span></div><div class="x-det" id="${id}">${open ? xDetail(r, v, opt) : ""}</div>`;
 }
-const X_COLS = `<div class="x-cols" aria-hidden="true"><span></span><span>Player</span><span>Game</span><span>Bet</span><span>Book · pays</span><span class="num">Proj</span><span class="num">Chance</span><span class="num">Needs</span><span class="num">Edge</span><span></span></div>`;
-const xList = (rows, ctx, opt = {}, foot = "") => `<div class="x-list">${X_COLS}${rows.map(r => xRow(r, ctx, opt)).join("")}${foot}</div>`;
+const X_COLS = `<div class="x-cols" aria-hidden="true"><span></span><span>Player</span><span>Game (CT)</span><span>Bet</span><span class="num">Proj</span><span class="num">Diff</span><span class="bk">Book · pays</span><span class="num">Chance</span><span class="num">Needs</span><span class="num" title="Chance minus needs, in percentage points">Edge</span><span></span></div>`;
+// rows; a {divider: "text"} item prints a label between groups. On desktop the tier column folds away in a list
+// with no tier chip (opt.nt says whether to, so lists on one tab can stay aligned)
+const xList = (rows, ctx, opt = {}, foot = "") => {
+  const body = rows.map(r => r.divider ? `<div class="x-div">${r.divider}</div>` : xRow(r, ctx, opt)).join("");
+  return `<div class="x-list${opt.nt ?? !body.includes('<span class="x-tier ') ? " nt" : ""}">${X_COLS}${body}${foot}</div>`;
+};
 function xToggle(row){
   const open = row.getAttribute("aria-expanded") !== "true", det = document.getElementById(row.getAttribute("aria-controls"));
   row.setAttribute("aria-expanded", String(open));
@@ -1668,19 +1775,19 @@ document.addEventListener("click", e => {
 document.addEventListener("keydown", e => {
   if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("x-row")){ e.preventDefault(); xToggle(e.target); }
 });
-// "Use my own line": save / remove, then keep that row (still open) in view
+// "Use my own line": save / remove, then keep that row (still open) in view and focused
 function ownSaved(f){
   const row = f.closest(".x-det") && f.closest(".x-det").previousElementSibling, k = row && row.dataset.k;
   store.set("gm_sogl", SOGL); store.set("gm_sogm", SOGM); renderBoard();
-  const el = k && [...document.querySelectorAll(".x-row")].find(x => x.dataset.k === k);
-  if (el) el.scrollIntoView({block: "nearest"});
+  const el = k && [...document.querySelectorAll(".x-row")].find(x => x.dataset.k === k && x.offsetParent);
+  if (el){ el.scrollIntoView({block: "nearest"}); el.focus({preventScroll: true}); }
 }
 document.addEventListener("submit", e => {
   const f = e.target.closest("form.x-own"); if (!f) return;
   e.preventDefault();
-  const k = f.dataset.k, v = f.querySelector('input[name="line"]').value.trim();
+  const k = f.dataset.k, v = f.querySelector('input[name="line"]').value.trim(), so = f.querySelector('select[data-own="o"]');
   if (v === "" || isNaN(+v)){ delete SOGL[k]; delete SOGM[k]; }
-  else { SOGL[k] = +v; SOGM[k] = {o: +f.querySelector('select[data-own="o"]').value, u: +f.querySelector('select[data-own="u"]').value}; }
+  else { SOGL[k] = +v; if (so) SOGM[k] = {o: +so.value, u: +f.querySelector('select[data-own="u"]').value}; else delete SOGM[k]; }
   ownSaved(f);
 });
 document.addEventListener("click", e => {
@@ -1697,8 +1804,10 @@ function openPaste(){
   const b = document.querySelector('#tabs button[data-t="proj"]'); if (b) b.click();
   $("#editBox").open = true; $("#boardBox").open = true; $("#boardBox").scrollIntoView({block: "start"});
 }
-// Check before betting: one row per player, game and market (his main line; the rest go in its panel), plus the
-// server's rows the Pick6 pull could not match
+function openSog(){ const b = document.querySelector('#tabs button[data-t="sogt"]'); if (b) b.click(); scrollTo(0, 0); }
+// Check before betting: a line that can be a play once checked (role change, team mismatch, a name that matched more
+// than one player), one row per player, game and market (his best such line; his other lines go in its panel), plus
+// the server's lines the Pick6 pull could not match. A review line that is a pass anyway stays in the main list.
 function checkRows(sel, mk){
   const day = $("#dateF").value, dayOf = r => r.date || (D.slate.find(g => g.id === r.game) || {}).date;
   const seen = new Set(sel.review.map(r => r.name + "|" + r.line));
@@ -1706,19 +1815,27 @@ function checkRows(sel, mk){
     (!mk || r.market === mk) && (!day || !dayOf(r) || dayOf(r) === day));
   const by = {};
   for (const r of sel.review.filter(r => !mk || r.market === mk).concat(extra)) (by[(r.player_id ?? r.name) + "|" + (r.game ?? "") + "|" + (r.market || "")] ||= []).push(r);
-  const alts = new Map(), rows = Object.values(by).map(rs => { const m = rs.find(r => r.primary) || rs[0]; alts.set(m, rs.filter(x => x !== m)); return m; });
+  const alts = new Map(), rows = [];
+  for (const rs of Object.values(by)){
+    const c = rs.filter(r => extra.includes(r) || statusOf(r) === "check").sort((a, b) => (b.p ?? 0) - (a.p ?? 0));
+    if (!c.length) continue;
+    rows.push(c[0]); alts.set(c[0], rs.filter(x => x !== c[0]));
+  }
   return {rows, alts, extra: rows.filter(r => extra.includes(r))};
 }
 // ---------- Board: Today's plays, Near miss, Check before betting ----------
 // Today's plays = SOG Lock / Strong kept by selectSog + saves / points TAKEs, Lock first, then by chance
 function renderPlays(pb){
-  const sel = pb.sel || {plays: [], near: [], review: []};
+  const sel = pb.sel || {plays: [], near: [], review: []}, day = $("#dateF").value;
   xBegin("board");
   const takes = pb.filter(isTake).sort((a, b) => (b.tier === "Lock") - (a.tier === "Lock") || (b.p ?? 0) - (a.p ?? 0) ||
     String(a.player_id ?? a.name).localeCompare(String(b.player_id ?? b.name)));
   const near = sel.near.slice().sort(sogRankCmp), nn = near.length;
+  const why = takes.length ? "" : noneWhy(pb.filter(r => r.primary));
   $("#playsBox").innerHTML = takes.length ? xList(takes, "board", {market: true})
-    : `<div class="x-empty">No plays right now.${nn ? ` ${nn} near miss${nn === 1 ? "" : "es"} below.` : ""} Lines refresh every 15 minutes.</div>`;
+    : !pb.length ? `<div class="x-empty">No lines posted${day ? ` for ${dayLabel(day)}` : ""} yet. Books post them through the morning; this page updates every 15 minutes.</div>`
+    : `<p class="x-none">No plays${why ? `: ${why}` : " right now"}.${nn ? ` ${nn} near miss${nn === 1 ? "" : "es"} below.` : ""}` +
+      `${pb.some(r => r.market === "sog") ? ` <button type="button" class="x-link js-to-sog">See every SOG line</button>` : ""}</p>`;
   $("#nPlays").textContent = takes.length;
   $("#cardNear").style.display = nn ? "" : "none";
   $("#nearBox").innerHTML = nn ? xList(near, "board", {market: true}) : "";
@@ -1740,15 +1857,35 @@ function sourcesOff(){
   const list = [["Pick6", SRC.pick6], ["PrizePicks", ppS], ["DraftKings", SRC.dk]].filter(([, s]) => s);
   return list.length && list.every(([, s]) => s.status === "error" || s.status === "fallback") ? list.map(([n]) => n + " off").join(", ") : "";
 }
+// one row per player per game: the line selectSog kept; else, for a review player, his line worth checking; else his
+// main line (selectSog's primary). His other lines are the ladder in the row's panel.
+function sogItems(sog){
+  const by = new Map();
+  for (const r of sog){ const k = (r.player_id ?? r.name) + "|" + r.game; if (!by.has(k)) by.set(k, []); by.get(k).push(r); }
+  const items = [], alts = new Map();
+  for (const rs of by.values()){
+    const kept = rs.find(r => r.sog_section === "plays" || r.sog_section === "near");
+    const chk = kept ? null : rs.filter(r => statusOf(r) === "check").sort((a, b) => (b.p ?? 0) - (a.p ?? 0))[0];
+    const m = kept || chk || rs.find(r => r.primary) || rs[0];
+    items.push(m); alts.set(m, rs.filter(x => x !== m));
+  }
+  return {items, alts};
+}
+// the control a re-render should give focus back to (keyboard and screen-reader users keep their place)
+const focusKey = el => el.id ? "#" + el.id : el.matches(".js-sx-clear") ? '[data-sx-game=""]' : el.matches(".js-sx-all") ? ".js-sx-all"
+  : [...el.attributes].filter(a => a.name.startsWith("data-sx-")).map(a => `[${a.name}="${CSS.escape(a.value)}"]`)[0] || null;
+const SORTS = [["close", "Closest to a play", "Closest"], ["chance", "Chance", "Chance"], ["time", "Game time", "Game time"], ["name", "Name", "Name"]];
 function renderSogTab(pb){
   pb = pb || LAST_PB || propBoard($("#dateF").value);
-  const day = $("#dateF").value, sel = pb.sel || {plays: [], near: [], review: []};
+  const day = $("#dateF").value, sel = pb.sel || {plays: [], near: [], review: []}, box = $("#sogBox");
+  const oldChips = box.querySelector(".x-chips"), sl = oldChips ? oldChips.scrollLeft : null;
+  const fe = document.activeElement, back = fe && fe !== document.body && box.contains(fe) && !fe.closest(".x-det") ? focusKey(fe) : null;
   xBegin("sog");
   const sog = pb.filter(r => r.market === "sog");
   SHOWN.sog = sog;
-  // one row per player per game: the line selectSog kept, else his main line (selectSog's primary); the rest are his ladder
-  const items = sog.filter(r => r.primary);
+  const {items, alts} = sogItems(sog);
   const chk = checkRows(sel, "sog"), extra = chk.extra;
+  for (const r of extra) alts.set(r, chk.alts.get(r) || []);
   const V = new Map(items.map(r => [r, dispSide(r)]));
   const games = D.slate.filter(g => !day || g.date === day).sort((a, b) => String(a.start || "").localeCompare(String(b.start || "")) || a.id - b.id);
   const byGame = {}; for (const r of items) byGame[r.game] = (byGame[r.game] || 0) + 1;
@@ -1760,52 +1897,67 @@ function renderSogTab(pb){
   const plays = shown.filter(r => ["lock", "strong"].includes(statusOf(r))).sort(sogRankCmp);
   const near = shown.filter(r => statusOf(r) === "near").sort(sogRankCmp);
   const check = shown.filter(r => statusOf(r) === "check").concat(extra.filter(r => (!game || String(r.game) === game) && matchQ(r.name, r.team, r.opp)));
-  // closest to a play: lines a higher chance would make a play, by edge; then lines blocked for another reason
-  const cl = r => { const v = V.get(r); return !v ? 2 : blockTag(r, v) ? 1 : 0; }, ed = r => (V.get(r) || {edge: -9}).edge;
-  const cmp = {close: (a, b) => cl(a) - cl(b) || ed(b) - ed(a),
-    chance: (a, b) => ((V.get(b) || {}).p ?? -1) - ((V.get(a) || {}).p ?? -1),
-    time: (a, b) => String(a.start || "").localeCompare(String(b.start || "")) || ed(b) - ed(a),
-    name: (a, b) => String(a.name).localeCompare(String(b.name))}[SOGX.sort] || ((a, b) => cl(a) - cl(b) || ed(b) - ed(a));
+  // closest to a play: lines a higher chance would make a play (by edge), then lines a rule blocks (by chance), then
+  // sportsbook odds (info only, by chance), then lines with no projection
+  const grp = r => { const v = V.get(r); if (!v) return 3; const t = blockTag(r, v); return !t ? 0 : t === "info only" ? 2 : 1; };
+  const ed = r => (V.get(r) || {edge: -9}).edge, ch = r => (V.get(r) || {}).p ?? -1;
+  const close = (a, b) => grp(a) - grp(b) || (grp(a) ? ch(b) - ch(a) : ed(b) - ed(a));
+  const cmp = {close, chance: (a, b) => ch(b) - ch(a), time: (a, b) => String(a.start || "").localeCompare(String(b.start || "")) || ed(b) - ed(a),
+    name: (a, b) => String(fullName(a)).localeCompare(String(fullName(b)))}[SOGX.sort] || close;
   const rest = shown.filter(r => statusOf(r) === "pass").sort((a, b) => cmp(a, b) || String(a.name).localeCompare(String(b.name)));
   const N = 12, restShown = SOGX.all ? rest : rest.filter((r, i) => i < N || XR.open.has(xKey(r, "sog")));
+  const DIV = {0: "Short of the chance bar", 1: "Blocked by a rule", 2: "Sportsbook odds · info only, never plays", 3: "No projection"};
+  const restRows = []; let gPrev = 0;
+  for (const r of restShown){ const gr = SOGX.sort === "close" ? grp(r) : 0; if (gr !== gPrev && restRows.length) restRows.push({divider: DIV[gr]}); gPrev = gr; restRows.push(r); }
   const R = (((D.legs || {}).by_market || {}).sog || {}).takes;
-  const dayTx = day ? new Date(day + "T12:00:00").toLocaleDateString("en-US", {weekday: "short", month: "short", day: "numeric"}) : "All dates";
   const sec = (title, n, body, right = "") => `<div class="x-sec"><h3>${title} <span class="n">${n}</span>${right ? `<span class="r">${right}</span>` : ""}</h3>${body}</div>`;
   const chip = (val, label, n) => `<button type="button" class="x-chip${game === val ? " on" : ""}" data-sx-game="${val}" aria-pressed="${game === val}">${label}<span class="n">${n}</span></button>`;
   const seg = (key, cur, opts, label) => `<div class="x-seg" role="group" aria-label="${label}">${opts.map(([v, l]) =>
     `<button type="button" class="${cur === v ? "on" : ""}" data-sx-${key}="${v}" aria-pressed="${cur === v}">${l}</button>`).join("")}</div>`;
-  const sortSel = `<label class="x-sort">Sort <select id="sxSort">${[["close", "Closest to a play"], ["chance", "Chance"], ["time", "Game time"], ["name", "Name"]]
+  const srt = SORTS.find(s => s[0] === SOGX.sort) || SORTS[0];
+  const sortSel = `<label class="x-pick x-sort">Sort: <b>${srt[2]}</b><span class="cv" aria-hidden="true">▾</span><select id="sxSort" aria-label="Sort other lines">${SORTS
     .map(([v, l]) => `<option value="${v}" ${SOGX.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`;
+  const dateSel = `<label class="x-pick x-date"><span class="x-dtx">${dayLabel(day)}</span><span class="cv" aria-hidden="true">▾</span><select id="sxDate" aria-label="Date">${[...$("#dateF").options]
+    .map(o => `<option value="${esc(o.value)}" ${o.value === day ? "selected" : ""}>${dayLabel(o.value)}</option>`).join("")}</select></label>`;
   const nm = n => `${n} near miss${n === 1 ? "" : "es"}`;
   let body;
   if (!items.length && !extra.length){
     const down = sourcesOff();
     body = `<div class="x-empty">${down ? `Lines unavailable (${down}). Paste a board under <button type="button" class="x-link js-paste">Starters, lines and sources</button>.`
-      : `No SOG lines posted for ${dayTx} yet. Books post them through the morning; this page updates every 15 minutes.`}</div>`;
+      : `No SOG lines posted${day ? ` for ${dayLabel(day)}` : ""} yet. Books post them through the morning; this page updates every 15 minutes.`}</div>`;
   } else if (!shown.length && !check.length && (fOn || qOn)){
-    body = `<div class="x-empty">No lines match these filters.<button type="button" class="x-link js-sx-clear">Clear filters</button></div>`;
+    body = `<div class="x-empty">${qOn && !fOn ? `No player or team matches “${esc(Q())}”.<button type="button" class="x-link js-sx-clear">Clear search</button>`
+      : `No lines match these filters.<button type="button" class="x-link js-sx-clear">Clear filters</button>`}</div>`;
   } else {
-    body = sec("Plays", plays.length, plays.length ? xList(plays, "sog")
-        : `<div class="x-empty">No SOG plays ${fOn || qOn ? "match these filters" : "right now"}.${near.length ? ` ${nm(near.length)} below.` : ""}</div>`) +
-      (near.length ? sec("Near miss", near.length, xList(near, "sog"), `${Math.round(100 * nearP("sog"))}–${pc0(takeP("sog"))}, not plays`) : "") +
-      (rest.length ? sec("All lines", rest.length, xList(restShown, "sog", {}, rest.length > N ? `<button type="button" class="x-more js-sx-all">${SOGX.all ? "Show fewer" : `Show all ${rest.length}`}</button>` : ""), sortSel) : "") +
-      (check.length ? `<details class="x-sec" data-keep="sogCheck"${XR.keep.sogCheck ? " open" : ""}><summary>Check before betting <span class="n">${check.length}</span></summary>${xList(check, "sog", {check: true, alts: chk.alts})}</details>` : "");
+    const why = plays.length ? "" : noneWhy(items);
+    body = (plays.length ? sec("Plays", plays.length, xList(plays, "sog", {alts}))
+        : fOn || qOn ? "" : sec("Plays", 0, `<p class="x-none">No SOG plays${why ? `: ${why}` : " right now"}.${near.length ? ` ${nm(near.length)} below.` : ""}</p>`)) +
+      (near.length ? sec("Near miss", near.length, xList(near, "sog", {alts}), `${Math.round(100 * nearP("sog"))}–${pc0(takeP("sog"))}, not plays`) : "") +
+      (rest.length ? sec("Other lines", rest.length, xList(restRows, "sog", {alts, nt: !plays.length && !near.length}, rest.length > N ? `<button type="button" class="x-more js-sx-all">${SOGX.all ? "Show fewer" : `Show all ${rest.length}`}</button>` : ""), sortSel) : "") +
+      (check.length ? `<details class="x-sec" data-keep="sogCheck"${XR.keep.sogCheck ? " open" : ""}><summary>Check before betting <span class="n">${check.length}</span></summary>${xList(check, "sog", {check: true, alts})}</details>` : "");
   }
-  $("#sogBox").innerHTML = `<div class="x-head"><h2>Shots on goal</h2><span class="x-date">${dayTx}</span><button type="button" class="x-link js-rules">How picks work</button></div>
-    <div class="x-record">SOG plays graded so far: ${R && R.n ? `<b>${R.hit}–${R.miss}</b> (${pc0(R.pct)})` : "none yet"} · a play needs ${pc0(takeP("sog"))}+ with the market agreeing</div>` +
+  box.innerHTML = `<div class="x-head"><h2>Shots on goal</h2>${dateSel}<button type="button" class="x-link js-rules">How picks work</button></div>
+    <div class="x-record">SOG plays graded: ${R && R.n ? `<b>${R.hit}–${R.miss}</b> (${pc0(R.pct)})` : "none yet"} · plays need ${pc0(takeP("sog"))}+ · times CT</div>` +
     (items.length ? `<div class="x-chips" role="group" aria-label="Game">${chip("", "All games", items.length)}${games.filter(g => byGame[g.id])
         .map(g => chip(String(g.id), `${g.away} @ ${g.home} ${ctStart(g).replace(" CT", "")}`, byGame[g.id])).join("")}</div>` +
-      `<div class="x-filters">${seg("side", SOGX.side, [["", "All"], ["OVER", "▲ More"], ["UNDER", "▼ Less"]], "Side")}` +
+      `<div class="x-filters">${seg("side", SOGX.side, [["", "Both"], ["OVER", "▲ More"], ["UNDER", "▼ Less"]], "Side")}` +
       `${books.length > 1 ? seg("book", book, [["", '<span class="lbl-l">All books</span><span class="lbl-s">All</span>'],
-        ...books.map(b => [b, b === "Yours" ? "Your lines" : b === "DraftKings" ? '<span class="lbl-l">DraftKings</span><span class="lbl-s">DK</span>' : b])], "Book") : ""}` +
-      `${fOn ? `<button type="button" class="x-link js-sx-clear">Clear filters</button>` : ""}</div>` : "") + body;
+        ...books.map(b => [b, b === "Yours" ? "Your lines" : b === "DraftKings" ? '<span class="lbl-l">DraftKings</span><span class="lbl-s">DK</span>'
+          : b === "PrizePicks" ? '<span class="nw-l">PrizePicks</span><span class="nw-s">PP</span>' : b])], "Book") : ""}` +
+      `${fOn && (shown.length || check.length) ? `<button type="button" class="x-link js-sx-clear">Clear filters</button>` : ""}</div>` : "") + body +
+    `<p class="x-foot">Line not here? <button type="button" class="x-link js-paste">Add your own</button></p>`;
+  // keep the game chips where they were scrolled (on first render, bring the selected one into view) and give focus back
+  const nc = box.querySelector(".x-chips");
+  if (nc){ const on = nc.querySelector(".x-chip.on"); nc.scrollLeft = sl != null ? sl : on && game ? Math.max(0, on.offsetLeft - 16) : 0; }
+  const nb = back && box.querySelector(back); if (nb) nb.focus({preventScroll: true});
 }
-// SOG tab controls: game chips, side / book segments, sort, show all, clear; "How picks work"; the paste link
+// SOG tab controls: game chips, side / book segments, show all, clear; "How picks work"; the paste link; Board → SOG
 document.addEventListener("click", e => {
-  const b = e.target.closest("[data-sx-game],[data-sx-side],[data-sx-book],.js-sx-all,.js-sx-clear,.js-rules,.js-paste");
+  const b = e.target.closest("[data-sx-game],[data-sx-side],[data-sx-book],.js-sx-all,.js-sx-clear,.js-rules,.js-paste,.js-to-sog");
   if (!b) return;
   if (b.matches(".js-rules")){ openRules(); return; }
   if (b.matches(".js-paste")){ openPaste(); return; }
+  if (b.matches(".js-to-sog")){ openSog(); return; }
   if (b.dataset.sxGame !== undefined) SOGX.game = b.dataset.sxGame;
   else if (b.dataset.sxSide !== undefined) SOGX.side = b.dataset.sxSide;
   else if (b.dataset.sxBook !== undefined) SOGX.book = b.dataset.sxBook;
@@ -1814,9 +1966,17 @@ document.addEventListener("click", e => {
     SOGX.game = SOGX.side = SOGX.book = "";
     if (Q()){ $("#q").value = ""; $("#q").dispatchEvent(new Event("input")); }
   }
+  // Safari does not focus a tapped button: focus it so the re-render can hand focus back to its replacement
+  if (b.closest("#sogBox") && document.activeElement !== b) b.focus({preventScroll: true});
   sogxSave(); renderSogTab();
 });
-document.addEventListener("change", e => { if (e.target.id === "sxSort"){ SOGX.sort = e.target.value; sogxSave(); renderSogTab(); } });
+document.addEventListener("change", e => {
+  const id = e.target.id;
+  if (id === "sxSort"){ SOGX.sort = e.target.value; sogxSave(); renderSogTab(); }
+  else if (id === "sxDate"){ $("#dateF").value = e.target.value; renderSlate(); }
+  else return;
+  const el = document.getElementById(id); if (el) el.focus({preventScroll: true});
+});
 function renderLive(){
   const L = (D.live || {}).legs || [], all = $("#liveAll") && $("#liveAll").checked;
   const rows = L.filter(r => all || String(r.verdict || "").startsWith("TAKE"));
@@ -1933,7 +2093,7 @@ function renderStatus(pb){
     STALE ? `<span class="warn">⚠ Stale: built ${BUILD_AGE_H.toFixed(1)} h ago on a game day. Wait for the next build before betting.</span>` : "",
     `<span>${SRC_PILLS}</span>`,
     ].filter(Boolean).join(" ");
-  $("#alarmBox").innerHTML = alarms.length ? `<div class="statusbar"><div class="alarms">${alarms.map(a => `<div>${a}</div>`).join("")}</div></div>` : "";
+  $("#alarmBox").innerHTML = alarms.map(a => `<div class="x-alert">${a}</div>`).join("");
   renderFeeds(); renderSources();
 }
 setInterval(() => { try { renderSources(); } catch (e) {} }, 30000);   // ages keep counting while the page is open
@@ -2250,18 +2410,26 @@ function renderLogic(){
   $("#parT").innerHTML = `<tbody>${rows.map(r => `<tr><td class="l">${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</tbody>`;
   // the rules as verdictFor / selectSog apply them, with this build's settings (model/pricing.py)
   const tp = mk => pc0(takeP(mk)), one = takeP("sog") === takeP("points") && takeP("points") === takeP("saves");
+  const MKN = {sog: "shots", points: "points", saves: "saves"};
+  // tiers per market, markets with the same bars named together ("shots: Lock 64%+, Strong 62–64%; points and saves: ...")
+  const tierTx = mk => `<b>Lock</b> ${pc0(lockP(mk))}+, <b>Strong</b> ${Math.round(100 * takeP(mk))}–${pc0(lockP(mk))}`;
+  const tierGroups = {}; for (const mk of ["sog", "points", "saves"]) (tierGroups[`${takeP(mk)}|${lockP(mk)}`] ||= []).push(mk);
+  const tiers = Object.values(tierGroups), tiersTx = tiers.length === 1 ? tierTx("sog") : tiers.map(g => `${g.map(k => MKN[k]).join(" and ")}: ${tierTx(g[0])}`).join("; ");
+  // markets where this build's blend gives the market all of the weight: there Chance is the market's no-vig price
+  const mktOnly = ["sog", "points", "saves"].filter(mk => CAL[mk] && CAL[mk].cal && blendW(CAL[mk].cal) <= 0).map(mk => MKN[mk]);
   const never = [!RULE.priced_takes ? "sportsbook-priced lines (DraftKings odds are shown for information: the model has no edge over the book's own price)" : "",
     "lines with no market price on the same line (model-only picks have not won)", !RULE.saves_take_overs ? "saves overs (they lost at every threshold)" : "",
-    `points unders at ${RULE.points_under_max}+ (the model is overconfident there)`, DFS.sub1x ? "" : `sides paying under ${RULE.min_mult}x (allow them in ⚙ Pick'em)`].filter(Boolean);
+    `points unders at ${RULE.points_under_max}+ (the model is overconfident there)`,
+    `shots-on-goal sides paying under ${RULE.min_mult}x${DFS.sub1x ? "" : `, and points and saves sides under ${RULE.min_mult}x unless you allow them in ⚙ Pick'em`}`].filter(Boolean);
   $("#ruleList").innerHTML = [
     `Every line ends in one call: <b>TAKE MORE</b>, <b>TAKE LESS</b> or <b>PASS</b>. Tap a row for the reason in plain English, the numbers behind it and his other lines.`,
     `A <b>TAKE</b> needs all of these: a pick'em price (Pick6, PrizePicks or a line you type) paying <b>${RULE.min_mult}x or better</b> on that side; the market's own no-vig probability for the side at <b>${pc0(RULE.mkt_min)}+</b> on the same line; a chance of <b>${one ? tp("sog") : `${tp("sog")} (shots), ${tp("points")} (points), ${tp("saves")} (saves)`}+</b> that also beats the price's break-even (${pc1(dfsBE(1))} at 1x on your ${DFS.legs}-pick ${DFS.payout}x entry); the player matched to his NHL id; and the model alone leaning the same way.`,
-    `<b>Chance</b> = the calibrated model blended with the market's no-vig price on the same line, by a weight fitted on graded lines (Calibration tab). <b>Needs</b> = the bar or the price's break-even, whichever is higher; <b>edge</b> = chance minus needs.`,
+    `<b>Chance</b> = the calibrated model blended with the market's no-vig price on the same line, by a weight fitted on graded lines (Calibration tab)${mktOnly.length ? `; this build gives the market all of the weight for ${mktOnly.join(" and ")}, so there Chance is the market's no-vig price` : ""}. A line with no market price shows the model alone and is never a play. <b>Needs</b> = the bar or the price's break-even, whichever is higher; <b>edge</b> = chance minus needs, in percentage points. <b>Proj</b> is the model's projection and <b>Diff</b> = projection − line (red when it points against the side).`,
     `Never a play: ${never.join("; ")}.`,
     `Saves also need a confirmed starter and a projection <b>${RULE.saves_edge_over}+</b> saves past the line on overs, <b>${RULE.saves_edge_under}+</b> on unders.`,
-    `Tiers: <b>Lock</b> ${pc0(lockP("sog"))}+, <b>Strong</b> ${Math.round(100 * takeP("sog"))}–${pc0(lockP("sog"))}. <b>Near miss</b>: ${Math.round(100 * nearP("sog"))}–${tp("sog")} with every other check met; shown, never a play.`,
+    `Tiers: ${tiersTx}. <b>Near miss</b> (shots): ${Math.round(100 * nearP("sog"))}–${tp("sog")} with every other check met; shown, never a play.`,
     `Shots on goal: at most one line per player per game, his other lines in the row's panel. A line that loses a conflict (a teammate's opposite-side play, or a saves play the other way) falls back to his next-best line; ⚠ marks the conflict.`,
-    `<b>Check before betting</b>: role changes (old line → new line), team mismatches and names that matched more than one player.`
+    `<b>Check before betting</b>: a line that would be a play or a near miss but needs a look first: a role change (old line → new line), a team mismatch or a name that matched more than one player. A flagged line that is a pass anyway stays in the main list, with the flag.`
   ].map(x => `<li>${x}</li>`).join("");
   document.querySelectorAll(".k_sv").forEach(e => e.textContent = P.k_sv);
   document.querySelectorAll(".carry").forEach(e => e.textContent = Math.round(P.carry*100) + "%");

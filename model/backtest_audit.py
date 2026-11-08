@@ -247,7 +247,11 @@ def md(rep) -> str:
          "(every player-game), plus this season's real graded lines.", "",
          "**Read sections 1-2 carefully:** the shipped shots parameters are fitted on 2025-26, so the 2024-25 and 2025-26 "
          "player-game rows are scored with parameters that saw 2025-26 (in-sample; an honest refit on 2024-25 alone shows "
-         "a bias about 0.5 point larger at 1.5 / 2.5). Only the 2026-27 rows and the real-line sections are out of sample.", ""]
+         "a bias about 0.5 point larger at 1.5 / 2.5). Only the 2026-27 rows and the real-line sections are out of sample, with "
+         "three exceptions chosen with this season's lines in view: the shots projection's design (attempt rate, two-scale "
+         "ice time), the 50/50 mean-blend weight (the in-sample log-loss optimum; a weight chosen week by week on earlier "
+         "weeks scores 0.68478 against DK's 0.68592 on the same lines) and the SOG rule's 62% / 55% bars (bars re-chosen "
+         "each week from earlier weeks give the same record within one standard error).", ""]
     # 1
     L += ["## 1. Shots distribution (item 4): dispersion by position and volume tier", "",
           "Randomized PIT deciles should each hold 10%; P(shots ≥ k) predicted vs actual. Old = one disp_k (size = 10 × mean); new = disp_k per position and projection tier, fitted on earlier seasons only.", ""]
@@ -271,7 +275,7 @@ def md(rep) -> str:
     for season, cells in rep["synthetic"].items():
         for c in cells:
             L.append(f"| {NAME[int(season)]} | {c['side']} | {c['line']} | {c['n']} | {pct(c['pred'])} | {pct(c['actual'])} | {100 * (c['actual'] - c['pred']):+.1f} |")
-    L += ["", "### Real graded DraftKings lines, this season, walk-forward", ""]
+    L += ["", "### Real graded DraftKings lines, this season, walk-forward (SOG's 'mean blend 50/50 (live)' row: weight chosen on these lines)", ""]
     for mk, m in rep["real"].items():
         c = m["cal"]
         L += [f"**{mk}**: {m['lines']} lines {m['from']} to {m['to']}. Model weight in the blend **{c.get('w')}** "
@@ -290,8 +294,9 @@ def md(rep) -> str:
         L += ["", f"Model's side where it and DK no-vig disagree (walk-forward): {d.get('hit')}-{(d.get('n') or 0) - (d.get('hit') or 0)} ({pct(d.get('pct'))}), against a 57.7% 1x break-even.", ""]
     # 4
     L += ["## 3. Rule-passing legs on real lines (items 3 and 9)", "",
-          "Walk-forward on every graded DK line with a pre-game price. New = the live TAKE rule choosing as if the side were a 1x DFS leg: market support (its own side ≥ 55%) and blended p over the bar (SOG: the 50/50 mean blend at ≥ 62%, no model-agrees check; its bars were chosen on these dates, so SOG 'new' is in-sample for the bars; points: the fitted blend at ≥ 58%, model agrees). Old = calibrated model blended 60/40 at p ≥ 58%. Both rules on the same warm weeks.",
-          "Each pick is settled three ways. **1x** is hypothetical: DFS boards discount exactly these sides (on Nov 3-8 Pick6 paid ≥1x on 0 sides DK priced at 54%+), so it overstates. **DK price** is DraftKings' own odds. **Real DFS** settles only the sides a Pick6-style board would offer at ≥ 1x, at that multiplier. ± is one standard error.", "",
+          "Walk-forward on every DK line the tracker logged with a pre-game price (one line per player and date: the line in the last pre-game call; "
+          "an independent recompute on every DK quote, 4,358 SOG lines, gives the same SOG record within one standard error). New = the live TAKE rule choosing as if the side were a 1x DFS leg: market support (its own side ≥ 55%) and blended p over the bar (SOG: the 50/50 mean blend at ≥ 62%, no model-agrees check; its bars were chosen on these dates, so SOG 'new' is in-sample for the bars; points: the fitted blend at ≥ 58%, model agrees). Old = calibrated model blended 60/40 at p ≥ 58%. Both rules on the same warm weeks.",
+          "Each pick is settled three ways. **1x** is hypothetical: DFS boards discount exactly these sides (on Nov 3-8 Pick6 paid ≥1x on 0 sides DK priced at 54%+), so it overstates. **DK price** is DraftKings' own odds. **Real DFS** settles only the sides a Pick6-style board would offer at ≥ 1x, at that multiplier, using the measured map (DK no-vig under 50%: 1.00x, 50-54%: 0.94x, 54%+: 0.8x). A rule that needs the market's side at 55%+ therefore has 0 real DFS legs by construction; the data agrees (of 1,999 graded Pick6 SOG legs, none qualified at ≥ 1x). ± is one standard error.", "",
           "| market | rule | legs | record | hit % | units 1x (hypothetical) | ROI at DK price | real DFS legs | ROI real DFS |", "|---|---|---|---|---|---|---|---|---|"]
     fse = lambda v: f" ± {100 * v:.1f}" if v is not None else ""
     for mk, r in rep["rule_legs"].items():

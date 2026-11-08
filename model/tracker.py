@@ -329,6 +329,35 @@ def _write_log(rows):
         w.writerows(rows)
 
 
+def _regrade(log, gb, sb) -> int:
+    """NHL stat corrections: a graded line whose box-score stat has since changed is re-graded in place (the row
+    keeps a note with the old value). One index of the current box scores for the graded dates, not a scan per row.
+    Returns how many rows changed."""
+    graded = [r for r in log if r.get("result") in ("HIT", "MISS", "PUSH") and r.get("market") in ("saves", "sog", "points")
+              and r.get("actual") not in (None, "")]
+    if not graded:
+        return 0
+    dates = {r["date"] for r in graded}
+    cur = {}
+    for mk, box, stat in (("saves", gb[gb.starter == True], "saves"), ("sog", sb, "shots_on_goal"), ("points", sb, "points")):  # noqa: E712
+        b = box[box.game_date.isin(dates)]
+        for d, t, nm, v in zip(b.game_date, b.team_abbrev, b.player_name.map(prizepicks.name_key), b[stat]):
+            if v == v:
+                cur.setdefault((mk, d, t, nm), int(v))
+    changed = 0
+    for r in graded:
+        try:
+            old = int(float(r["actual"]))
+        except (TypeError, ValueError):
+            continue
+        v = cur.get((r["market"], r["date"], r["team"], prizepicks.name_key(r["player"])))
+        if v is not None and v != old:
+            r["actual"], r["result"] = v, _result(r["side"], v, float(r["line"]))
+            r["note"] = "; ".join(x for x in (r.get("note"), f"stat corrected {old}→{v}") if x)
+            changed += 1
+    return changed
+
+
 def _result(side, actual, line):
     if actual == line:
         return "PUSH"
@@ -462,6 +491,7 @@ def grade(years, today: dt.date | None = None):
                 q = pr.get((r["market"], r["date"], prizepicks.name_key(r["player"]), float(r["line"])))
                 if q:
                     r["price"] = q["over"] if r["side"].upper() in ("OVER", "MORE") else q["under"]
+    _regrade(log, gb, sb)
     # fill actuals for any logged line still waiting on a result
     for r in log:
         if r.get("result") or r["market"] not in ("saves", "sog", "points"):

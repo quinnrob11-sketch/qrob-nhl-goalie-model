@@ -1,9 +1,17 @@
 # Accuracy review (2026-11-08)
 
-What the out-of-sample tests say about the props board, and what changed because of them. Every number below
-comes from walk-forward testing: anything that is fitted was fitted only on earlier dates, and every
-DraftKings price is the last snapshot taken **before** puck drop (`model/prices.py`). Where something was
-chosen on the same dates it is then scored on, that is said.
+What the out-of-sample tests say about the props board, and what changed because of them. Anything fitted
+was fitted only on earlier dates (walk-forward), and every DraftKings price is the last snapshot taken
+**before** puck drop (`model/prices.py`). Three choices were made with this season's lines in view, and each
+is marked where it appears:
+
+* the shots projection's design;
+* the 50/50 blend weight;
+* the 62% / 55% play bars.
+
+An independent audit found no look-ahead. It reproduced every number here with its own code, from the raw
+price snapshots and box scores (scrambling future games leaves every earlier projection, probability, verdict
+and settlement unchanged).
 
 ## The short version
 
@@ -33,6 +41,10 @@ Ice time is now **0.7 × a 3-game average + 0.3 × a 24-game average** (`sog.Sog
 | Leak test (future rows deleted) | identical projections |
 | Placebo (shots on goal treated as "attempts") | -0.06e-3 ± 0.03: the attempt data is real information |
 
+The design and its search grid were picked with the 2025-26 and 2026-27 results, and this season's DK lines,
+in view. The fitted values use no 2026-27 game: re-running the fit with 2026-27 deleted reproduces them exactly.
+The 2025-26 gain alone, +2.12e-3 ± 0.29, is the cleaner out-of-sample number.
+
 **Probability: a 50/50 blend with the market, in expected shots.** DraftKings' price on the player's line nearest
 50% is turned into the expected-shots number that reproduces it (`sog.implied_mean`). That number is averaged
 50/50 with the projection, and the result is priced at every line with the model's own dispersion. The Platt
@@ -46,9 +58,15 @@ against 0.007 for the blend).
 | raw model | 0.68612 | 0.24649 |
 | **live: 50/50 mean blend** | **0.68458** | **0.24576** |
 
-This is the only probability that scores better than DK, and it is not yet a reliable margin. The separate
-experiment at DK's own line measured -0.88e-3 ± 0.88. Away from DK's line (±1 / ±2 and whole-number lines),
-it beats the plain market transfer by -1.46e-3 ± 0.68.
+It scores best, but not by a reliable margin. The older Platt blends are also slightly below DK (0.6849-0.6859).
+On every DK quote that has a box score (4,358 lines, the independent recompute), the blend scores 0.68302
+against DK's 0.68495, a difference of -1.9e-3 ± 0.8.
+
+**The 0.5 weight was chosen on these lines.** It is the in-sample log-loss optimum, and the curve is flat from
+0.4 to 0.6. A weight chosen week by week from earlier weeks only scores 0.68478, still 1.15e-3 ± 0.91 below DK.
+
+The separate experiment at DK's own line measured -0.88e-3 ± 0.88. Away from DK's line (±1 / ±2 and
+whole-number lines), the blend beats the plain market transfer by -1.46e-3 ± 0.68.
 
 **Rule (R1).** A shots TAKE needs all of the following:
 * blended p of at least **62%** (Lock at 64%);
@@ -58,15 +76,27 @@ it beats the plain market transfer by -1.46e-3 ± 0.68.
 
 There is no separate "model alone agrees" check for shots: the blend already carries the model.
 
-| R1 on graded DK lines, if each side were a 1x leg | n | hit | ROI at DK's price |
+| R1 on graded DK lines, as if each side were a 1x leg (bars chosen on these lines) | n | hit | ROI at DK's price |
 |---|---|---|---|
-| warm walk-forward weeks (`reports/audit_backtest.md` §3) | 270 | **66.3% ± 2.9** | +2.4% ± 4.5 |
-| test-period experiment (10-07..11-06) | 246 | 63.8% ± 3.1 | -1.5% ± 4.1 |
+| lines the tracker logged, warm weeks (`reports/audit_backtest.md` §3) | 270 | **66.3% ± 2.9** | +2.4% ± 4.5 |
+| every DK quote with a box score, all weeks (independent recompute) | 446 | 67.3% ± 2.2 | +3.9% ± 3.4 |
+| bars re-chosen each week from earlier weeks only | – | 65.4-67.6% | +0.9% to +3.6% |
+| test-period experiment (one line per player-date, 10-07..11-06) | 246 | 63.8% ± 3.1 | -1.5% ± 4.7 |
 
-The 62% and 55% cut-offs were chosen on these same dates. A cut-off picked on the first half and tested on the
-second lands at 60-63%, and every rule did better in the second half (market-only included). At DK's own price
-the R1 picks are about break-even. They only make money where a DFS board pays 1x on the side, and none has done
-that yet (0 such legs on 1,835 graded Pick6 legs). **Expect roughly 0 shots plays on a typical night.**
+* **Bars.** The 62% and 55% cut-offs were chosen on these same dates. The record does not hang on that choice:
+  - The record rises steadily with the bar: 64.4% at 61%, 66.3% at 62%, 68.4% at 63%.
+  - Bars re-chosen each week from earlier weeks only land within one standard error of the fixed ones.
+  - Bars picked on the first half give 68.6% / +5.3% ± 6.1 on the second half.
+* **Price.** At DK's own price the R1 picks are about break-even. By the blend's own probabilities they should
+  return about -1% there (DK's vig on these props is about 8.7%), and the realized numbers are within about one
+  standard error of that. DK's favourites alone (no-vig 55%+) hit exactly their no-vig, 58.5%, and return
+  -6.7% ± 1.7.
+* **Payout.** These picks only make money where a DFS board pays 1x on the side, and none has done that yet:
+  0 of 1,999 graded Pick6 SOG legs qualified at 1x or better. The "real DFS" column in the audit is 0 by
+  construction (sides DK prices at 54%+ are taken to pay 0.8x, as measured on Nov 3-8 boards), and the leg log
+  agrees.
+
+**Expect roughly 0 shots plays on a typical night.**
 
 **Ladders.** Pick6's More-only rungs and other high-multiplier sides lose money even with accurate
 probabilities. Per-leg EV was about -17% at 1x, falling to -46% at 8x and above. Pick6 pays a median 0.59 of
@@ -93,8 +123,6 @@ DraftKings price produced 3 phantom plays in testing.
 * No overs: they lost at every edge threshold.
 * A TAKE needs a market price on the line. The DK saves market is close to a coin flip (log loss 0.692), and
   the model ties it at best. So saves TAKEs are now very rare.
-* Known gap: saves are calibrated on a probability without the rolling bias correction, while the page applies
-  one. With no saves overs and a market requirement, this does not change any call today.
 
 ## Data fixes behind these numbers
 
@@ -106,6 +134,18 @@ DraftKings price produced 3 phantom plays in testing.
 * **The results panel** counts only playable legs: graded, the game's last pre-game build, offered at 1x or
   better or priced, and one row per leg across sources. It settles each leg at its real price, so it no longer
   counts sides a board didn't offer.
+
+## Known gaps
+
+* **Saves calibration:** saves are calibrated on a probability without the rolling bias correction, while the page
+  applies one. With no saves overs and a market requirement, this changes no call today.
+* **One line per player and date:** the tracker log keeps one DK line per player and date: the line in the last
+  pre-game call. When DK moved a line during the day, the earlier one is not in the record. The full set of quotes
+  gives the same record within one standard error (table above).
+* **Name joins:** a few names join on initials and last name (e.g. two "E. Pettersson" on Vancouver resolve by row
+  order), and some spellings miss (Yegor / Egor Chinakhov, "J.Kulich"): 17 of 4,358 quotes.
+* **Stat corrections:** graded lines are now re-graded when the NHL box score changes later
+  (`tracker._regrade`). 23 logged lines had stale results (12 shots, 11 saves). No shots play was affected.
 
 ## How to read the board
 

@@ -45,10 +45,12 @@ SAVES_BIAS_HL = 30.0        # days; half-life of the rolling saves bias correcti
 MKT_MIN = 0.55              # shots / points / saves: a TAKE needs a market quote whose own side is at least this
 NEAR_BAND = 0.03            # near miss: p within this of the market's TAKE bar, everything else met
 SOG_TAKE_P = 0.62           # shots on goal (rule R1 of the review): blended p of the side at least this, with the
-SOG_LOCK_P = 0.64           # market's own side >= MKT_MIN and the side offered at >= 1x. Walk-forward on DK lines
-                            # (10-07..11-06, n=246) it hit 63.8% +- 3.1: +10.5% per leg at a 1x payout, -1.5% +- 4.1
-                            # at DK's own price. No DFS board has offered such a side at >= 1x yet, so expect ~0 a night.
-SOG_MEAN_W = 0.5            # shots on goal: weight on the market-implied mean in the projection blend (0 = off):
+SOG_LOCK_P = 0.64           # market's own side >= MKT_MIN and the side offered at >= 1x. On DK lines 10-07..11-06
+                            # (n=246; bars chosen on this period) it hit 63.8% +- 3.1: +10.5% per leg at a 1x payout,
+                            # -1.5% +- 4.7 at DK's own price. No DFS board has offered such a side at >= 1x yet, so
+                            # expect ~0 a night.
+SOG_MEAN_W = 0.5            # shots on goal: weight on the market-implied mean in the projection blend (0 = off;
+                            # 0.5 is the in-sample log-loss optimum on this season's DK lines, flat from 0.4 to 0.6):
                             # mu = (1 - w) x model projection + w x the NB mean that reproduces the market's no-vig,
                             # priced at any line with the model's dispersion (no Platt: off DK's line the Platt fit
                             # was miscalibrated, ECE 0.08 vs 0.007 for the blend)

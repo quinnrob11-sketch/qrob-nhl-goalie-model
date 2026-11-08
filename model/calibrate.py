@@ -375,8 +375,9 @@ def rule_record(x: pd.DataFrame, r: pd.DataFrame, mk: str) -> dict:
     requires it) replayed on the warm walk-forward weeks only, choosing as if each side were a 1x DFS leg, and settled
     three ways: at DraftKings' own price; as a hypothetical 1x leg (overstates: DFS boards discount these sides); and
     only where a DFS board would really offer the side at >= 1x (realistic_mult), at that multiplier. Hit rates and
-    ROI carry one SE. SOG uses the live mean blend (p_mb_over) with the raw model as p_model; it fits nothing, so
-    every week counts (its 62% / 55% bars were chosen on these dates: in-sample for the bars)."""
+    ROI carry one SE. SOG uses the live mean blend (p_mb_over) with the raw model as p_model; it fits nothing week by
+    week, so every week counts, but its 0.5 weight and its 62% / 55% bars were chosen on these dates (in-sample for
+    those three numbers; bars re-chosen from earlier weeks only give the same record within one SE)."""
     be1 = pricing.dfs_break_even(1.0)
     mb = mk == "sog" and "p_mb_over" in x
     picks = []
@@ -410,7 +411,7 @@ def rule_record(x: pd.DataFrame, r: pd.DataFrame, mk: str) -> dict:
     return {"all": rec(picks), "over": rec([q for q in picks if q["side"] == "OVER"]),
             "under": rec([q for q in picks if q["side"] == "UNDER"]),
             "basis": ("live TAKE rule (50/50 mean blend, no Platt), every week, DraftKings lines with a pre-game price; "
-                      "the 62% / 55% bars were chosen on these dates") if mb else
+                      "the 50/50 weight and the 62% / 55% bars were chosen on these dates") if mb else
                      "live TAKE rule, warm walk-forward weeks, DraftKings lines with a pre-game price"}
 
 
