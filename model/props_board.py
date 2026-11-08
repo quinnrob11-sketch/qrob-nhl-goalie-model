@@ -226,11 +226,12 @@ def score_lines(payload, lines) -> list[dict]:
         stale_src = _cached_reason(r, cached, pk is not None)
         if stale_src and str(v.get("verdict", "")).startswith("TAKE"):
             v.update(verdict="PASS", tier="", reason=stale_src)
-        row.update(proj=round(proj, 3), p_raw=round(po, 4), p_model=round(pm, 4), p_mkt=None if pk is None else round(pk, 4),
-                   p_blend=round(pb, 4), w=pricing.blend_w(cal), dk_over=over_p, dk_under=under_p, confirmed=confirmed,
-                   mkt_src=mkt_src if pk is not None else None, mu_mkt=None if mu_mkt is None else round(mu_mkt, 3),
-                   mean_blend=mk == "sog" and pricing.SOG_MEAN_W > 0, cached=bool(stale_src),
-                   **{k: (round(x, 4) if isinstance(x, float) else x) for k, x in v.items()})
+        # probabilities ship at full precision: the page re-decides every row from them (finishRow), and a value
+        # rounded onto a bar (61.996% -> 62.00%) would turn a near miss into a TAKE there but not here
+        row.update(proj=round(proj, 3), p_raw=po, p_model=pm, p_mkt=pk, p_blend=pb, w=pricing.blend_w(cal),
+                   dk_over=over_p, dk_under=under_p, confirmed=confirmed,
+                   mkt_src=mkt_src if pk is not None else None, mu_mkt=mu_mkt,
+                   mean_blend=mk == "sog" and pricing.SOG_MEAN_W > 0, cached=bool(stale_src), **v)
         out.append(row)
     return out
 

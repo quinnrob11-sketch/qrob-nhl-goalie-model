@@ -1,6 +1,6 @@
 # Audit backtest: before / after
 
-Built 2026-11-08 10:28 UTC by `python model/backtest_audit.py`. Seasons: 2024-25, 2025-26, 2026-27 (every player-game), plus this season's real graded lines.
+Built 2026-11-08 13:25 UTC by `python model/backtest_audit.py`. Seasons: 2024-25, 2025-26, 2026-27 (every player-game), plus this season's real graded lines.
 
 **Read sections 1-2 carefully:** the shipped shots parameters are fitted on 2025-26, so the 2024-25 and 2025-26 player-game rows are scored with parameters that saw 2025-26 (in-sample; an honest refit on 2024-25 alone shows a bias about 0.5 point larger at 1.5 / 2.5). Only the 2026-27 rows and the real-line sections are out of sample, with three exceptions chosen with this season's lines in view: the shots projection's design (attempt rate, two-scale ice time), the 50/50 mean-blend weight (the in-sample log-loss optimum; a weight chosen week by week on earlier weeks scores 0.68478 against DK's 0.68592 on the same lines) and the SOG rule's 62% / 55% bars (bars re-chosen each week from earlier weeks give the same record within one standard error).
 
@@ -95,7 +95,7 @@ Reliability, raw:
 | More | 3.5+ | 89 | 54.1% | 58.4% | +4.3 | n < 200 |
 | Less | 3.5+ | 208 | 57.2% | 52.4% | -4.8 | ✗ |
 
-Reliability, final:
+Reliability, final = the board's probability (the fitted blend):
 
 | side | line | n | predicted | actual | gap | ±3 pts (n ≥ 200) |
 |---|---|---|---|---|---|---|
@@ -128,17 +128,17 @@ Reliability, raw:
 | Less | 2.5 | 884 | 58.5% | 58.3% | -0.2 | ✓ |
 | Less | 3.5+ | 185 | 57.7% | 55.1% | -2.5 | n < 200 |
 
-Reliability, final:
+Reliability, final = the board's probability (the 50/50 mean blend):
 
 | side | line | n | predicted | actual | gap | ±3 pts (n ≥ 200) |
 |---|---|---|---|---|---|---|
-| More | 0.5 | 6 | 63.3% | 83.3% | +20.0 | n < 200 |
-| More | 1.5 | 1252 | 55.2% | 52.7% | -2.5 | ✓ |
-| More | 2.5 | 311 | 54.2% | 54.3% | +0.2 | ✓ |
-| More | 3.5+ | 40 | 53.0% | 55.0% | +2.0 | n < 200 |
-| Less | 1.5 | 901 | 54.7% | 56.6% | +1.9 | ✓ |
-| Less | 2.5 | 857 | 56.4% | 57.6% | +1.3 | ✓ |
-| Less | 3.5+ | 184 | 55.6% | 55.4% | -0.2 | n < 200 |
+| More | 0.5 | 6 | 64.5% | 83.3% | +18.8 | n < 200 |
+| More | 1.5 | 1134 | 55.6% | 52.2% | -3.4 | ✗ |
+| More | 2.5 | 294 | 54.8% | 55.4% | +0.7 | ✓ |
+| More | 3.5+ | 37 | 53.0% | 54.0% | +1.1 | n < 200 |
+| Less | 1.5 | 1019 | 55.7% | 55.0% | -0.7 | ✓ |
+| Less | 2.5 | 874 | 57.3% | 57.8% | +0.5 | ✓ |
+| Less | 3.5+ | 187 | 56.5% | 55.1% | -1.4 | n < 200 |
 
 Model's side where it and DK no-vig disagree (walk-forward): 330-305 (52.0%), against a 57.7% 1x break-even.
 
@@ -162,7 +162,7 @@ Reliability, raw:
 | Less | 0.5 | 422 | 62.3% | 63.5% | +1.2 | ✓ |
 | Less | 1.5 | 33 | 65.8% | 48.5% | -17.3 | n < 200 |
 
-Reliability, final:
+Reliability, final = the board's probability (the fitted blend):
 
 | side | line | n | predicted | actual | gap | ±3 pts (n ≥ 200) |
 |---|---|---|---|---|---|---|

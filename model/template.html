@@ -1214,7 +1214,7 @@ function boardRowsPts(){
       const x = ptsDecision(g, team, opp, home, pl);
       if (!x.d) continue;
       out.push({t: g.start || "", time: ctStart(g), date: g.date, game: `${g.away} @ ${g.home}`, player: pl.name,
-                sub: `${team} · ${pl.pos}${roleTxt(pl) ? " · " + roleTxt(pl) : ""}`, team, opp, mk: "points", d: x.d, src: x.L.src,
+                sub: [team, pl.pos, roleTxt(pl)].filter(Boolean).join(" · "), team, opp, mk: "points", d: x.d, src: x.L.src,
                 line: x.L.line, proj: x.proj, diff: x.proj - x.L.line, side: x.d.side, prob: x.d.pShow, tier: x.d.tier, capped: false,
                 play: x.d.play, q: [pl.name, team, opp], call: callOf("points", x, pl)});
     }
@@ -1240,7 +1240,7 @@ function scoreSkaterLine(l){
   const home = g.home === pl.team, opp = home ? g.away : g.home, blk = pts ? D.points : D.sog;
   const proj = liveProj(pts ? pl.p60 : pl.r60, pts ? (pl.ptoi ?? pl.toi) : pl.toi, blk.opp[opp] ?? 1, (blk.team || {})[pl.team] ?? 1, home, playedYday(pl.team, g.date), playedYday(opp, g.date), prm);
   const po = nbOver(proj, l.line, prm, pl.pos);
-  let [mkt, msrc] = mktQuote(l.market, pl.id, l.line, dkMkt(pts ? D.dk_points : D.dk_sog, pl.name, pl.team, g.date, l.line, pl.id));
+  let [mkt, msrc] = mktQuote(l.market, pl.id, l.line, dkById(pts ? D.dk_points : D.dk_sog, pl.id, l.line));
   // shots: the 50/50 mean-space blend with the market's implied mean, priced at this line (props_board.score_lines)
   const mb = {};
   if (!pts && RULE.sog_mean_w > 0){
@@ -2232,11 +2232,12 @@ function renderCalib(){
   $("#calBody").innerHTML = Object.entries(M).map(([mk, m]) => { const c = m.cal || {}, b = c.blend || {}, sc = m.scores || {};
     const best = Object.entries(sc).filter(([, v]) => v.logloss != null).sort((a, b) => a[1].logloss - b[1].logloss)[0];
     return `<div class="card"><h2>${names[mk] || mk} <span class="muted" style="font-weight:400;font-size:13px">${m.lines} graded lines, ${m.from} to ${m.to}</span></h2>
-      <p class="sub">Model weight in the blend: <b>${c.w != null ? c.w : RULE.blend_w}</b>${b.w_fit != null ? ` (log-loss fit ${b.w_fit}${b.shrink != null && b.shrink < 1 ? `, × ${b.shrink} shrink` : ""}; ${b.basis || ""})` : ""}.
+      <p class="sub">${(m.live || {}).kind === "mean_blend" ? `The board's chance: <b>the model's projection and the market's expected shots, averaged ${Math.round(100 * (1 - m.live.w_market))}/${Math.round(100 * m.live.w_market)}</b> and priced at the line (no Platt step; the weight was chosen on these lines: "mean blend 50/50 (live)" below). The calibrated model and its fitted weight (${c.w != null ? c.w : RULE.blend_w}) are shown for reference only.`
+        : `Model weight in the blend: <b>${c.w != null ? c.w : RULE.blend_w}</b>${b.w_fit != null ? ` (log-loss fit ${b.w_fit}${b.shrink != null && b.shrink < 1 ? `, × ${b.shrink} shrink` : ""}; ${b.basis || ""})` : ""}.`}
         Model's side where it disagreed with DraftKings: ${b.disagree && b.disagree.n ? `${b.disagree.hit}-${b.disagree.n - b.disagree.hit} (${pct(b.disagree.pct)}) vs 57.7% break-even` : "–"}. Per-line intercepts: ${c.line_a_used ? "used" : "not used (no walk-forward gain)"}.</p>
       <div class="grid2"><div><h3>Walk-forward scores (lower is better)</h3><div class="tbl"><table><thead><tr><th class="l">Probability</th><th class="num">n</th><th class="num">Brier</th><th class="num">Log loss</th></tr></thead><tbody>` +
       Object.entries(sc).map(([k, v]) => `<tr${best && best[0] === k ? ' class="good"' : ""}><td class="l">${k}</td><td class="num">${v.n}</td><td class="num">${v.brier ?? "–"}</td><td class="num">${v.logloss ?? "–"}</td></tr>`).join("") +
-      `</tbody></table></div></div><div><h3>Reliability by side and line (✓ within ±3 pts, n ≥ 200)</h3><div class="grid2"><div class="tbl"><b>Raw model</b>${rel((m.reliability || {}).raw)}</div><div class="tbl"><b>Final (blended)</b>${rel((m.reliability || {}).final)}</div></div></div></div></div>`; }).join("") || '<p class="muted">No calibration in this build.</p>';
+      `</tbody></table></div></div><div><h3>Reliability by side and line (✓ within ±3 pts, n ≥ 200)</h3><div class="grid2"><div class="tbl"><b>Raw model</b>${rel((m.reliability || {}).raw)}</div><div class="tbl"><b>${(m.live || {}).kind === "mean_blend" ? "The board's chance (50/50 blend)" : "Final (blended)"}</b>${rel((m.reliability || {}).final)}</div></div></div></div></div>`; }).join("") || '<p class="muted">No calibration in this build.</p>';
 }
 // ---------- matchup builder ----------
 function initBuilder(){
@@ -2681,6 +2682,13 @@ function mktQuote(mk, pid, line, dk){
   const bs = (D.books || []).filter(r => r.market === mk && r.player_id === pid && +r.line === +line)
     .map(r => [r.book || "book", novig(r.over, r.under)]).filter(b => b[1] != null);
   return bs.length ? [bs.reduce((a, b) => a + b[1], 0) / bs.length, bs.length === 1 ? bs[0][0] : `${bs.length} books`] : [null, null];
+}
+// DraftKings' no-vig on exactly this player-line, matched by NHL id only (props_board._dk_index): a DraftKings name the
+// odds matcher couldn't tie to one player is skipped, never matched by name; the last row for a line wins
+function dkById(list, pid, line){
+  let r = null;
+  for (const x of list || []) if (x.player_id != null && x.player_id === pid && +x.line === +line) r = x;
+  return r ? novig(r.over, r.under) : null;
 }
 // every line a book prices for the player tonight, [line, no-vig P(over), source]: DraftKings first (props_board._player_quotes)
 function playerQuotes(mk, pid){

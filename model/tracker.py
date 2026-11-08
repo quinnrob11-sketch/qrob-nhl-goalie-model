@@ -732,6 +732,11 @@ def _leg_key(r):
     return (r["date"], str(r["player_id"]), r["market"], float(r["line"]), r["source"])
 
 
+def _r4(x):
+    """Probabilities in the leg log: 4 decimals (the board itself carries full precision)."""
+    return round(x, 4) if isinstance(x, float) else x
+
+
 def log_legs(board_rows, built: str):
     """Store every board leg shown this build (games not started yet). The latest pre-game snapshot of a
     leg replaces earlier ones; graded legs are never touched."""
@@ -744,11 +749,11 @@ def log_legs(board_rows, built: str):
         r = {"date": b["date"], "game": b["game"], "built": built, "player_id": b["player_id"], "name": b["name"],
              "team": b["team"], "opp": b.get("opp"), "market": b["market"], "line": b["line"], "source": b["source"],
              "mo": b.get("mo"), "mu": b.get("mu"), "side": b["side"], "mult": b.get("mult"),
-             "p_model": b.get("p_model"), "p_mkt": b.get("p_mkt"), "p_blend": b.get("p_blend"), "p": b.get("p"),
+             "p_model": _r4(b.get("p_model")), "p_mkt": _r4(b.get("p_mkt")), "p_blend": _r4(b.get("p_blend")), "p": _r4(b.get("p")),
              "verdict": b.get("verdict"), "tier": b.get("tier"), "reason": b.get("reason"),
              "role_change": b.get("role_change") or "", "result": "", "actual": "",
              # the price the leg was offered at (DraftKings odds; DFS legs use mult), so ROI can be computed
-             "price_over": b.get("dk_over"), "price_under": b.get("dk_under"), "be": b.get("be"), "ev": b.get("ev"),
+             "price_over": b.get("dk_over"), "price_under": b.get("dk_under"), "be": _r4(b.get("be")), "ev": _r4(b.get("ev")),
              "mkt_src": b.get("mkt_src") or ""}
         k = _leg_key(r)
         if k in idx:

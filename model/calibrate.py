@@ -415,6 +415,15 @@ def rule_record(x: pd.DataFrame, r: pd.DataFrame, mk: str) -> dict:
                      "live TAKE rule, warm walk-forward weeks, DraftKings lines with a pre-game price"}
 
 
+def _final_reliability(x: pd.DataFrame, r: pd.DataFrame, mk: str, wm, use_line: bool):
+    """Reliability by side and line of the board's own final probability on the walk-forward lines (SOG: the mean
+    blend, where it could be formed)."""
+    if mk == "sog" and "p_mb_over" in x:
+        p = x.p_mb_over.values.astype(float); f = np.asarray(wm, bool) & np.isfinite(p)
+        return reliability_side_line(p[f], x.line.values[f], x.went_over.values[f])
+    return reliability_side_line((r.p_line_over if use_line else r.p_final_over).values[wm], x.line.values[wm], x.went_over.values[wm])
+
+
 def _final_buckets(x: pd.DataFrame, r: pd.DataFrame, mk: str, push) -> dict:
     """Side buckets of the live final probability (SOG: the mean blend, lines where it could be formed)."""
     if mk == "sog" and "p_mb_over" in x:
@@ -544,8 +553,11 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
             "lines": int(len(x)), "from": str(x.date.min()), "to": str(x.date.max()),
             "scores": scores,
             "reliability": {"raw": reliability_side_line(x.p_over.values[wm], x.line.values[wm], x.went_over.values[wm]),
-                            "final": reliability_side_line((r.p_line_over if use_line else r.p_final_over).values[wm],
-                                                           x.line.values[wm], x.went_over.values[wm])},
+                            "final": _final_reliability(x, r, mk, wm, use_line)},
+            # what the board's probability is for this market (the page labels the Calibration card with it)
+            "live": ({"kind": "mean_blend", "w_market": pricing.SOG_MEAN_W,
+                      "note": "50/50 blend of the projection and the market's expected shots; weight chosen on these lines"}
+                     if mk == "sog" and "p_mb_over" in x else {"kind": "platt_blend", "w_model": cal.get("w")}),
             "disagree_wf": disagreement(r.p_cal_over.values[wm], r.p_mkt_over.values[wm], x.went_over.values[wm]),
             "rule": rule_record(x, r, mk)}
     return out

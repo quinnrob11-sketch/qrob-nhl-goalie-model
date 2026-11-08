@@ -144,6 +144,9 @@ DraftKings price produced 3 phantom plays in testing.
   gives the same record within one standard error (table above).
 * **Name joins:** a few names join on initials and last name (e.g. two "E. Pettersson" on Vancouver resolve by row
   order), and some spellings miss (Yegor / Egor Chinakhov, "J.Kulich"): 17 of 4,358 quotes.
+* **Shots overs at 1.5:** the blend says 55.6% and they hit 52.2% (n=1,134). It inherits part of DraftKings' own lean
+  toward overs, and no correction fitted on earlier weeks helped later weeks. R1's MORE picks did worse than its LESS
+  picks (61.8% vs 68.1% at 1x; -4.8% ± 9.2 vs +5.5% ± 4.5 at DK prices).
 * **Stat corrections:** graded lines are now re-graded when the NHL box score changes later
   (`tracker._regrade`). 23 logged lines had stale results (12 shots, 11 saves). No shots play was affected.
 

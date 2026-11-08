@@ -285,7 +285,9 @@ def md(rep) -> str:
         for k, v in m["scores"].items():
             L.append(f"| {k} | {v['n']} | {v['brier'] if v['brier'] is not None else '–'} | {v['logloss'] if v['logloss'] is not None else '–'} |")
         for nm in ("raw", "final"):
-            L += ["", f"Reliability, {nm}:", "", "| side | line | n | predicted | actual | gap | ±3 pts (n ≥ 200) |", "|---|---|---|---|---|---|---|"]
+            lab = nm if nm == "raw" else ("final = the board's probability (the 50/50 mean blend)" if mk == "sog" and (m.get("live") or {}).get("kind") == "mean_blend"
+                                          else "final = the board's probability (the fitted blend)")
+            L += ["", f"Reliability, {lab}:", "", "| side | line | n | predicted | actual | gap | ±3 pts (n ≥ 200) |", "|---|---|---|---|---|---|---|"]
             for r in m["reliability"][nm]:
                 gap = r["actual"] - r["pred"]
                 L.append(f"| {r['side']} | {r['line']} | {r['n']} | {pct(r['pred'])} | {pct(r['actual'])} | {100 * gap:+.1f} | "
@@ -342,7 +344,7 @@ def main():
     cal = calibrate.fit(log, build_site.saves_rows(df, 2027), build_site.DIST, prices,
                         sog_rows=rows_s[rows_s.season == 2027], sog_prm=prm_s,
                         points_rows=rows_p[rows_p.season == 2027], points_prm=prm_p)
-    rep["real"] = {mk: {k: m[k] for k in ("cal", "scores", "reliability", "disagree_wf", "lines", "from", "to")}
+    rep["real"] = {mk: {k: m.get(k) for k in ("cal", "scores", "reliability", "disagree_wf", "lines", "from", "to", "live")}
                    for mk, m in cal["markets"].items()}
     rep["rule_legs"] = rule_legs(log, rows_s[rows_s.season == 2027], prm_s, rows_p[rows_p.season == 2027], prm_p, prices)
     rep["saves"] = saves(log, df, prices)

@@ -1,5 +1,5 @@
 {
- "built": "2026-11-08 10:28 UTC",
+ "built": "2026-11-08 13:25 UTC",
  "distribution": {
   "2026": {
    "n": 47230,
@@ -766,7 +766,11 @@
    },
    "lines": 418,
    "from": "2026-10-01",
-   "to": "2026-11-06"
+   "to": "2026-11-06",
+   "live": {
+    "kind": "platt_blend",
+    "w_model": 0.047
+   }
   },
   "sog": {
    "cal": {
@@ -896,50 +900,50 @@
       "side": "More",
       "line": "0.5",
       "n": 6,
-      "pred": 0.6331,
+      "pred": 0.6455,
       "actual": 0.8333
      },
      {
       "side": "More",
       "line": "1.5",
-      "n": 1252,
-      "pred": 0.5525,
-      "actual": 0.5272
+      "n": 1134,
+      "pred": 0.5556,
+      "actual": 0.522
      },
      {
       "side": "More",
       "line": "2.5",
-      "n": 311,
-      "pred": 0.5416,
-      "actual": 0.5434
+      "n": 294,
+      "pred": 0.5475,
+      "actual": 0.5544
      },
      {
       "side": "More",
       "line": "3.5+",
-      "n": 40,
-      "pred": 0.53,
-      "actual": 0.55
+      "n": 37,
+      "pred": 0.5299,
+      "actual": 0.5405
      },
      {
       "side": "Less",
       "line": "1.5",
-      "n": 901,
-      "pred": 0.5472,
-      "actual": 0.566
+      "n": 1019,
+      "pred": 0.5569,
+      "actual": 0.5496
      },
      {
       "side": "Less",
       "line": "2.5",
-      "n": 857,
-      "pred": 0.5638,
-      "actual": 0.5764
+      "n": 874,
+      "pred": 0.5728,
+      "actual": 0.5778
      },
      {
       "side": "Less",
       "line": "3.5+",
-      "n": 184,
-      "pred": 0.5561,
-      "actual": 0.5543
+      "n": 187,
+      "pred": 0.5645,
+      "actual": 0.5508
      }
     ]
    },
@@ -950,7 +954,12 @@
    },
    "lines": 4070,
    "from": "2026-10-01",
-   "to": "2026-11-06"
+   "to": "2026-11-06",
+   "live": {
+    "kind": "mean_blend",
+    "w_market": 0.5,
+    "note": "50/50 blend of the projection and the market's expected shots; weight chosen on these lines"
+   }
   },
   "points": {
    "cal": {
@@ -1086,7 +1095,11 @@
    },
    "lines": 1123,
    "from": "2026-10-29",
-   "to": "2026-11-06"
+   "to": "2026-11-06",
+   "live": {
+    "kind": "platt_blend",
+    "w_model": 0.4
+   }
   }
  },
  "rule_legs": {
