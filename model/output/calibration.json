@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-10 19:25 UTC",
+ "updated": "2026-11-10 19:29 UTC",
  "markets": {
   "saves": {
    "cal": {
@@ -897,7 +897,8 @@
      "roi_real": null
     },
     "basis": "live TAKE rule, warm walk-forward weeks, DraftKings lines with a pre-game price"
-   }
+   },
+   "lean": null
   },
   "sog": {
    "cal": {
@@ -1920,6 +1921,45 @@
      "roi_real": null
     },
     "basis": "live TAKE rule (50/50 mean blend, no Platt), every week, DraftKings lines with a pre-game price; the 50/50 weight and the 62% / 55% bars were chosen on these dates"
+   },
+   "lean": {
+    "all": {
+     "n": 1974,
+     "hit": 1126,
+     "pct": 0.5704,
+     "se": 0.0111,
+     "pred": 0.5826,
+     "roi_dk": -0.0713,
+     "roi_dk_se": 0.0182,
+     "roi_1x": -0.012,
+     "real_n": 0,
+     "roi_real": null
+    },
+    "over": {
+     "n": 813,
+     "hit": 460,
+     "pct": 0.5658,
+     "se": 0.0174,
+     "pred": 0.5804,
+     "roi_dk": -0.0857,
+     "roi_dk_se": 0.0282,
+     "roi_1x": -0.02,
+     "real_n": 0,
+     "roi_real": null
+    },
+    "under": {
+     "n": 1161,
+     "hit": 666,
+     "pct": 0.5736,
+     "se": 0.0145,
+     "pred": 0.5842,
+     "roi_dk": -0.0612,
+     "roi_dk_se": 0.0238,
+     "roi_1x": -0.0064,
+     "real_n": 0,
+     "roi_real": null
+    },
+    "basis": "leans: the favoured side at 55%+ with the market at 52%+ that is not a TAKE, as a 1x leg; both bars were read off these lines"
    }
   },
   "points": {
@@ -2675,6 +2715,45 @@
      "roi_real": null
     },
     "basis": "live TAKE rule, warm walk-forward weeks, DraftKings lines with a pre-game price"
+   },
+   "lean": {
+    "all": {
+     "n": 148,
+     "hit": 93,
+     "pct": 0.6284,
+     "se": 0.0399,
+     "pred": 0.565,
+     "roi_dk": 0.0336,
+     "roi_dk_se": 0.0656,
+     "roi_1x": 0.0884,
+     "real_n": 0,
+     "roi_real": null
+    },
+    "over": {
+     "n": 64,
+     "hit": 46,
+     "pct": 0.7188,
+     "se": 0.0566,
+     "pred": 0.5637,
+     "roi_dk": 0.1794,
+     "roi_dk_se": 0.0931,
+     "roi_1x": 0.2449,
+     "real_n": 0,
+     "roi_real": null
+    },
+    "under": {
+     "n": 84,
+     "hit": 47,
+     "pct": 0.5595,
+     "se": 0.0545,
+     "pred": 0.5659,
+     "roi_dk": -0.0776,
+     "roi_dk_se": 0.0899,
+     "roi_1x": -0.0309,
+     "real_n": 0,
+     "roi_real": null
+    },
+    "basis": "leans: the favoured side at 55%+ with the market at 52%+ that is not a TAKE, as a 1x leg; both bars were read off these lines"
    }
   }
  },
