@@ -38,5 +38,5 @@ def label_rows(rows, now, sources: dict | None = None):
         a = age_min(r.get("fetched_at"), now)
         r["age_min"] = a
         r["stale"] = a is None or a > STALE_MIN
-        r["fallback"] = src.get("status") == "fallback"
+        r["fallback"] = src.get("status") == "fallback" or bool(r.get("reused"))   # its own line is not this build's
     return rows

@@ -242,12 +242,14 @@ def _cached_sources(payload) -> set:
 
 
 def _cached_reason(r, cached: set, priced: bool) -> str | None:
-    """Why a row's numbers are not this build's, or None: its own line came from a reused board, or the market
-    price it leans on did (DraftKings and the other books arrive in one Odds API pull)."""
+    """Why a row's numbers are not this build's, or None: its own line came from a reused board or an earlier pull
+    (`reused`), or the market price it leans on did (DraftKings and the other books arrive in one Odds API pull)."""
     import sources
     src = sources.SOURCE_KEY.get(r.get("source"), "")
     if src in cached:
         return f"cached {r.get('source')} line (this build's pull failed): not a play"
+    if r.get("reused"):       # pick6.merge_day: an earlier pull's line the page did not show this build
+        return f"cached {r.get('source')} line (from an earlier pull today): not a play"
     if priced and "dk" in cached:
         return "cached market price (this build's odds pull failed): not a play"
     return None
@@ -536,13 +538,23 @@ def pick_for(rs) -> dict | None:
     return {**o, "tier": ""}
 
 
+OLD_APP_MAX_MIN = 12 * 60       # an app's line from an earlier pull is named beside a pick for at most this long
+
+
+def _old_app(r) -> dict:
+    """{"old": True, "age_min"} for a line this build did not pull itself (a reused board, or an earlier pull the
+    app's page did not show this time: sources.label_rows' `fallback`), else {}."""
+    return {"old": True, "age_min": r.get("age_min")} if r.get("fallback") else {}
+
+
 def picks(rows) -> list[dict]:
     """The board as a person bets it: one pick per player, market and game, from his Pick6 / PrizePicks lines.
     Marks each pick's row in place and returns those rows, plays first, then leans, then by chance:
       pick_side / pick_p   the side to take and its blended chance at that line
       pick_tier            "play" (a TAKE), "lean", "check" (lean_tier) or "" (no edge)
       pick_apps            every app that offers exactly this bet (side and line) at >= 1x: [{app, mult, price}],
-                           the pick's own app first; a reused (fallback) board's line is not listed
+                           the pick's own app first. An app whose line this build did not pull itself carries
+                           old=True and its age, and is dropped after OLD_APP_MAX_MIN
       lean                 True for a lean (logged with the leg, so leans get a graded record)
     Every verdict, tier and probability on the rows is unchanged."""
     groups = {}
@@ -555,15 +567,18 @@ def picks(rows) -> list[dict]:
         if o is None:
             continue
         r = o["row"]
-        apps = [{"app": r["source"], "mult": o["mult"], "price": o["price"]}]
+        apps = [{"app": r["source"], "mult": o["mult"], "price": o["price"], **_old_app(r)}]
         for x in rs:
-            if x is r or x.get("source") not in APPS or x.get("fallback") or x.get("p_blend") is None \
+            if x is r or x.get("source") not in APPS or x.get("p_blend") is None \
                     or float(x["line"]) != float(r["line"]) or any(a["app"] == x["source"] for a in apps):
+                continue
+            # a line this build did not pull itself is named only while it is recent, and with its age
+            if x.get("fallback") and not (x.get("age_min") is not None and x["age_min"] <= OLD_APP_MAX_MIN):
                 continue
             ox = side_offer(x, o["side"])
             if ox is not None and ox["full"]:
-                apps.append({"app": x["source"], "mult": ox["mult"], "price": ox["price"]})
-        apps[1:] = sorted(apps[1:], key=lambda a: SRC_PREF.get(a["app"], 3))
+                apps.append({"app": x["source"], "mult": ox["mult"], "price": ox["price"], **_old_app(x)})
+        apps[1:] = sorted(apps[1:], key=lambda a: (bool(a.get("old")), SRC_PREF.get(a["app"], 3)))
         r.update(pick=True, pick_side=o["side"], pick_p=o["p"], pick_tier=o["tier"], pick_apps=apps, lean=o["tier"] == "lean")
         out.append(r)
     out.sort(key=lambda r: (PICK_RANK.get(r["pick_tier"], 9), -r["pick_p"], str(r.get("player_id") or r["name"]), r["market"]))

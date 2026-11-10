@@ -29,7 +29,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # The branch tip, not the commit that triggered the run. A push-triggered build waits behind any build already
+      # running (the concurrency group); checked out at its own commit it would miss that build's data commit, and its
+      # own commit would then conflict on every generated file and never publish (2026-11-10, run 621).
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'

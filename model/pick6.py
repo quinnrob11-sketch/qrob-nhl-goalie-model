@@ -450,6 +450,72 @@ def _pull(slate: list[dict], R: players.Rosters, timeout: int = 30):
     return rows, stats
 
 
+# ---------- the day's board: lines an earlier pull saw that this pull's page does not show ----------
+REUSE_MAX_H = 12.0                       # an earlier pull's line is kept at most this long
+
+
+def day_path() -> str:
+    """model/data/pick6_day.json: beside the last-good-board cache (tests point CACHE at a temp directory)."""
+    return os.path.join(os.path.dirname(CACHE), "pick6_day.json")
+
+KEEP_MARKETS = ("sog", "points", "saves")
+
+
+def category_name(info: dict) -> str | None:
+    """The name of the category the page served ("Shots On Goal", "Points", ...), or None for its mixed landing page."""
+    names = (info.get("categories") or {}).get(str(info.get("category"))) or []
+    return next((n for n in names[1:2] if n), names[0] if names else None)
+
+
+def full_markets(rows: list[dict], info: dict) -> set:
+    """Markets this pull lists in full. The page serves one category per request: a stat's own category (Shots On
+    Goal) lists every player's lines for it; the mixed landing page lists a handful of featured players across
+    stats, so it is complete for none."""
+    for n in (info.get("categories") or {}).get(str(info.get("category"))) or []:
+        mk = MARKETS.get(str(n).lower().replace("-", " ").strip())
+        if mk and rows and sum(r["market"] == mk for r in rows) >= 0.9 * len(rows):
+            return {mk}
+    return set()
+
+
+def merge_day(rows: list[dict], info: dict, slate: list[dict], now: dt.datetime | None = None, path: str | None = None):
+    """(rows + the earlier lines worth keeping, stats). A featured-picks pull says nothing about the players it
+    leaves out (on 2026-11-10 the page went from 105 shooters to 7 between two builds), so the lines an earlier
+    pull today saw for them are kept with their own fetch time and reused=True: shown with their age, never a
+    play or a lean (props_board._cached_reason). A stat's full category replaces everything known about that stat,
+    and a player's card replaces his own lines in that stat. Kept at most REUSE_MAX_H hours, for games that are
+    still on the slate and have not started."""
+    import slate as slate_mod
+    now = now or dt.datetime.now(dt.timezone.utc)
+    path = path or day_path()
+    try:
+        with open(path) as f:
+            old = json.load(f)["rows"]
+    except (OSError, ValueError, KeyError, TypeError):
+        old = []
+    full = full_markets(rows, info)
+    have = {(r["player_id"], r["market"]) for r in rows}
+    games = {g["id"]: g for g in slate}
+    keep = []
+    for r in old:
+        g = games.get(r.get("game"))
+        if r.get("market") not in KEEP_MARKETS or r["market"] in full or (r.get("player_id"), r["market"]) in have \
+                or g is None or slate_mod.started(g, now):
+            continue
+        try:
+            age_h = (now - dt.datetime.fromisoformat(r["fetched_at"])).total_seconds() / 3600
+        except (KeyError, TypeError, ValueError):
+            continue
+        if 0 <= age_h <= REUSE_MAX_H:
+            keep.append({k: v for k, v in r.items() if k != "reused"})
+    try:
+        with open(path, "w") as f:
+            json.dump({"rows": [r for r in rows if r["market"] in KEEP_MARKETS] + keep}, f, separators=(",", ":"))
+    except OSError:
+        pass
+    return rows + [{**r, "reused": True} for r in keep], {"category_name": category_name(info), "full": sorted(full), "reused": len(keep)}
+
+
 CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "pick6_cache.json")
 fetch_status = "not run"     # "fresh" | "fallback" (last good board reused because this pull failed) | "error"
 fetched_at: str | None = None  # when the rows in use were really pulled
@@ -468,7 +534,10 @@ def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30, now: dt.date
                 json.dump({"at": fetched_at, "rows": rows}, f, separators=(",", ":"))
         except OSError:
             pass
-        return rows, st
+        rows, day = merge_day(rows, dict(last_info), slate, now)
+        if day["reused"]:
+            print(f"  [pick6] page served {day['category_name'] or 'its featured picks'} only; kept {day['reused']} lines an earlier pull saw (marked reused)")
+        return rows, {**st, **day}
     try:
         with open(CACHE) as f:
             c = json.load(f)
@@ -478,6 +547,9 @@ def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30, now: dt.date
         return rows, st
     games = {g["id"] for g in slate}
     keep = [{**r, "fetched_at": r.get("fetched_at") or c_at} for r in c_rows if r.get("game") in games]
+    # ... plus the day's other lines (merge_day with nothing new: every line it still holds, each with its own time)
+    seen = {(r["player_id"], r["market"], r["line"]) for r in keep}
+    keep += [r for r in merge_day([], {}, slate, now)[0] if (r["player_id"], r["market"], r["line"]) not in seen]
     fetch_status, fetched_at = "fallback", c_at
     print(f"  [pick6] pull failed ({status}); FALLBACK to the last good board from {c_at}: {len(keep)} rows")
     return keep, {**st, "fallback_rows": len(keep)}

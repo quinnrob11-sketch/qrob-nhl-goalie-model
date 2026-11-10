@@ -266,6 +266,9 @@ details.x-sec[open]>summary::before{content:"▾"}
 .x-row:hover .x-app,.x-row[aria-expanded="true"] .x-app{background:var(--surface)}
 .x-app b{font-weight:600;color:var(--text-2)}
 .x-app.short b{color:var(--under)}
+.x-app.old{border-style:dashed;color:var(--text-2)}
+.x-app i{font-style:normal;color:var(--under);font-weight:600}
+.x-cov{font-size:var(--fs-s);color:var(--text);background:var(--warn-bg);border-radius:8px;padding:var(--sp-2) var(--sp-3);margin:0 0 var(--sp-4);line-height:1.45}
 .x-ctx .x-w{row-gap:3px;align-items:center}
 .x-ctx .x-w>.x-app::before{content:none}
 .x-ctx .x-w>.x-app{margin-left:12px}
@@ -853,7 +856,7 @@ const rowStale = r => { const a = rowAge(r); return a == null ? !!rowSrc(r) : a 
 function staleTag(r){
   const s = rowSrc(r); if (!s || !rowStale(r)) return "";
   const a = rowAge(r);
-  return `<span class="x-stale" title="${a == null ? "Fetch time unknown" : `Line fetched ${ageLong(a)} ago`}${s.status === "fallback" ? " (this build's pull failed; last good lines)" : ""}; check the price in the app">⏱${a == null ? "?" : ageTx(a)}</span>`;
+  return `<span class="x-stale" title="${a == null ? "Fetch time unknown" : `Line fetched ${ageLong(a)} ago`}${s.status === "fallback" ? " (this build's pull failed; last good lines)" : r.reused ? ` (not on ${esc(r.source)}'s page this build)` : ""}; check the price in the app">⏱${a == null ? "?" : ageTx(a)}</span>`;
 }
 const staleBadge = r => { const t = staleTag(r); return t ? " " + t : ""; };
 // the rows each tab shows (set when it renders): the source strip counts them and checks their age
@@ -872,7 +875,7 @@ function srcStrip(rows){
     return `<span class="s${off ? " is-off" : old ? " is-old" : ""}" title="${esc(tip)}"><i class="d"></i>${label} ${off ? "off" : a == null ? "age ?" : ageTx(a)}${n && !off ? `<span class="n lbl-l"> · ${n} line${n === 1 ? "" : "s"}</span>` : ""}</span>`;
   };
   const ppS = PP_FETCHED_AT ? {status: "fresh", fetched_at: PP_FETCHED_AT} : SRC.pp;
-  const stale = rows.some(rowStale);
+  const stale = rows.some(r => rowStale(r) && !r.reused);
   return `<div class="x-src">${one("Pick6", "Pick6", SRC.pick6, "Pick6")}${one("PrizePicks", "PrizePicks", ppS, "PrizePicks")}${one("DraftKings", "DK", SRC.dk, "DraftKings")}` +
     `<span class="upd">${updTx("Updated ")}</span></div>` +
     (REFRESH.msg ? `<div class="x-refmsg">${REFRESH.msg}</div>` : "") +
@@ -1302,6 +1305,7 @@ const CACHED_SRC = new Set(Object.entries(D.sources || {}).filter(([, v]) => v &
 const SRC_KEY = {"Pick6": "pick6", "DraftKings": "dk", "PrizePicks": "pp"};
 function cachedReason(r, priced){
   if (!r.mine && !r.live && CACHED_SRC.has(SRC_KEY[r.source] || "")) return `cached ${r.source} line (this build's pull failed): not a play`;
+  if (!r.mine && !r.live && r.reused) return `cached ${r.source} line (from an earlier pull today): not a play`;
   if (priced && CACHED_SRC.has("dk")) return "cached market price (this build's odds pull failed): not a play";
   return null;
 }
@@ -1820,7 +1824,7 @@ function noLeanTag(r, v, pk){
   return "";
 }
 // where the pick can be made: one tag per app, with its multiplier when it is not 1x
-const appTags = pk => pk.apps.map(a => `<span class="x-app${a.short ? " short" : ""}">${esc(a.app)}${payTx(a) === "1x" ? "" : ` <b>${payTx(a)}</b>`}</span>`).join("");
+const appTags = pk => pk.apps.map(a => `<span class="x-app${a.short ? " short" : ""}${a.old ? " old" : ""}"${a.old ? ` title="Seen ${ageLong(a.age_min)} ago, not on ${esc(a.app)}'s page this build: check the app"` : ""}>${esc(a.app)}${payTx(a) === "1x" ? "" : ` <b>${payTx(a)}</b>`}${a.old ? ` <i>⏱${a.age_min == null ? "?" : ageTx(a.age_min)}</i>` : ""}</span>`).join("");
 // phone: name / the bet + projection / where (the apps) and the game, with the chance on the right. >= 1080px: one grid row.
 // A Picks row shows its player's pick (opt.P / opt.V, from pickItems); any other row shows its own line (dispSide).
 function xRow(r, ctx, opt = {}){
@@ -1832,7 +1836,7 @@ function xRow(r, ctx, opt = {}){
   const pos = r.pos || (SKATER[r.player_id] || {}).pos || (r.market === "saves" ? "G" : "");
   const start = r.start || g.start, t = start ? ctFmt(new Date(start), {hour: "numeric", minute: "2-digit"}) : "";
   const tShort = t.replace(/ ([AP])M$/, (_, x) => x.toLowerCase());
-  const stale = staleTag(r);
+  const stale = pk && pk.apps[0].old ? "" : staleTag(r);      // an old app tag already carries the age
   // the differential is red only when the projection points against the side by more than the tables' neutral band
   const diff = r.proj != null && r.line != null ? r.proj - r.line : null;
   const against = diff != null && S && Math.abs(diff) >= (r.market === "saves" ? 0.5 : 0.15) && (S === "OVER" ? diff < 0 : diff > 0);
@@ -1943,7 +1947,8 @@ function pickOptions(rs){
 }
 // a line from a board this build could not refresh (props_board: the row's `fallback`); lines you typed or this
 // browser pulled itself are fresh
-const reusedLine = r => !r.mine && !r.live && CACHED_SRC.has(SRC_KEY[r.source] || "");
+const reusedLine = r => !r.mine && !r.live && (!!r.reused || CACHED_SRC.has(SRC_KEY[r.source] || ""));
+const OLD_APP_MAX_MIN = 12 * 60;      // props_board.OLD_APP_MAX_MIN
 // best first (props_board.pick_key): the higher chance, the better pay, a fresh line before a reused one, Pick6 before
 // PrizePicks, the lower line, MORE
 function pickCmp(a, b){
@@ -1976,17 +1981,19 @@ function pickFor(rs){
   const o = opts.filter(o => o.row === main).reduce((m, o) => o.p > m.p || (o.p === m.p && o.be < m.be) ? o : m);
   return {...o, tier: ""};
 }
-// every app that offers exactly the pick (same side, same line) at >= 1x, the pick's own app first; a line from a
-// board this build could not refresh is not listed
+// every app that offers exactly the pick (same side, same line) at >= 1x, the pick's own app first. An app whose line
+// this build did not pull itself is marked old with its age, and dropped after OLD_APP_MAX_MIN
 function pickApps(rs, o){
-  const r = o.row, apps = [{app: bookName(r.source), key: appOf(r), mult: o.mult, price: o.price, short: !o.full}];
+  const oldOf = x => reusedLine(x) ? {old: true, age_min: rowAge(x)} : {};
+  const r = o.row, apps = [{app: bookName(r.source), key: appOf(r), mult: o.mult, price: o.price, short: !o.full, ...oldOf(r)}];
   for (const x of rs){
     if (x === r || !isApp(x) || !hasVal(x.p_blend) || +x.line !== +r.line || apps.some(a => a.key === appOf(x))) continue;
-    if (reusedLine(x)) continue;
+    const old = oldOf(x);
+    if (old.old && !(old.age_min != null && old.age_min <= OLD_APP_MAX_MIN)) continue;
     const ox = sideOffer(x, o.side);
-    if (ox && ox.full) apps.push({app: bookName(x.source), key: appOf(x), mult: ox.mult, price: ox.price});
+    if (ox && ox.full) apps.push({app: bookName(x.source), key: appOf(x), mult: ox.mult, price: ox.price, ...old});
   }
-  return [apps[0], ...apps.slice(1).sort((a, b) => (SRC_PREF[a.app] ?? 3) - (SRC_PREF[b.app] ?? 3))];
+  return [apps[0], ...apps.slice(1).sort((a, b) => (a.old ? 1 : 0) - (b.old ? 1 : 0) || (SRC_PREF[a.app] ?? 3) - (SRC_PREF[b.app] ?? 3))];
 }
 // the board as it is bet: one item per player, market and game. app = "" (both apps) or "Pick6" / "PrizePicks": the
 // lines his pick is chosen from (lines you typed always count). P: row -> pick, V: row -> the side as displayed.
@@ -2014,7 +2021,7 @@ function pickItems(pb, app){
 function pickWhy(r, v, pk){
   const lab = MK_LAB[r.market] || r.label || "", m = t => ` <span class="muted">· ${t}</span>`;
   const bet = `<b>${sideWord(v.side)} ${lineTx(r.line)} ${lab}</b>`;
-  const where = pk.apps.map(a => esc(a.app) + (payTx(a) === "1x" ? "" : " at " + payTx(a))).join(" or ");
+  const where = pk.apps.map(a => esc(a.app) + (payTx(a) === "1x" ? "" : " at " + payTx(a)) + (a.old ? ` (seen ${ageLong(a.age_min)} ago: check the app)` : "")).join(" or ");
   const push = r.market !== "saves" && +r.line === Math.round(+r.line) ? ` Exactly ${lineTx(r.line)} is a push.` : "";
   if (pk.tier === "play") return `Take ${bet} on ${where}.${push ? `<span class="muted">${push}</span>` : ""}`;
   if (pk.tier === "lean") return `Lean ${bet} on ${where}.<span class="muted"> ${chanceTx(v.p, r.market)}: the likelier side, but short of a play (${pc0(takeP(r.market))}+).${push}</span>`;
@@ -2109,13 +2116,17 @@ function renderPicks(pb){
       (bk.length ? fold("pkBooks", "Sportsbook only", bk.length, xList(cutN(bk, PKX.allb), "pk", {alts, nt: true}, more(bk, "allb")), "not on Pick6 or PrizePicks", qOn && !shown.length) : "") +
       (um.length ? fold("pkUm", "Couldn't match", um.length, `<ul class="x-um">${um.map(r => `<li><b>${esc(r.name)}</b> ${esc(r.team || "")} · ${esc(MK_LAB[r.market] || r.market || "")} ${lineTx(r.line)}${r.reason ? ` · ${esc(r.reason)}` : ""}</li>`).join("")}</ul>`, "check these in the app", false) : "");
   }
+  // Pick6's page serves one category per request: its full shots list, or only its featured picks (pick6.merge_day)
+  const P6S = D.pick6_stats || {}, p6Part = SRC.pick6 && SRC.pick6.status === "fresh" && P6S.category != null && Array.isArray(P6S.full) && !P6S.full.includes("sog") && (!mk || mk === "sog") && app !== "PrizePicks";
+  const p6Note = !p6Part ? "" : `<p class="x-cov">Pick6's page showed ${P6S.category_name && P6S.category_name !== "Shots On Goal" ? `its ${esc(P6S.category_name)} list` : "only its featured picks"} on this build. ` +
+    (P6S.reused ? "Its other lines here are from earlier today (marked ⏱): check the app before betting them." : "Most of its shots lines are missing here: check the app, or tap a player and enter his line.") + `</p>`;
   const recOf = k => ["sog", "points", "saves"].reduce((a, m) => { const x = ((((D.legs || {}).by_market || {})[m]) || {})[k]; if (x && x.n){ a.hit += x.hit; a.miss += x.miss; } return a; }, {hit: 0, miss: 0});
   const recTx = (lab, x) => { const n = x.hit + x.miss; return n ? `${lab} <b>${x.hit}–${x.miss}</b> (${pc0(x.hit / n)})` : `${lab}: none yet`; };
   box.innerHTML = `<div class="x-head"><h2>${!day || day === TODAY_CT ? "Tonight's picks" : "Picks"}</h2>${dateSel}</div>` +
     (items.length || books.length ? `<div class="x-filters">${apps0.length > 1 ? seg("app", app, [["", '<span class="lbl-l">Both apps</span><span class="lbl-s">Both</span>'], ...apps0.map(a => [a, a])], "App") : ""}${mkSel}` +
       `${fOn && (shown.length || bk.length) ? `<button type="button" class="x-link js-px-clear">Clear</button>` : ""}</div>` +
       (Object.keys(byGame).length > 1 ? `<div class="x-chips" role="group" aria-label="Game">${chip("", "All games", items.filter(inMk).length)}${games.filter(g => byGame[g.id])
-        .map(g => chip(String(g.id), `${g.away} @ ${g.home} ${ctStart(g).replace(" CT", "")}`, byGame[g.id])).join("")}</div>` : "") : "") + body +
+        .map(g => chip(String(g.id), `${g.away} @ ${g.home} ${ctStart(g).replace(" CT", "")}`, byGame[g.id])).join("")}</div>` : "") : "") + p6Note + body +
     `<p class="x-foot">Graded${(D.legs || {}).rules_from ? ` since ${dayLabel(D.legs.rules_from).replace(/^\w+, /, "")}` : " so far"}: ${recTx("plays", recOf((D.legs || {}).rules_from ? "takes_now" : "takes"))} · ${recTx("leans", recOf("leans"))}. Times are Central.<br>` +
     `<button type="button" class="x-link js-rules">How picks work</button> · Line not here? <button type="button" class="x-link js-paste">Add your own</button></p>`;
   // keep the game chips where they were scrolled (on first render, bring the selected one into view) and give focus back;
