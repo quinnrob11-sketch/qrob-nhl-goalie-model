@@ -242,9 +242,8 @@ details.x-sec[open]>summary::before{content:"▾"}
 .x-row:hover,.x-row[aria-expanded="true"]{background:var(--surface-2)}
 .x-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .x-row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:transparent}
-.x-row.t-lock::before{background:var(--over)}
-.x-row.t-strong::before{background:var(--over);opacity:.7}
-.x-row.t-near::before{background:var(--warn)}
+.x-row.t-play::before{background:var(--over)}
+.x-row.t-lean::before{background:var(--over);opacity:.45}
 .x-row.t-check::before{background:var(--warn);opacity:.7}
 .x-who{grid-column:1;grid-row:1;min-width:0}
 .x-nm{display:flex;align-items:baseline;gap:6px;min-width:0}
@@ -258,7 +257,19 @@ details.x-sec[open]>summary::before{content:"▾"}
 .x-w>*{white-space:nowrap}
 .x-w>*::before{content:"";display:inline-block;width:12px;text-align:center;font-weight:400;color:var(--muted)}
 .x-w>.dot::before{content:"·"}
-.x-side{font-weight:700;color:var(--text);letter-spacing:.01em}
+/* the bet is the loudest thing on the row: MORE green, LESS red; a line with no edge stays quiet */
+.x-side{font-weight:700;color:var(--text);letter-spacing:.01em;font-size:var(--fs-m)}
+.x-side.OVER{color:var(--over)} .x-side.UNDER{color:var(--under)}
+.x-row.t-pass .x-side{color:var(--text-2);font-size:var(--fs-s)}
+/* where the bet can be made: one small tag per app (its multiplier when it is not 1x) */
+.x-app{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-xs);font-weight:600;color:var(--text);background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:0 6px;line-height:18px;white-space:nowrap}
+.x-row:hover .x-app,.x-row[aria-expanded="true"] .x-app{background:var(--surface)}
+.x-app b{font-weight:600;color:var(--text-2)}
+.x-app.short b{color:var(--under)}
+.x-ctx .x-w{row-gap:3px;align-items:center}
+.x-ctx .x-w>.x-app::before{content:none}
+.x-ctx .x-w>.x-app{margin-left:12px}
+.x-ctx .x-w>.x-app+.x-app{margin-left:6px}
 .x-side .ar{display:inline-block;margin-right:4px;font-size:.85em}
 .x-pj{color:var(--text-2)}
 .df.against{color:var(--under)}
@@ -273,17 +284,20 @@ details.x-sec[open]>summary::before{content:"▾"}
 .x-row.is-blk .x-p{color:var(--muted)}
 .x-needs{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
 .x-tier{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:var(--r-chip);padding:1px 8px;line-height:16px;white-space:nowrap}
-.x-tier.lock{background:var(--over);color:var(--surface)}
-.x-tier.strong{background:var(--over-bg);color:var(--over)}
-.x-tier.near{border:1px solid var(--warn);color:var(--warn);padding:0 7px}
+.x-tier.play{background:var(--over);color:var(--surface)}
+.x-tier.lean{background:var(--over-bg);color:var(--over)}
 .x-tier.check{border:1px dashed var(--warn);color:var(--warn);padding:0 7px}
-.x-cols,.x-tcol,.x-game,.x-bookc,.x-projc,.x-diffc,.x-needc,.x-edgec,.x-chev,.x-d-only{display:none}
-.x-tcol,.x-game,.x-bookc,.x-projc,.x-diffc,.x-needc,.x-edgec,.x-chev{font-size:var(--fs-s);color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.x-cols,.x-tcol,.x-game,.x-bookc,.x-projc,.x-diffc,.x-chev,.x-d-only{display:none}
+.x-tcol,.x-game,.x-bookc,.x-projc,.x-diffc,.x-chev{font-size:var(--fs-s);color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .x-chev{color:var(--muted);transition:transform .15s;overflow:visible;font-size:var(--fs-m);line-height:1}
 .x-row[aria-expanded="true"] .x-chev{transform:rotate(90deg)}
-.x-edgec.pos{color:var(--over);font-weight:600}
+/* a collapsed list's tools (sort) and the plain list of lines that could not be matched */
+.x-tools{display:flex;justify-content:flex-end;margin:0 0 var(--sp-2)}
+.x-um{margin:0;padding:var(--sp-2) var(--sp-4);list-style:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);font-size:var(--fs-s);color:var(--text-2)}
+.x-um li{padding:4px 0} .x-um b{color:var(--text)}
+.x-sec .r{font-size:var(--fs-xs);color:var(--muted)}
 @media (min-width:1080px){
-  .x-cols,.x-row{grid-template-columns:var(--tc,70px) minmax(140px,2fr) 106px 120px 44px 48px minmax(132px,1fr) 58px 84px 48px 12px;column-gap:10px}
+  .x-cols,.x-row{grid-template-columns:var(--tc,64px) minmax(150px,2fr) 112px minmax(150px,1.1fr) 44px 48px minmax(150px,1.3fr) 64px 12px;column-gap:10px}
   .x-list.nt{--tc:0px}
   .x-cols .bk,.x-row .x-bookc{padding-left:12px}
   .x-cols{display:grid;padding:8px var(--sp-3) 8px 15px;font-size:var(--fs-xs);color:var(--text-2);font-weight:600;border-bottom:1px solid var(--border)}
@@ -298,20 +312,16 @@ details.x-sec[open]>summary::before{content:"▾"}
   .x-row .x-bet .x-w>*::before{width:6px}
   .x-row .x-projc{grid-column:5;display:block;text-align:right}
   .x-row .x-diffc{grid-column:6;display:block;text-align:right}
-  .x-row .x-bookc{grid-column:7;display:block}
-  .x-row .x-bookc .x-stale{display:block;font-size:var(--fs-xs);line-height:1.3}
+  .x-row .x-bookc{grid-column:7;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;overflow:visible;white-space:normal}
   .x-row .x-pcol{grid-column:8;display:block}
-  .x-row .x-needc{grid-column:9;display:block;text-align:right}
-  .x-row .x-needc.tag{font-size:var(--fs-xs);color:var(--muted)}
-  .x-row .x-edgec{grid-column:10;display:block;text-align:right}
-  .x-row .x-chev{grid-column:11;display:block}
+  .x-row .x-chev{grid-column:9;display:block}
   .x-row .x-m-only{display:none!important}
   .x-row .x-d-only{display:block}
   .x-row .x-p{font-size:var(--fs-m)}
-  .x-div{padding-left:calc(25px + var(--tc,70px))}
+  .x-div{padding-left:calc(25px + var(--tc,64px))}
 }
 /* tablets: the phone card, kept to a readable width */
-@media (min-width:761px) and (max-width:1079px){ #proj>.x-sec,#sogBox{max-width:720px} }
+@media (min-width:761px) and (max-width:1079px){ #picksBox{max-width:720px} }
 /* ---------- the panel under a row (tap to open) ---------- */
 .x-det{display:none;padding:var(--sp-2) var(--sp-4) var(--sp-4) 15px;background:var(--surface-2);border-top:1px solid var(--border);font-size:var(--fs-s);color:var(--text);cursor:default}
 .x-row[aria-expanded="true"]+.x-det{display:block}
@@ -353,7 +363,7 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
 .x-own .x-note{flex-basis:100%;margin:0}
 @media (max-width:760px){ .x-own input{width:68px} .x-own select{width:68px;padding:5px 4px} }
 @media (max-width:1079px){ .x-ladder th,.x-ladder td{padding:6px} }
-/* ---------- SOG tab: header, record, filters ---------- */
+/* ---------- Picks tab: header, filters ---------- */
 .x-head{display:flex;align-items:baseline;gap:var(--sp-1) var(--sp-3);flex-wrap:wrap;margin:0 0 var(--sp-1)}
 .x-head h2{font-size:var(--fs-xl);margin:0;font-weight:700;letter-spacing:-.01em}
 .x-head .x-link{margin-left:auto}
@@ -371,7 +381,11 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
 .x-chip .n{color:var(--text-2);background:var(--surface-2);border-radius:var(--r-chip);padding:1px 7px;font-size:var(--fs-xs);font-weight:600}
 .x-chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 .x-chip.on .n{color:var(--text);background:var(--bg)}
-.x-filters{display:flex;gap:var(--sp-2) var(--sp-3);flex-wrap:wrap;align-items:center;margin:0 0 var(--sp-4)}
+.x-filters{display:flex;gap:var(--sp-2) var(--sp-3);flex-wrap:wrap;align-items:center;margin:0 0 var(--sp-3)}
+.x-filters .x-pick{margin:0;border:1px solid var(--border);border-radius:var(--r-seg);background:var(--surface);padding:0 10px;min-height:38px}
+.x-head .x-date{margin-left:auto}
+.x-chips{margin-bottom:var(--sp-4)}
+.x-foot{line-height:1.7}
 .x-seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--r-seg);overflow:hidden;background:var(--surface)}
 .x-seg button{font:inherit;font-size:var(--fs-s);border:0;background:none;color:var(--text-2);padding:6px 12px;cursor:pointer;min-height:36px;white-space:nowrap}
 .x-seg button+button{border-left:1px solid var(--border)}
@@ -403,31 +417,33 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
   </div>
 </header>
 <div class="navwrap" id="navWrap"><nav id="tabs">
-  <button data-t="proj" class="on">Board</button>
-  <button data-t="sogt">SOG</button>
+  <button data-t="proj" class="on">Picks</button>
+  <button data-t="lines">All lines</button>
   <button data-t="res">Results</button>
-  <button data-t="cal">Calibration</button>
   <button data-t="win">Winners</button>
-  <button data-t="bt">Backtest</button>
-  <button data-t="track">Tracker</button>
   <button data-t="goalies">Goalies</button>
   <button data-t="teams">Teams</button>
-  <button data-t="logic">Logic</button>
+  <button data-t="track">Tracker</button>
+  <button data-t="cal">Calibration</button>
+  <button data-t="bt">Backtest</button>
+  <button data-t="logic">How it works</button>
 </nav></div>
 <main>
 <section id="proj" class="on">
   <div id="srcBar"></div>
   <div id="alarmBox"></div>
   <div id="preNote"></div>
-  <div class="x-sec" id="cardPlays"><h3>Today's plays <span class="n" id="nPlays"></span><span class="r"><button type="button" class="x-link js-rules">How picks work</button></span></h3>
-    <div id="playsBox"></div></div>
-  <div class="x-sec" id="cardNear"><h3>Near miss <span class="n" id="nNear"></span><span class="r" id="nearNote"></span></h3>
-    <div id="nearBox"></div></div>
-  <details class="x-sec" id="cardReview"><summary>Check before betting <span class="n" id="nReview"></span></summary>
-    <div id="reviewBox"></div></details>
+  <div id="picksBox"></div>
+  <div class="card" id="cardLive" style="display:none"><h2>Live &amp; final <span class="muted" id="nLive" style="font-weight:400;font-size:13px"></span></h2>
+    <p class="sub" style="margin:-4px 0 8px">Started games leave the list. Their plays and leans, as called before puck drop, with the stat so far: MORE hits as soon as it clears the line; LESS is decided at the final.</p>
+    <label class="chk" style="flex-direction:row;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="liveAll"> every logged line (not just plays and leans)</label>
+    <div class="board"><table id="liveT"></table></div></div>
   <details class="card" id="statusBox"><summary>Data status</summary>
     <div class="statusbar" id="statusBar"></div>
     <div id="feedBanner"></div></details>
+</section>
+
+<section id="lines">
   <div class="filters card" style="padding:10px 12px">
     <label>Market<select id="fMk"><option value="">All</option><option value="saves">Saves</option><option value="points">Points</option><option value="win">Winners</option></select></label>
     <label>Side<select id="fSide"><option value="">Both</option><option>OVER</option><option>UNDER</option></select></label>
@@ -436,12 +452,8 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
     <label class="chk"><input type="checkbox" id="fPlays"> Plays only</label>
     <label>Date<select id="dateF"></select></label>
   </div>
-  <div class="card" id="cardLive" style="display:none"><h2>Live &amp; final <span class="muted" id="nLive" style="font-weight:400;font-size:13px"></span></h2>
-    <p class="sub" style="margin:-4px 0 8px">Games that have started are off the board. Their legs, as called before puck drop, with the stat so far: an over is a HIT as soon as it clears the line; an under is decided at the final.</p>
-    <label class="chk" style="flex-direction:row;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="liveAll"> all legs (not just TAKEs)</label>
-    <div class="board"><table id="liveT"></table></div></div>
   <div class="card" id="cardRank"><h2>Points &amp; saves: every line <span class="muted" id="nRank" style="font-weight:400;font-size:13px"></span></h2>
-    <p class="sub" style="margin:-4px 0 8px">Every posted points and saves line ends in <b>TAKE MORE</b>, <b>TAKE LESS</b> or <b>PASS</b>; tap a row for the reason. <b>p</b> = the calibrated model blended with the market's no-vig price on the same line (the weight is fitted on graded lines; Calibration tab). <b>Model</b> = the calibrated model alone, <b>Market</b> = the no-vig price, <b>vs break-even</b> = p minus the price's break-even. A player's other lines are listed under his main one. Shots on goal are on the SOG tab.</p>
+    <p class="sub" style="margin:-4px 0 8px">Every posted points and saves line ends in <b>TAKE MORE</b>, <b>TAKE LESS</b> or <b>PASS</b>; tap a row for the reason. <b>p</b> = the calibrated model blended with the market's no-vig price on the same line (the weight is fitted on graded lines; Calibration tab). <b>Model</b> = the calibrated model alone, <b>Market</b> = the no-vig price, <b>vs break-even</b> = p minus the price's break-even. A player's other lines are listed under his main one. Shots on goal, and the one pick per player, are on the Picks tab.</p>
     <label class="chk" style="flex-direction:row;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="fRule"> TAKE only</label>
     <div class="board"><table id="bRank"></table></div><div id="rankMore"></div></div>
   <div class="card" id="cardSaves"><h2>Saves <span class="muted" id="nSaves" style="font-weight:400;font-size:13px"></span></h2><div class="board"><table id="bSaves"></table></div></div>
@@ -456,7 +468,7 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
     <details class="card" id="boardBox" style="margin:0 0 12px;padding:10px 12px">
       <summary><b>Paste or upload a PrizePicks / Pick6 board</b> <span class="muted" id="boardCount"></span></summary>
       <p class="sub"><b>PrizePicks:</b> open <a href="https://api.prizepicks.com/projections?league_id=8&amp;per_page=1000&amp;single_stat=true" target="_blank" rel="noopener">the PrizePicks NHL projections</a> in your own browser tab, select all, copy, and paste it here. Shots, points and goalie saves come in (standard lines only, each player matched within his team). The build tries the same link, but PrizePicks refuses cloud servers.</p>
-      <p class="sub">One prop per line, <b>with the player's team</b> (players are matched by name within their team, never by name alone; a row without a team is left out as UNMATCHED). CSV: <code>name,team,market,line,over mult,under mult</code> (e.g. <code>Igor Shesterkin,NYR,saves,25.5,1,0.9</code>). Text works too: <code>Auston Matthews TOR SOG 3.5 1x/0.85x</code>. The build also pulls the Pick6 board itself; a pasted line replaces the pulled one for that player and market. Market defaults to saves for goalies and SOG for skaters; multipliers default to 1x. These lines are priced as DFS legs at their per-side multipliers (break-even = payout^(−1/legs) ÷ multiplier) on the Projections and SOG tabs, ahead of DraftKings, and a goalie with a saves prop on your board counts as a posted starter.</p>
+      <p class="sub">One prop per line, <b>with the player's team</b> (players are matched by name within their team, never by name alone; a row without a team is left out as UNMATCHED). CSV: <code>name,team,market,line,over mult,under mult</code> (e.g. <code>Igor Shesterkin,NYR,saves,25.5,1,0.9</code>). Text works too: <code>Auston Matthews TOR SOG 3.5 1x/0.85x</code>. The build also pulls the Pick6 board itself; a pasted line replaces the pulled one for that player and market. Market defaults to saves for goalies and SOG for skaters; multipliers default to 1x. These lines are priced as DFS legs at their per-side multipliers (break-even = payout^(−1/legs) ÷ multiplier) on the Picks tab, ahead of DraftKings, and a goalie with a saves prop on your board counts as a posted starter.</p>
       <div class="row" style="margin-bottom:8px"><label>Book<select id="boardBook"><option>Pick6</option><option>PrizePicks</option></select></label>
         <label>File<input type="file" id="boardFile" accept=".csv,.txt,text/plain,text/csv"></label></div>
       <textarea id="boardText" rows="5" style="width:100%;font:12px ui-monospace,monospace" placeholder="Igor Shesterkin,saves,25.5,1,0.9&#10;Auston Matthews SOG 3.5 1x/0.85x"></textarea>
@@ -511,7 +523,7 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
 
 <section id="win">
   <div class="card"><h2>Game winners</h2>
-    <p class="sub">Win probability from expected goals for each side, using the same shot model and starting goalies as the Projections tab (change a goalie there and it updates here). Moneylines fill in from DraftKings on each build; type your own book's price to override. EV is the expected profit per unit at that price; a side is a pick when its EV clears your minimum. Model picks are graded in units at the DraftKings price on the Results tab.</p>
+    <p class="sub">Win probability from expected goals for each side, using the same shot model and starting goalies as the All lines tab (change a goalie there and it updates here). Moneylines fill in from DraftKings on each build; type your own book's price to override. EV is the expected profit per unit at that price; a side is a pick when its EV clears your minimum. Model picks are graded in units at the DraftKings price on the Results tab.</p>
     <div class="row" style="margin-bottom:10px"><label>Min EV (%)<input type="number" id="wEdge" value="3" step="0.5" min="0"></label></div>
     <div class="tbl"><table id="winT"></table></div>
     <p class="muted" id="winEmpty" style="display:none">No games in this build's slate yet.</p>
@@ -521,11 +533,6 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
     <p class="sub">There are no historical moneylines in the public data, so this measures how good the probabilities are, not ROI. For reference, public NHL models usually top out around 58–60% accuracy.</p>
     <div class="tbl"><table id="winCal"></table></div>
   </div>
-</section>
-
-<section id="sogt">
-  <div id="sogSrc"></div>
-  <div id="sogBox"></div>
 </section>
 
 <section id="bt">
@@ -566,7 +573,7 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
 
 <section id="goalies">
   <div class="card"><h2>Tonight's starters</h2>
-    <p class="sub">Every goalie on the slate. <b>Confirmed</b> means a DraftKings line or PrizePicks prop is posted for him, or you picked him on the Projections tab. Unconfirmed starters are never plays.</p>
+    <p class="sub">Every goalie on the slate. <b>Confirmed</b> means a DraftKings line or PrizePicks prop is posted for him, or you picked him on the All lines tab. Unconfirmed starters are never plays.</p>
     <div class="tbl"><table id="gStart"></table></div></div>
   <div class="card"><div class="row"><label>Team<select id="gTeam"><option value="">All</option></select></label>
     <label>Tier<select id="gTier"><option value="">All</option><option>Elite</option><option>Solid</option><option>Average</option><option>Below</option></select></label>
@@ -581,6 +588,8 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
 </section>
 
 <section id="logic">
+  <div class="card"><h2 id="betRules">How picks work</h2>
+    <ul id="ruleList"></ul></div>
   <div class="card"><h2>Formula</h2>
     <p><code>exp_SA = LG × (TeamSA/LG)<sup>a</sup> × (OppSF/LG)<sup>b</sup> × home × playoff × b2b × opponent b2b × exp(−gs × logit(win prob))</code>, the game-script multiplier capped at ±12%.</p>
     <p><code>saves ~ Normal(mean = exp_SA × share × sv, var = sv²(μ + μ²/K) + μ·sv(1−sv)), μ = exp_SA × share</code>: shots against vary like a negative binomial and each shot is saved with probability sv, so heavier workloads (underdogs) get a wider spread. P(hit) is then calibrated on graded real lines (side-split, no intercept), blended with the market's no-vig price at a weight fitted on graded lines (Calibration tab); whether it is a play follows the rules under <b>How picks work</b>.</p>
@@ -595,10 +604,9 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
       <li><b>Home, playoff and back-to-back:</b> multipliers measured from 2024-25 shot volume.</li>
       <li><b>Between seasons:</b> team shot rates keep <span class="carry"></span> of last year's weight, because rosters turn over. Early-season numbers lean on the league average and firm up after about 15 games.</li>
     </ul>
-    <h3 id="betRules">How picks work</h3>
-    <ul id="ruleList"></ul>
+    <h3>Reading the tables</h3>
     <ul>
-      <li>In the saves, points and winners tables, green rows are OVER and red rows are UNDER. Pick rows (Today's plays, the SOG tab) use colour only for status: a green bar is a play, amber is a near miss or something to check.</li>
+      <li>In the saves, points and winners tables (All lines), green rows are OVER and red rows are UNDER.</li>
       <li><b>Confirm the starter</b> (morning skate or warmups) before locking. Every projection is for the goalie shown.</li>
       <li>Overtime inflates raw saves past the per-60 projection. In a tight, high-event series, lean OVER on close calls.</li>
       <li>Play-by-play extras (GSAx/60, rebound%, block%, CF%, xGF%) are on the Goalies and Teams tabs for reading a matchup. MoneyPuck xGoals, GSAx, unblocked attempts and high-danger rates were tested walk-forward on this season and did not beat the current projection, so they stay out of the formula. The build cross-checks NHL shots, saves and time on ice against MoneyPuck and stops if they diverge.</li>
@@ -666,7 +674,7 @@ const RULE = Object.assign({margin: 0.02, margin_sog: 0.03, sog_gap: 0.15, sog_g
   alarm_share: 0.75, alarm_min_plays: 2, saves_cap_at: 0.65, saves_cap_to: 0.60, take_p: 0.58, near_miss_p: 0.55,
   lock_p: 0.62, min_mult: 1, saves_edge_over: 2.5, saves_edge_under: 3.0, saves_take_p: 0.58,
   mkt_min: 0.55, near_band: 0.03, sog_take_p: 0.62, sog_lock_p: 0.64, sog_mean_w: 0.5, sog_model_agree: false,
-  priced_takes: false, saves_take_overs: false, points_under_max: 1.0}, D.pricing || {});
+  priced_takes: false, saves_take_overs: false, points_under_max: 1.0, lean_p: 0.55, lean_mkt_min: 0.52}, D.pricing || {});
 // the TAKE bar, Lock tier and near-miss band per market (pricing.take_p / lock_p / near_p)
 const takeP = mk => mk === "saves" ? RULE.saves_take_p : mk === "sog" ? RULE.sog_take_p : RULE.take_p;
 const lockP = mk => mk === "sog" ? RULE.sog_lock_p : RULE.lock_p;
@@ -794,7 +802,7 @@ function alarmByDate(items){
 function alarmLines(label, A, dateF){
   return Object.entries(A || {}).filter(([d, a]) => a.alarm && (!dateF || d === dateF)).sort().map(([d, a]) => {
     const n = a.side === "UNDER" ? a.under : a.over, who = n === a.plays ? (n === 2 ? "Both" : `All ${n}`) : `${n} of ${a.plays}`;
-    return `⚠ <b>One-sided board</b>: ${who} ${label} plays ${d === TODAY_CT ? "tonight" : "on " + dayLabel(d)} are ${a.side === "OVER" ? "MORE" : "LESS"}. A lean this one-sided is more often the model than the slate, so size down.`;
+    return `⚠ <b>One-sided board</b>: ${who} ${label} plays ${d === TODAY_CT ? "tonight" : "on " + dayLabel(d)} are ${a.side === "OVER" ? "MORE" : "LESS"}. A board this one-sided is more often the model than the slate, so size down.`;
   });
 }
 const evTxt = d => !d || d.kind === "none" ? "–" : (d.ev > 0 ? "+" : "") + (100 * d.ev).toFixed(1) + "%";
@@ -849,7 +857,7 @@ function staleTag(r){
 }
 const staleBadge = r => { const t = staleTag(r); return t ? " " + t : ""; };
 // the rows each tab shows (set when it renders): the source strip counts them and checks their age
-const SHOWN = {board: [], sog: []};
+const SHOWN = {board: []};
 // one line per tab: a dot per book (green fresh, amber older than STALE_MIN, red off), its age and the rows it
 // supplies, then the build time and the Refresh button. One calm notice when a displayed line is stale.
 function srcStrip(rows){
@@ -873,7 +881,6 @@ function srcStrip(rows){
 const updTx = pre => `${pre}${isNaN(builtAt) ? D.built : lineTm(builtAt)}<button type="button" class="ghost refresh js-refresh" title="Check for a newer build" aria-label="Check for a newer build" ${REFRESH.busy ? "disabled" : ""}>${REFRESH.busy ? "Checking…" : "↻"}</button>`;
 function renderSources(){
   $("#srcBar").innerHTML = srcStrip(SHOWN.board);
-  $("#sogSrc").innerHTML = srcStrip(SHOWN.sog);
   $("#hdUpd").innerHTML = updTx("Updated ");
   navHint();
 }
@@ -1098,6 +1105,18 @@ function slateRows(){
           gid != null && gid > 0, confirmed, lineSrc === "dk" ? {over: dk.over, under: dk.under} : {}, d.pMkt), savesSrc(row), d.pMkt != null);
         d.play = isTake(row.call) && row.call.side === d.side; d.tier = d.play ? row.call.tier : "PASS";
       }
+      // PrizePicks posts a saves line for this goalie too: price it as its own 1x pick'em line, exactly as above, so
+      // Picks can say the bet is on PrizePicks even when this table shows DraftKings' (or your) line
+      if (ppLine != null && lineSrc !== "pp"){
+        const po2 = pOverSaves(dist.proj, dist.sd, ppLine);
+        const dk2 = dk && dk.goalie_id === gid && +dk.line === +ppLine ? novig(dk.over, dk.under) : null;
+        const [mq2, mq2Src] = mktQuote("saves", gid, ppLine, dk2, g.date);
+        const d2 = decide("saves", po2, {multOver: 1, multUnder: 1, mkt: mq2});
+        d2.mktSrc = d2.pMkt == null ? null : mq2Src;
+        const call2 = demoteCached(verdictFor("saves", d2.side === "OVER" ? d2.p : 1 - d2.p, d2.pModel, ppLine, dist.proj, 1, 1,
+          gid != null && gid > 0, confirmed, {}, d2.pMkt), {source: "PrizePicks"}, d2.pMkt != null);
+        row.ppAlt = {line: ppLine, d: d2, call: call2};
+      }
       rows.push(row);
     }
   }
@@ -1311,7 +1330,19 @@ function clientLines(){
   return out;
 }
 function savesBoardRows(){
-  return slateRows().filter(r => r.line != null && r.d).map(r => {
+  const rows = slateRows().filter(r => r.line != null && r.d), out = rows.map(savesBoardRow);
+  // the goalie's PrizePicks line as its own pick'em row (slateRows' ppAlt)
+  for (const r of rows){
+    if (!r.ppAlt) continue;
+    const d = r.ppAlt.d, pOver = d.side === "OVER" ? d.p : 1 - d.p;
+    out.push({name: (G[r.gid] || {}).name || "?", player_id: r.gid, team: r.team, opp: r.opp, game: r.g.id, date: r.g.date, start: r.g.start, market: "saves", label: "Saves",
+      line: r.ppAlt.line, mo: 1, mu: 1, source: "PrizePicks", proj: r.proj, p_model: d.pModel, p_mkt: d.pMkt, mkt_src: d.mktSrc, p_blend: pOver, matched: true, confirmed: r.confirmed,
+      capped: d.capped, ...r.ppAlt.call});
+  }
+  return out;
+}
+function savesBoardRow(r){
+  {
     const name = (G[r.gid] || {}).name || "?", d = r.d, pOver = d.side === "OVER" ? d.p : 1 - d.p;
     const src = r.lineSrc === "manual" ? "your line" : r.lineSrc === "board" ? (r.bd.auto ? "Pick6" : r.bd.book + " (yours)") : r.lineSrc === "dk" ? "DraftKings" : "PrizePicks";
     // a DraftKings line is priced at DraftKings' odds, never as a free 1x pick'em leg
@@ -1321,7 +1352,7 @@ function savesBoardRows(){
     return {name, player_id: r.gid, team: r.team, opp: r.opp, game: r.g.id, date: r.g.date, start: r.g.start, market: "saves", label: "Saves",
             line: r.line, mo, mu, source: src, proj: r.proj, p_model: d.pModel, p_mkt: d.pMkt, mkt_src: d.mktSrc, p_blend: pOver, matched: true, confirmed: r.confirmed,
             capped: d.capped, ...v};
-  });
+  }
 }
 // a player's main line (props_board.main_line_key): offered both ways, Pick6, then PrizePicks, then DraftKings
 const SRC_PREF = {"Pick6": 0, "PrizePicks": 1, "DraftKings": 2};
@@ -1524,7 +1555,7 @@ function renderRanked(rows){
 const multCell = r => r.mult != null ? r.mult + "x" : r.dk_over != null && r.side ? amer(r.side === "OVER" ? r.dk_over : r.dk_under) : "–";
 const ctCell = r => r.start ? ctFmt(new Date(r.start), {hour: "numeric", minute: "2-digit"}) : "–";
 // ---------- pick rows: ONE row component for every pick list ----------
-// Board (Today's plays, Near miss, Check before betting) and the SOG tab. Display only: every verdict, tier and
+// The Picks tab (plays, leans, no edge, sportsbook only). Display only: every verdict, tier and
 // probability comes from propBoard() / selectSog() / verdictFor(). A row never shows a side that is not offered,
 // and the chance it shows is always for the bet as printed (side, line, book, price).
 const MK_TAG = {sog: "SOG", points: "PTS", saves: "SV"};
@@ -1631,24 +1662,6 @@ function blockTag(r, v){
   if (!v) return "not offered";
   return "";
 }
-// why nothing is a play, from the tags the rows show: "37 lines are sportsbook odds (info only), 16 have ..."
-const tagKey = t => /^edge /.test(t) ? "edge" : /^mkt < /.test(t) ? "mkt" : t;
-const NONE_TX = {
-  "info only": ["are sportsbook odds (info only)", "is sportsbook odds (info only)"], "no market": ["have no market price", "has no market price"],
-  mkt: [() => `have the market under ${pc0(RULE.mkt_min)}`, () => `has the market under ${pc0(RULE.mkt_min)}`], "": ["are short of the chance bar", "is short of the chance bar"],
-  "pays < 1x": ["pay under 1x", "pays under 1x"], "model ≤ 50%": ["have the model disagreeing", "has the model disagreeing"],
-  "overs off": ["are saves overs (off)", "is a saves over (off)"], "unders off": ["are points unders (off at that line)", "is a points under (off at that line)"],
-  unconfirmed: ["have an unconfirmed starter", "has an unconfirmed starter"], edge: ["have the projection too close to the line", "has the projection too close to the line"],
-  conflict: ["lost a conflict", "lost a conflict"], cached: ["are reused lines (this build's pull failed)", "is a reused line (this build's pull failed)"]};
-function noneWhy(rows){
-  const c = new Map();
-  for (const r of rows){ if (statusOf(r) !== "pass") continue; const k = tagKey(blockTag(r, dispSide(r))); c.set(k, (c.get(k) || 0) + 1); }
-  const all = [...c].sort((a, b) => b[1] - a[1]), top = all.filter(([k]) => NONE_TX[k]).slice(0, 3);
-  const rest = all.reduce((s, [, n]) => s + n, 0) - top.reduce((s, [, n]) => s + n, 0);
-  const parts = top.map(([k, n]) => { const t = NONE_TX[k][n === 1 ? 1 : 0]; return `${n} ${typeof t === "function" ? t() : t}`; })
-    .concat(rest ? [`${rest} ${top.length ? "more" : ""} ${rest === 1 ? "doesn't" : "don't"} qualify`.replace("  ", " ")] : []);
-  return parts.length > 1 ? parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1] : parts[0] || "";
-}
 // the verdict in plain English, one line
 function whyText(r, v, check){
   const why = whyOf(r), lab = MK_TAG[r.market] || r.label || "", S = v ? v.side : r.side, st = check ? "check" : statusOf(r);
@@ -1716,34 +1729,40 @@ function l10Tx(r, v){
   const mx = Math.max(L + 1, ...l10), h = x => Math.max(3, Math.round(34 * x / mx));
   const hits = l10.filter(x => res(x) === "hit").length, push = l10.filter(x => res(x) === "push").length;
   return `<div class="x-l10" aria-hidden="true">${l10.map(x => `<span class="${res(x)}" style="height:${h(x)}px"></span>`).join("")}<i class="ln" style="bottom:${Math.round(34 * L / mx)}px"></i></div>
-    <div class="x-l10cap">Last ${l10.length} (oldest → newest): ${l10.join(" ")} · ${sideWord(S)} ${n1(L)} hit in <b>${hits}/${l10.length}</b>${push ? ` (${push} push${push === 1 ? "" : "es"})` : ""}</div>`;
+    <div class="x-l10cap">Last ${l10.length} (oldest → newest): ${l10.join(" ")} · ${sideWord(S)} ${lineTx(L)} hit in <b>${hits}/${l10.length}</b>${push ? ` (${push} push${push === 1 ? "" : "es"})` : ""}</div>`;
 }
-// a ladder rung's call, short
-function callTag(x, b){
-  if (isTake(x)) return ["Take", "take"];
-  if (x.tier === "Near miss") return ["near", ""];
-  if (statusOf(x) === "check") return ["check", ""];
-  if (!b) return ["n/a", ""];
-  if (b.side === x.side){ const t = blockTag(x, b); if (t) return [t, ""]; }
-  if (b.o.kind === "dfs" && b.o.mult < RULE.min_mult - 1e-9) return ["pays < 1x", ""];
-  if (b.p < takeP(x.market) - 1e-9) return ["< " + pc0(takeP(x.market)), ""];
-  if (b.p <= b.be + 1e-9) return ["< price", ""];
+// one of his lines in the panel's table, in a word or two: Play, Lean, Check, or why it is neither. `top` is the pick
+// the panel belongs to: the same bet on the other app is the same play
+function callTag(x, b, top){
+  if (isTake(x)) return ["Play", "take"];
+  if (!b) return ["not offered", ""];
+  const app = isApp(x), o = sideOffer(x, b.side);
+  if (top && top.tier === "play" && app && o && o.full && !reusedLine(x) && +x.line === +top.r.line && b.side === top.v.side) return ["Play", "take"];
+  if (!app) return ["info only", ""];
+  const t = o ? leanTier({row: x, side: b.side, p: b.p, ...o}) : "";
+  if (t) return [t === "lean" ? "Lean" : "Check", ""];
+  if (o && !o.full) return ["pays " + payTx(o), ""];
+  if (b.p < 0.5) return ["long shot", ""];
+  if (b.p < RULE.lean_p - 1e-9) return ["coin flip", ""];
+  const why = noLeanTag(x, b, {full: true});
+  if (why) return [why, ""];
+  if (b.side === x.side){ const bt = blockTag(x, b); if (bt) return [bt, ""]; }
   return ["pass", ""];
 }
 const SHORT_BOOK = {"Pick6": "P6", "PrizePicks": "PP", "DraftKings": "DK", "Your line": "You"};
 // every line he has tonight, each on its best offered side; the row's own line in bold
-function ladderTx(r, v, alts){
+function ladderTx(r, v, alts, pk){
   const rs = [r, ...(alts || [])].filter((x, i, a) => a.indexOf(x) === i)
     .sort((a, b) => (+a.line) - (+b.line) || String(a.source).localeCompare(String(b.source)));
   if (rs.length < 2) return "";
-  const multi = new Set(rs.map(x => bookName(x.source))).size > 1;
+  const multi = new Set(rs.map(x => bookName(x.source))).size > 1, top = pk ? {r, v, tier: pk.tier} : null;
   const body = rs.map(x => {
-    const b = x === r ? v : bestSide(x), [call, cls] = callTag(x, b), bn = bookName(x.source);
+    const b = x === r ? v : bestSide(x), [call, cls] = x === r && pk && pk.tier ? [{play: "Play", lean: "Lean", check: "Check"}[pk.tier], pk.tier === "play" ? "take" : ""] : callTag(x, b, top), bn = bookName(x.source);
     const mkt = b && x.p_mkt != null && !x.mean_blend && (x.w ?? 1) <= 0 ? `<span class="src"> ${String(x.mkt_src || "DraftKings").startsWith("Draft") ? "DK" : "mkt"}</span>` : "";
-    return `<tr class="${x === r ? "cur" : ""}"><td class="l">${n1(x.line)}</td>${multi ? `<td class="l"><span class="lbl-l">${esc(bn)}</span><span class="lbl-s">${SHORT_BOOK[bn] || esc(bn)}</span></td>` : ""}` +
-      `<td class="l">${b ? arrow(b.side) + " " + sideCap(b.side) : "–"}</td><td>${priceTx(b)}</td><td>${b ? pc0(b.p) + mkt : "–"}</td><td>${b ? pc0(b.needs) : "–"}</td><td class="call ${cls}">${call}</td></tr>`;
+    return `<tr class="${x === r ? "cur" : ""}"><td class="l">${lineTx(x.line)}</td>${multi ? `<td class="l"><span class="lbl-l">${esc(bn)}</span><span class="lbl-s">${SHORT_BOOK[bn] || esc(bn)}</span></td>` : ""}` +
+      `<td class="l">${b ? arrow(b.side) + " " + sideCap(b.side) : "–"}</td><td>${priceTx(b)}</td><td>${b ? pc0(b.p) + mkt : "–"}</td><td class="call ${cls}">${call}</td></tr>`;
   }).join("");
-  return `<table class="x-ladder"><thead><tr><th class="l">Line</th>${multi ? '<th class="l">Book</th>' : ""}<th class="l">Side</th><th>Pays</th><th>Chance</th><th>Needs</th><th class="l">Call</th></tr></thead><tbody>${body}</tbody></table>`;
+  return `<table class="x-ladder"><thead><tr><th class="l">His lines</th>${multi ? '<th class="l">Where</th>' : ""}<th class="l">Side</th><th>Pays</th><th>Chance</th><th class="l"></th></tr></thead><tbody>${body}</tbody></table>`;
 }
 function noteTx(r){
   let t = /^your line/i.test(r.source || "") ? "Your line (saved in this browser)" : `${esc(r.source || "–")}${r.via ? " via " + esc(r.via) : ""} line`;
@@ -1771,16 +1790,43 @@ function ownTx(r){
     ${OWN_MULTS_PRICED ? "" : `<p class="x-note">Priced as a pick'em line at 1x More / 1x Less.</p>`}</form></details>`;
 }
 function xDetail(r, v, opt){
-  return `<div class="x-why">${whyText(r, v, opt.check)}</div>${sumTx(r, v)}${factsTx(r, v)}${l10Tx(r, v)}${ladderTx(r, v, (opt.alts && opt.alts.get(r)) || r.alts || [])}${noteTx(r)}${ownTx(r)}`;
+  const pk = opt.P && opt.P.get(r);
+  return `<div class="x-why">${pk ? pickWhy(r, v, pk) : whyText(r, v, opt.check)}</div>${pk ? "" : sumTx(r, v)}${factsTx(r, v)}${l10Tx(r, v)}${ladderTx(r, v, (opt.alts && opt.alts.get(r)) || r.alts || [], pk)}${noteTx(r)}${ownTx(r)}`;
 }
 // open rows stay open across re-renders; panels are filled on first open
 const XR = {n: 0, rows: new Map(), ids: {}, open: new Set(), keep: {}};
 const xKey = (r, ctx) => `${ctx}|${r.player_id ?? r.name}|${r.game}|${r.market}`;
 function xBegin(ctx){ for (const id of XR.ids[ctx] || []) XR.rows.delete(id); XR.ids[ctx] = []; }
-// phone: name / bet + projection / book, price and game, with the chance on the right. >= 1080px: one grid row.
+// a line change in words: "F3→F1" -> "↑ line 1 (was 3)", "D1→D2" -> "↓ pair 2 (was 1)"
+const roleTx = c => { const m = /^([FD])(\d)\s*→\s*([FD])(\d)$/.exec(String(c || "")); return !m ? String(c || "")
+  : `${+m[4] < +m[2] ? "↑" : "↓"} ${m[3] === "D" ? "pair" : "line"} ${m[4]} (was ${m[2]})`; };
+// a line as the apps print it ("2" for a whole number, "2.5" otherwise), the market's name, what an app pays for the
+// pick ("1x", "1.1x", or the price on a demon / goblin)
+const lineTx = x => x == null || isNaN(+x) ? "–" : String(+x);
+const MK_LAB = {sog: "SOG", points: "Points", saves: "Saves"};
+const payTx = a => a.mult != null ? (+a.mult) + "x" : amerTx(a.price);
+// a chance that rounds onto a bar it did not reach is cut, not rounded, to one decimal ("61.9%", "54.9%": never a
+// "62%" that is not a play or a "55%" that is not a lean)
+const chanceTx = (p, mk) => p == null ? "–" : [RULE.lean_p, takeP(mk)].some(b => p < b - 1e-9 && pc0(p) === pc0(b)) ? (Math.floor(1000 * p + 1e-9) / 10).toFixed(1) + "%" : pc0(p);
+// two words on why a line at the lean bar or better is still not a lean (shown under its chance)
+function noLeanTag(r, v, pk){
+  if (!pk.full) return "pays " + payTx(pk.apps[0]);
+  if (v.p < RULE.lean_p - 1e-9 || (r.market !== "sog" && r.market !== "points")) return "";
+  if (r.cached) return "old line";
+  const pkm = hasVal(r.p_mkt) ? (v.side === "OVER" ? +r.p_mkt : 1 - r.p_mkt) : null;
+  if (pkm == null) return "no market";
+  if (pkm < RULE.lean_mkt_min - 1e-9) return "market " + pc0(pkm);
+  if (r.market === "points" && v.side === "UNDER" && +r.line >= RULE.points_under_max - 1e-9) return "unders off";
+  return "";
+}
+// where the pick can be made: one tag per app, with its multiplier when it is not 1x
+const appTags = pk => pk.apps.map(a => `<span class="x-app${a.short ? " short" : ""}">${esc(a.app)}${payTx(a) === "1x" ? "" : ` <b>${payTx(a)}</b>`}</span>`).join("");
+// phone: name / the bet + projection / where (the apps) and the game, with the chance on the right. >= 1080px: one grid row.
+// A Picks row shows its player's pick (opt.P / opt.V, from pickItems); any other row shows its own line (dispSide).
 function xRow(r, ctx, opt = {}){
-  const v = dispSide(r), st = opt.check ? "check" : statusOf(r);
-  const S = v ? v.side : r.side && offered(r, r.side) ? r.side : null, lab = MK_TAG[r.market] || r.label || "";
+  const pk = opt.P && opt.P.get(r), v = pk ? opt.V.get(r) : dispSide(r);
+  const st = pk && pk.tier ? pk.tier : "pass";
+  const S = v ? v.side : null, lab = MK_LAB[r.market] || r.label || "";
   const g = D.slate.find(x => x.id === r.game) || {}, home = g.home ? g.home === r.team : null;
   const opp = r.opp || (home == null ? "" : home ? g.away : g.home), at = home == null ? "" : home ? "vs" : "@";
   const pos = r.pos || (SKATER[r.player_id] || {}).pos || (r.market === "saves" ? "G" : "");
@@ -1791,32 +1837,30 @@ function xRow(r, ctx, opt = {}){
   const diff = r.proj != null && r.line != null ? r.proj - r.line : null;
   const against = diff != null && S && Math.abs(diff) >= (r.market === "saves" ? 0.5 : 0.15) && (S === "OVER" ? diff < 0 : diff > 0);
   const df = `<span class="df${against ? " against" : ""}">${sgnD(diff)}</span>`;
-  const chip = {lock: "Lock", strong: "Strong", near: "Near", check: "Check"}[st];
+  const chip = {play: "Play", lean: "Lean", check: "Check"}[st];
   const chipTx = chip ? `<span class="x-tier ${st}">${chip}</span>` : "";
   const lost = /^conflict/.test(r.reason || ""), won = r.conflicts && r.conflicts.length;
   const flags = (won || lost ? `<span class="x-flag" title="${esc(lost ? r.reason.replace(/^conflict: /, "Conflicts with ") : "Conflicts with " + r.conflicts.join(", "))}">⚠</span>` : "") +
-    (r.role_change ? `<span class="x-flag" title="Line change: ${esc(r.role_change)}">${esc(r.role_change)}</span>` : "");
-  const book = esc(bookName(r.source)), price = priceTx(v), mk = opt.market ? `<span class="x-mk"><b>${lab}</b></span>` : "";
-  const blocked = st === "pass" ? blockTag(r, v) : "", nums = v && !blocked, p = v ? v.p : S ? r.p : null;
-  const [pPh, nPh] = v ? pcPair(v.p, v.needs) : [pc0(p), ""];
+    (r.role_change ? `<span class="x-flag" title="Line change: ${esc(r.role_change)}">${esc(roleTx(r.role_change))}</span>` : "");
+  const where = pk ? appTags(pk) : `<span class="x-book"><b>${esc(bookName(r.source))}</b> ${priceTx(v)}</span>`;
+  // a quiet tag under the chance when the row is not a pick: the side pays short, or the line is sportsbook odds
+  const tag = st !== "pass" ? "" : pk ? noLeanTag(r, v, pk) : infoOnly(r) ? "info only" : "";
+  const p = v ? v.p : null;
   const game = [r.team && opp ? `${esc(r.team)} ${at} ${esc(opp)}` : esc(r.team || ""), tShort].filter(Boolean).join(" ");
   const key = xKey(r, ctx), id = "xd" + (++XR.n), open = XR.open.has(key);
   XR.rows.set(id, {r, v, opt}); (XR.ids[ctx] ||= []).push(id);
-  return `<div class="x-row t-${st}${blocked ? " is-blk" : ""}" role="button" tabindex="0" aria-expanded="${open}" aria-controls="${id}" data-k="${esc(key)}">` +
+  return `<div class="x-row t-${st}" role="button" tabindex="0" aria-expanded="${open}" aria-controls="${id}" data-k="${esc(key)}">` +
     `<span class="x-tcol">${chipTx}</span>` +
     `<div class="x-who"><div class="x-nm"><span class="x-name">${esc(fullName(r))}</span>${flags}</div><div class="x-meta x-d-only">${[r.team, pos, r.role].filter(Boolean).map(esc).join(" · ")}</div></div>` +
     `<span class="x-game">${opp ? `${at} ${esc(opp)} ${t}` : t}</span>` +
-    `<div class="x-bet"><div class="x-w"><span class="x-side"><span class="ar">${arrow(S)}</span>${S ? sideWord(S) : "–"} ${n1(r.line)}</span>${mk}${r.proj != null ? `<span class="x-pj x-m-only dot">proj ${n1(r.proj)} (${df})</span>` : ""}</div></div>` +
+    `<div class="x-bet"><div class="x-w"><span class="x-side ${S || ""}"><span class="ar">${arrow(S)}</span>${S ? sideWord(S) : "–"} ${lineTx(r.line)} ${lab}</span>${r.proj != null ? `<span class="x-pj x-m-only dot">proj ${n1(r.proj)} (${df})</span>` : ""}</div></div>` +
     `<span class="x-projc">${n1(r.proj)}</span><span class="x-diffc">${df}</span>` +
-    `<div class="x-ctx x-m-only"><div class="x-w"><span class="x-book"><b>${book}</b> ${price}</span>${stale}${game ? `<span class="dot">${game}</span>` : ""}</div></div>` +
-    `<span class="x-bookc"><b>${book}</b> · ${price}${stale}</span>` +
-    `<div class="x-pcol"><span class="x-p"><span class="x-m-only">${pPh}</span><span class="x-d-only">${v ? pc1(v.p) : pc0(p)}</span></span>` +
-    `<span class="x-m-only">${chipTx || `<span class="x-needs">${blocked || (v ? "needs " + nPh : "")}</span>`}</span></div>` +
-    `<span class="x-needc${blocked ? " tag" : ""}">${blocked || (v ? pc1(v.needs) : "–")}</span>` +
-    `<span class="x-edgec${nums && edgePts(v) > 0 ? " pos" : ""}">${nums ? edgeTx(v) : "–"}</span>` +
+    `<div class="x-ctx x-m-only"><div class="x-w">${where}${stale}${game ? `<span class="dot">${game}</span>` : ""}</div></div>` +
+    `<span class="x-bookc">${where}${stale}</span>` +
+    `<div class="x-pcol"><span class="x-p">${chanceTx(p, r.market)}</span><span class="x-m-only">${chipTx || (tag ? `<span class="x-needs">${tag}</span>` : "")}</span></div>` +
     `<span class="x-chev" aria-hidden="true">›</span></div><div class="x-det" id="${id}">${open ? xDetail(r, v, opt) : ""}</div>`;
 }
-const X_COLS = `<div class="x-cols" aria-hidden="true"><span></span><span>Player</span><span>Game (CT)</span><span>Bet</span><span class="num">Proj</span><span class="num">Diff</span><span class="bk">Book · pays</span><span class="num">Chance</span><span class="num">Needs</span><span class="num" title="Chance minus needs, in percentage points">Edge</span><span></span></div>`;
+const X_COLS = `<div class="x-cols" aria-hidden="true"><span></span><span>Player</span><span>Game (CT)</span><span>Pick</span><span class="num">Proj</span><span class="num">Diff</span><span class="bk">Where</span><span class="num">Chance</span><span></span></div>`;
 // rows; a {divider: "text"} item prints a label between groups. On desktop the tier column folds away in a list
 // with no tier chip (opt.nt says whether to, so lists on one tab can stay aligned)
 const xList = (rows, ctx, opt = {}, foot = "") => {
@@ -1858,61 +1902,135 @@ document.addEventListener("click", e => {
   delete SOGL[f.dataset.k]; delete SOGM[f.dataset.k]; ownSaved(f);
 });
 // collapsed sections keep their open state across re-renders
-document.addEventListener("toggle", e => { const d = e.target; if (d.dataset && d.dataset.keep) XR.keep[d.dataset.keep] = d.open; }, true);
+document.addEventListener("click", e => { const sm = e.target.closest("details[data-keep]>summary"); if (sm && !e.target.closest("a,button,select,label")) setTimeout(() => { XR.keep[sm.parentNode.dataset.keep] = sm.parentNode.open; }, 0); });
 function openRules(){
   const b = document.querySelector('#tabs button[data-t="logic"]'); if (b) b.click();
   const h = $("#betRules"); if (h) h.scrollIntoView({block: "start"});
 }
 function openPaste(){
-  const b = document.querySelector('#tabs button[data-t="proj"]'); if (b) b.click();
+  const b = document.querySelector('#tabs button[data-t="lines"]'); if (b) b.click();
   $("#editBox").open = true; $("#boardBox").open = true; $("#boardBox").scrollIntoView({block: "start"});
 }
-function openSog(){ const b = document.querySelector('#tabs button[data-t="sogt"]'); if (b) b.click(); scrollTo(0, 0); }
-// Check before betting: a line that can be a play once checked (role change, team mismatch, a name that matched more
-// than one player), one row per player, game and market (his best such line; his other lines go in its panel), plus
-// the server's lines the Pick6 pull could not match. A review line that is a pass anyway stays in the main list.
-function checkRows(sel, mk){
+// the server's lines the Pick6 pull could not match to one player (an unknown or ambiguous name): listed, never picks
+function unmatchedRows(sel){
   const day = $("#dateF").value, dayOf = r => r.date || (D.slate.find(g => g.id === r.game) || {}).date;
-  const seen = new Set(sel.review.map(r => r.name + "|" + r.line));
-  const extra = ((D.board || {}).review || []).filter(r => r.verdict == null && !seen.has(r.name + "|" + r.line) &&
-    (!mk || r.market === mk) && (!day || !dayOf(r) || dayOf(r) === day));
-  const by = {};
-  for (const r of sel.review.filter(r => !mk || r.market === mk).concat(extra)) (by[(r.player_id ?? r.name) + "|" + (r.game ?? "") + "|" + (r.market || "")] ||= []).push(r);
-  const alts = new Map(), rows = [];
-  for (const rs of Object.values(by)){
-    const c = rs.filter(r => extra.includes(r) || statusOf(r) === "check").sort((a, b) => (b.p ?? 0) - (a.p ?? 0));
-    if (!c.length) continue;
-    rows.push(c[0]); alts.set(c[0], rs.filter(x => x !== c[0]));
+  const seen = new Set((sel.review || []).map(r => r.name + "|" + r.line));
+  return ((D.board || {}).review || []).filter(r => r.verdict == null && !seen.has(r.name + "|" + r.line) && (!day || !dayOf(r) || dayOf(r) === day));
+}
+// ---------- one pick per player and market (mirrors props_board.picks): which side, on which app, how sure ----------
+// An app row is a pick'em line: Pick6, PrizePicks, or a line you typed or pasted. DraftKings rows are sportsbook odds.
+const PICK_APPS = ["PrizePicks", "Pick6"];
+const isApp = r => !isBookRow(r);
+const appOf = r => bookKey(r.source);
+// what one side of a line pays (props_board.side_offer): its break-even, the multiplier or price, and whether that is
+// at least what a 1x pick'em leg pays
+function sideOffer(r, side){
+  const o = offered(r, side); if (!o) return null;
+  const be = o.kind === "book" ? impliedP(o.price) : dfsBE(o.mult);
+  return {be, mult: o.kind === "dfs" ? o.mult : null, price: o.kind === "book" ? o.price : null, full: be <= dfsBE(RULE.min_mult) + 1e-9, o};
+}
+// every bet an app offers on one player's lines (props_board.pick_options)
+function pickOptions(rs){
+  const out = [];
+  for (const r of rs){
+    if (!isApp(r) || r.matched === false || !hasVal(r.p_blend)) continue;
+    for (const side of ["OVER", "UNDER"]){
+      const o = sideOffer(r, side);
+      if (o) out.push({row: r, side, p: side === "OVER" ? +r.p_blend : 1 - r.p_blend, ...o});
+    }
   }
-  return {rows, alts, extra: rows.filter(r => extra.includes(r))};
+  return out;
 }
-// ---------- Board: Today's plays, Near miss, Check before betting ----------
-// Today's plays = SOG Lock / Strong kept by selectSog + saves / points TAKEs, Lock first, then by chance
-function renderPlays(pb){
-  const sel = pb.sel || {plays: [], near: [], review: []}, day = $("#dateF").value;
-  xBegin("board");
-  const takes = pb.filter(isTake).sort((a, b) => (b.tier === "Lock") - (a.tier === "Lock") || (b.p ?? 0) - (a.p ?? 0) ||
-    String(a.player_id ?? a.name).localeCompare(String(b.player_id ?? b.name)));
-  const near = sel.near.slice().sort(sogRankCmp), nn = near.length;
-  const why = takes.length ? "" : noneWhy(pb.filter(r => r.primary));
-  $("#playsBox").innerHTML = takes.length ? xList(takes, "board", {market: true})
-    : !pb.length ? `<div class="x-empty">No lines posted${day ? ` for ${dayLabel(day)}` : ""} yet. Books post them through the morning; this page updates every 15 minutes.</div>`
-    : `<p class="x-none">No plays${why ? `: ${why}` : " right now"}.${nn ? ` ${nn} near miss${nn === 1 ? "" : "es"} below.` : ""}` +
-      `${pb.some(r => r.market === "sog") ? ` <button type="button" class="x-link js-to-sog">See every SOG line</button>` : ""}</p>`;
-  $("#nPlays").textContent = takes.length;
-  $("#cardNear").style.display = nn ? "" : "none";
-  $("#nearBox").innerHTML = nn ? xList(near, "board", {market: true}) : "";
-  $("#nNear").textContent = nn || "";
-  $("#nearNote").textContent = `${Math.round(100 * nearP("sog"))}–${pc0(takeP("sog"))}, not plays`;
-  const chk = checkRows(sel);
-  $("#cardReview").style.display = chk.rows.length ? "" : "none";
-  $("#reviewBox").innerHTML = chk.rows.length ? xList(chk.rows, "board", {market: true, check: true, alts: chk.alts}) : "";
-  $("#nReview").textContent = chk.rows.length || "";
-  SHOWN.board = pb.slice();
+// a line from a board this build could not refresh (props_board: the row's `fallback`); lines you typed or this
+// browser pulled itself are fresh
+const reusedLine = r => !r.mine && !r.live && CACHED_SRC.has(SRC_KEY[r.source] || "");
+// best first (props_board.pick_key): the higher chance, the better pay, a fresh line before a reused one, Pick6 before
+// PrizePicks, the lower line, MORE
+function pickCmp(a, b){
+  const k = o => [-o.p, o.be, reusedLine(o.row) ? 1 : 0, SRC_PREF[o.row.source] ?? 3, +(o.row.line ?? 0), o.side];
+  const x = k(a), y = k(b);
+  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
+  return 0;
 }
-// ---------- the SOG tab: the one complete SOG list for the date ----------
-const SOGX = Object.assign({game: "", side: "", book: "", sort: "close"}, store.get("gm_sogx", {}), {all: false});
-const sogxSave = () => store.set("gm_sogx", {game: SOGX.game, side: SOGX.side, book: SOGX.book, sort: SOGX.sort});
+// "lean" / "check" / "" (props_board.lean_tier): the side to take when it is not a play
+function leanTier(o){
+  const r = o.row, mk = r.market;
+  if (!o.full || (mk !== "sog" && mk !== "points") || r.cached || o.p < RULE.lean_p - 1e-9) return "";
+  if (!hasVal(r.p_mkt) || (o.side === "OVER" ? +r.p_mkt : 1 - r.p_mkt) < RULE.lean_mkt_min - 1e-9) return "";
+  if (mk === "points" && o.side === "UNDER" && +r.line >= RULE.points_under_max - 1e-9) return "";
+  if (mk === "sog" && (r.role_change || r.team_mismatch)) return "check";
+  return "lean";
+}
+// one player's lines in one market and game -> the one bet to show (props_board.pick_for): his TAKE; else the
+// highest-chance bet at >= 1x that is a lean or a check; else no edge: the likelier side of his fairest line
+function pickFor(rs){
+  const opts = pickOptions(rs); if (!opts.length) return null;
+  const best = xs => xs.reduce((m, o) => pickCmp(o, m) < 0 ? o : m);
+  const take = rs.find(r => isTake(r) && isApp(r));
+  if (take){ const o = opts.find(o => o.row === take && o.side === take.side); if (o) return {...o, tier: "play"}; }
+  const full = opts.filter(o => o.full), good = full.filter(o => leanTier(o));
+  if (good.length){ const o = best(good); return {...o, tier: leanTier(o)}; }
+  const b = full.length ? best(full) : null;
+  if (b && b.p >= 0.5) return {...b, tier: ""};
+  const main = [...new Set(opts.map(o => o.row))].reduce((m, r) => mainCmp(r, m) < 0 ? r : m);
+  const o = opts.filter(o => o.row === main).reduce((m, o) => o.p > m.p || (o.p === m.p && o.be < m.be) ? o : m);
+  return {...o, tier: ""};
+}
+// every app that offers exactly the pick (same side, same line) at >= 1x, the pick's own app first; a line from a
+// board this build could not refresh is not listed
+function pickApps(rs, o){
+  const r = o.row, apps = [{app: bookName(r.source), key: appOf(r), mult: o.mult, price: o.price, short: !o.full}];
+  for (const x of rs){
+    if (x === r || !isApp(x) || !hasVal(x.p_blend) || +x.line !== +r.line || apps.some(a => a.key === appOf(x))) continue;
+    if (reusedLine(x)) continue;
+    const ox = sideOffer(x, o.side);
+    if (ox && ox.full) apps.push({app: bookName(x.source), key: appOf(x), mult: ox.mult, price: ox.price});
+  }
+  return [apps[0], ...apps.slice(1).sort((a, b) => (SRC_PREF[a.app] ?? 3) - (SRC_PREF[b.app] ?? 3))];
+}
+// the board as it is bet: one item per player, market and game. app = "" (both apps) or "Pick6" / "PrizePicks": the
+// lines his pick is chosen from (lines you typed always count). P: row -> pick, V: row -> the side as displayed.
+// A player only DraftKings prices goes to `books` (sportsbook odds, information only).
+function pickItems(pb, app){
+  const by = new Map();
+  for (const r of pb){ const k = [r.player_id ?? r.name, r.market, r.game].join("|"); if (!by.has(k)) by.set(k, []); by.get(k).push(r); }
+  const items = [], books = [], alts = new Map(), P = new Map(), V = new Map();
+  for (const rs of by.values()){
+    const pool = app ? rs.filter(r => !isApp(r) || appOf(r) === app || appOf(r) === "Yours") : rs;
+    const o = pickFor(pool);
+    if (o){
+      const r = o.row;
+      items.push(r); alts.set(r, rs.filter(x => x !== r)); P.set(r, {...o, apps: pickApps(pool, o)});
+      const needs = Math.max(takeP(r.market), o.be);
+      V.set(r, {side: o.side, p: o.p, be: o.be, needs, edge: o.p - needs, o: o.o, flipped: !!r.side && o.side !== r.side});
+    } else if (!rs.some(isApp) && rs.some(r => r.side)){
+      const m = rs.find(r => r.primary) || rs[0];
+      books.push(m); alts.set(m, rs.filter(x => x !== m));
+    }
+  }
+  return {items, books, alts, P, V};
+}
+// the pick in one plain sentence (the first line of a Picks row's panel)
+function pickWhy(r, v, pk){
+  const lab = MK_LAB[r.market] || r.label || "", m = t => ` <span class="muted">· ${t}</span>`;
+  const bet = `<b>${sideWord(v.side)} ${lineTx(r.line)} ${lab}</b>`;
+  const where = pk.apps.map(a => esc(a.app) + (payTx(a) === "1x" ? "" : " at " + payTx(a))).join(" or ");
+  const push = r.market !== "saves" && +r.line === Math.round(+r.line) ? ` Exactly ${lineTx(r.line)} is a push.` : "";
+  if (pk.tier === "play") return `Take ${bet} on ${where}.${push ? `<span class="muted">${push}</span>` : ""}`;
+  if (pk.tier === "lean") return `Lean ${bet} on ${where}.<span class="muted"> ${chanceTx(v.p, r.market)}: the likelier side, but short of a play (${pc0(takeP(r.market))}+).${push}</span>`;
+  if (pk.tier === "check") return `Check his spot first.<span class="muted"> ${r.role_change ? `He is listed on ${esc(roleTx(r.role_change).replace(/^[↑↓] /, ""))}, which the projection may not reflect yet` : `The app lists him with ${esc(r.team)}, the roster with ${esc(r.roster_team || "another team")}`}. If that holds, lean ${sideWord(v.side)} ${lineTx(r.line)} on ${where} (${chanceTx(v.p, r.market)}).</span>`;
+  const pkm = hasVal(r.p_mkt) ? (v.side === "OVER" ? +r.p_mkt : 1 - r.p_mkt) : null;
+  if (!pk.full) return `No edge${m(`${sideCap(v.side)} is the likelier side (${pc0(v.p)}), but ${esc(pk.apps[0].app)} pays only ${payTx(pk.apps[0])} for it`)}`;
+  if (v.p < 0.5) return `No edge${m(`${sideCap(v.side)} is all ${esc(pk.apps[0].app)} offers here at ${payTx(pk.apps[0])}, and it is the less likely side (${pc0(v.p)})`)}`;
+  if (r.market === "saves" || r.cached) return whyText(r, v);
+  if (v.p < RULE.lean_p - 1e-9) return `No edge${m(`${chanceTx(v.p, r.market)} is close to a coin flip (a lean needs ${pc0(RULE.lean_p)}+)`)}`;
+  if (pkm == null) return `No edge${m("no sportsbook prices him, and model-only picks have not won")}`;
+  if (pkm < RULE.lean_mkt_min - 1e-9) return `No edge${m(`the model leans ${sideCap(v.side)} (${pc0(v.p)}) but the market does not (${pc0(pkm)})`)}`;
+  return whyText(r, v);
+}
+// ---------- Picks: the one list ----------
+const PKX = Object.assign({game: "", app: "", mk: "", sort: "chance"}, store.get("gm_pkx", {}), {all: false});
+const pkxSave = () => store.set("gm_pkx", {game: PKX.game, app: PKX.app, mk: PKX.mk, sort: PKX.sort});
 let LAST_PB = null;
 // every line source reported and none of them up: "Pick6 off, PrizePicks off, DraftKings off"
 function sourcesOff(){
@@ -1920,99 +2038,86 @@ function sourcesOff(){
   const list = [["Pick6", SRC.pick6], ["PrizePicks", ppS], ["DraftKings", SRC.dk]].filter(([, s]) => s);
   return list.length && list.every(([, s]) => s.status === "error" || s.status === "fallback") ? list.map(([n]) => n + " off").join(", ") : "";
 }
-// one row per player per game: the line selectSog kept; else, for a review player, his line worth checking; else his
-// main line (selectSog's primary). His other lines are the ladder in the row's panel.
-function sogItems(sog){
-  const by = new Map();
-  for (const r of sog){ const k = (r.player_id ?? r.name) + "|" + r.game; if (!by.has(k)) by.set(k, []); by.get(k).push(r); }
-  const items = [], alts = new Map();
-  for (const rs of by.values()){
-    const kept = rs.find(r => r.sog_section === "plays" || r.sog_section === "near");
-    const chk = kept ? null : rs.filter(r => statusOf(r) === "check").sort((a, b) => (b.p ?? 0) - (a.p ?? 0))[0];
-    const m = kept || chk || rs.find(r => r.primary) || rs[0];
-    items.push(m); alts.set(m, rs.filter(x => x !== m));
-  }
-  return {items, alts};
-}
 // the control a re-render should give focus back to (keyboard and screen-reader users keep their place)
-const focusKey = el => el.id ? "#" + el.id : el.matches(".js-sx-clear") ? '[data-sx-game=""]' : el.matches(".js-sx-all") ? ".js-sx-all"
-  : [...el.attributes].filter(a => a.name.startsWith("data-sx-")).map(a => `[${a.name}="${CSS.escape(a.value)}"]`)[0] || null;
-const SORTS = [["close", "Closest to a play", "Closest"], ["chance", "Chance", "Chance"], ["diff", "Difference (proj − line)", "Difference"],
-  ["time", "Game time", "Game time"], ["name", "Name", "Name"]];
+const focusKey = el => el.id ? "#" + el.id : el.matches(".js-px-clear") ? '[data-px-game=""]' : el.matches(".js-px-all") ? ".js-px-all"
+  : [...el.attributes].filter(a => a.name.startsWith("data-px-")).map(a => `[${a.name}="${CSS.escape(a.value)}"]`)[0] || null;
+const SORTS = [["chance", "Chance"], ["diff", "Difference (proj − line)"], ["time", "Game time"], ["name", "Name"]];
 // where the game chips are scrolled (scroll events do not bubble: listen in the capture phase)
 let CHIP_SL = 0;
 document.addEventListener("scroll", e => { if (e.target.classList && e.target.classList.contains("x-chips")) CHIP_SL = e.target.scrollLeft; }, true);
-function renderSogTab(pb){
+function renderPicks(pb){
   pb = pb || LAST_PB || propBoard($("#dateF").value);
-  const day = $("#dateF").value, sel = pb.sel || {plays: [], near: [], review: []}, box = $("#sogBox");
+  const day = $("#dateF").value, sel = pb.sel || {plays: [], near: [], review: []}, box = $("#picksBox");
   const first = !box.querySelector(".x-chips"), fe = document.activeElement, back = fe && fe !== document.body && box.contains(fe) && !fe.closest(".x-det") ? focusKey(fe) : null;
-  xBegin("sog");
-  const sog = pb.filter(r => r.market === "sog");
-  SHOWN.sog = sog;
-  const {items, alts} = sogItems(sog);
-  const chk = checkRows(sel, "sog"), extra = chk.extra;
-  for (const r of extra) alts.set(r, chk.alts.get(r) || []);
-  const V = new Map(items.map(r => [r, dispSide(r)]));
+  xBegin("pk");
+  SHOWN.board = pb.slice();
+  const apps0 = PICK_APPS.filter(a => pb.some(r => isApp(r) && appOf(r) === a)), app = apps0.includes(PKX.app) ? PKX.app : "";
+  const {items, books, alts, P, V} = pickItems(pb, app);
+  const mks = ["sog", "points", "saves"].filter(k => items.some(r => r.market === k)), mk = mks.includes(PKX.mk) ? PKX.mk : "";
+  const inMk = r => !mk || r.market === mk;
   const games = D.slate.filter(g => !day || g.date === day).sort((a, b) => String(a.start || "").localeCompare(String(b.start || "")) || a.id - b.id);
-  const byGame = {}; for (const r of items) byGame[r.game] = (byGame[r.game] || 0) + 1;
-  const books = [...BOOKS, "Yours"].filter(b => items.some(r => bookKey(r.source) === b));
-  const game = games.some(g => String(g.id) === SOGX.game) ? SOGX.game : "", book = books.includes(SOGX.book) ? SOGX.book : "";
-  const fOn = !!(game || SOGX.side || book), qOn = !!Q();
-  const shown = items.filter(r => (!game || String(r.game) === game) && (!book || bookKey(r.source) === book) &&
-    (!SOGX.side || (V.get(r) || {}).side === SOGX.side) && matchQ(r.name, r.team, r.opp));
-  const plays = shown.filter(r => ["lock", "strong"].includes(statusOf(r))).sort(sogRankCmp);
-  const near = shown.filter(r => statusOf(r) === "near").sort(sogRankCmp);
-  const check = shown.filter(r => statusOf(r) === "check").concat(extra.filter(r => (!game || String(r.game) === game) && matchQ(r.name, r.team, r.opp)));
-  // closest to a play: lines a higher chance would make a play (by edge), then lines a rule blocks (by chance), then
-  // sportsbook odds (info only, by chance), then lines with no projection
-  const GRP = new Map(shown.map(r => { const v = V.get(r), t = v && blockTag(r, v); return [r, !v ? 3 : !t ? 0 : t === "info only" ? 2 : 1]; })), grp = r => GRP.get(r);
-  const ed = r => (V.get(r) || {edge: -9}).edge, ch = r => (V.get(r) || {}).p ?? -1;
+  const byGame = {}; for (const r of items) if (inMk(r)) byGame[r.game] = (byGame[r.game] || 0) + 1;
+  const game = games.some(g => String(g.id) === PKX.game && byGame[g.id]) ? PKX.game : "";
+  const fOn = !!(game || mk || app), qOn = !!Q();
+  const keep = r => inMk(r) && (!game || String(r.game) === game) && matchQ(r.name, r.team, r.opp);
+  const shown = items.filter(keep), tier = r => P.get(r).tier, ch = r => (V.get(r) || {}).p ?? -1, nm = r => String(fullName(r));
+  const byCh = (a, b) => ch(b) - ch(a) || nm(a).localeCompare(nm(b));
+  const plays = shown.filter(r => tier(r) === "play").sort(byCh);
+  const leans = shown.filter(r => tier(r) === "lean").sort(byCh).concat(shown.filter(r => tier(r) === "check").sort(byCh));
   const df = r => r.proj != null && r.line != null ? Math.abs(r.proj - r.line) : -1;
-  const close = (a, b) => grp(a) - grp(b) || (grp(a) ? ch(b) - ch(a) : ed(b) - ed(a));
-  const cmp = {close, chance: (a, b) => ch(b) - ch(a), diff: (a, b) => df(b) - df(a) || ch(b) - ch(a), time: (a, b) => String(a.start || "").localeCompare(String(b.start || "")) || ed(b) - ed(a),
-    name: (a, b) => String(fullName(a)).localeCompare(String(fullName(b)))}[SOGX.sort] || close;
-  const rest = shown.filter(r => statusOf(r) === "pass").sort((a, b) => cmp(a, b) || String(a.name).localeCompare(String(b.name)));
-  const N = 12, restShown = SOGX.all ? rest : rest.filter((r, i) => i < N || XR.open.has(xKey(r, "sog")));
-  const DIV = {0: "Short of the chance bar", 1: "Blocked by a rule", 2: "Sportsbook odds · info only, never plays", 3: "No projection"};
-  const restRows = []; let gPrev = 0;
-  for (const r of restShown){ const gr = SOGX.sort === "close" ? grp(r) : 0; if (gr !== gPrev && restRows.length) restRows.push({divider: DIV[gr]}); gPrev = gr; restRows.push(r); }
-  const R = (((D.legs || {}).by_market || {}).sog || {}).takes;
+  const cmp = {chance: byCh, diff: (a, b) => df(b) - df(a) || byCh(a, b), time: (a, b) => String(a.start || "").localeCompare(String(b.start || "")) || byCh(a, b),
+    name: (a, b) => nm(a).localeCompare(nm(b))}[PKX.sort] || byCh;
+  const rest = shown.filter(r => !tier(r)).sort(cmp);
+  const bk = books.filter(keep).sort((a, b) => (b.p ?? -1) - (a.p ?? -1) || nm(a).localeCompare(nm(b)));
+  const um = unmatchedRows(sel).filter(r => inMk(r) && matchQ(r.name, r.team, ""));
+  const N = 15, cutN = (xs, on) => on ? xs : xs.filter((r, i) => i < N || XR.open.has(xKey(r, "pk")));
+  const opt = {alts, P, V};
   const sec = (title, n, body, right = "") => `<div class="x-sec"><h3>${title} <span class="n">${n}</span>${right ? `<span class="r">${right}</span>` : ""}</h3>${body}</div>`;
-  const chip = (val, label, n) => `<button type="button" class="x-chip${game === val ? " on" : ""}" data-sx-game="${val}" aria-pressed="${game === val}">${label}<span class="n">${n}</span></button>`;
+  const fold = (key, title, n, body, right, open) => `<details class="x-sec" data-keep="${key}"${(XR.keep[key] ?? open) ? " open" : ""}><summary>${title} <span class="n">${n}</span>${right ? `<span class="r">${right}</span>` : ""}</summary>${body}</details>`;
+  const more = (xs, key) => xs.length > N ? `<button type="button" class="x-more js-px-all" data-all="${key}">${PKX[key] ? "Show fewer" : `Show all ${xs.length}`}</button>` : "";
+  const chip = (val, label, n) => `<button type="button" class="x-chip${game === val ? " on" : ""}" data-px-game="${val}" aria-pressed="${game === val}">${label}<span class="n">${n}</span></button>`;
   const seg = (key, cur, opts, label) => `<div class="x-seg" role="group" aria-label="${label}">${opts.map(([v, l]) =>
-    `<button type="button" class="${cur === v ? "on" : ""}" data-sx-${key}="${v}" aria-pressed="${cur === v}">${l}</button>`).join("")}</div>`;
-  const srt = SORTS.find(s => s[0] === SOGX.sort) || SORTS[0];
-  const sortSel = `<label class="x-pick x-sort">Sort: <b>${srt[2]}</b><span class="cv" aria-hidden="true">▾</span><select id="sxSort" aria-label="Sort other lines">${SORTS
-    .map(([v, l]) => `<option value="${v}" ${SOGX.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`;
-  const dateSel = `<label class="x-pick x-date"><span class="x-dtx">${dayLabel(day)}</span><span class="cv" aria-hidden="true">▾</span><select id="sxDate" aria-label="Date">${[...$("#dateF").options]
+    `<button type="button" class="${cur === v ? "on" : ""}" data-px-${key}="${v}" aria-pressed="${cur === v}">${l}</button>`).join("")}</div>`;
+  const srt = SORTS.find(x => x[0] === PKX.sort) || SORTS[0];
+  const sortSel = `<label class="x-pick x-sort">Sort: <b>${srt[1].replace(/ \(.*/, "")}</b><span class="cv" aria-hidden="true">▾</span><select id="pxSort" aria-label="Sort these lines">${SORTS
+    .map(([v, l]) => `<option value="${v}" ${PKX.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`;
+  const dateSel = `<label class="x-pick x-date"><span class="x-dtx">${dayLabel(day)}</span><span class="cv" aria-hidden="true">▾</span><select id="pxDate" aria-label="Date">${[...$("#dateF").options]
     .map(o => `<option value="${esc(o.value)}" ${o.value === day ? "selected" : ""}>${dayLabel(o.value)}</option>`).join("")}</select></label>`;
-  const nm = n => `${n} near miss${n === 1 ? "" : "es"}`;
+  const MKN = {sog: "Shots", points: "Points", saves: "Saves"};
+  const mkSel = mks.length > 1 ? `<label class="x-pick x-mkp"><b>${mk ? MKN[mk] : "All stats"}</b><span class="cv" aria-hidden="true">▾</span><select id="pxMk" aria-label="Stat">${[["", "All stats"], ...mks.map(k => [k, MKN[k]])]
+    .map(([v, l]) => `<option value="${v}" ${mk === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>` : "";
+  const appNames = apps0.length ? apps0.join(" or ") : "Pick6 or PrizePicks";
   let body;
-  if (!items.length && !extra.length){
+  if (!items.length && !books.length && !um.length){
     const down = sourcesOff();
     body = `<div class="x-empty">${down ? `Lines unavailable (${down}). Paste a board under <button type="button" class="x-link js-paste">Starters, lines and sources</button>.`
-      : `No SOG lines posted${day ? ` for ${dayLabel(day)}` : ""} yet. Books post them through the morning; this page updates every 15 minutes.`}</div>`;
-  } else if (!shown.length && !check.length && (fOn || qOn)){
-    body = `<div class="x-empty">${qOn && !fOn ? `No player or team matches “${esc(Q())}”.<button type="button" class="x-link js-sx-clear">Clear search</button>`
-      : `No lines match these filters.<button type="button" class="x-link js-sx-clear">Clear filters</button>`}</div>`;
+      : `No lines posted${day ? ` for ${dayLabel(day)}` : ""} yet. The apps post them through the morning; this page updates every 15 minutes.`}</div>`;
+  } else if (!shown.length && !bk.length && !um.length && (fOn || qOn)){
+    body = `<div class="x-empty">${qOn && !fOn ? `No player or team matches “${esc(Q())}”.<button type="button" class="x-link js-px-clear">Clear search</button>`
+      : `No lines match these filters.<button type="button" class="x-link js-px-clear">Clear filters</button>`}</div>`;
   } else {
-    const why = plays.length ? "" : noneWhy(items);
-    body = (plays.length ? sec("Plays", plays.length, xList(plays, "sog", {alts}))
-        : fOn || qOn ? "" : sec("Plays", 0, `<p class="x-none">No SOG plays${why ? `: ${why}` : " right now"}.${near.length ? ` ${nm(near.length)} below.` : ""}</p>`)) +
-      (near.length ? sec("Near miss", near.length, xList(near, "sog", {alts}), `${Math.round(100 * nearP("sog"))}–${pc0(takeP("sog"))}, not plays`) : "") +
-      (rest.length ? sec("Other lines", rest.length, xList(restRows, "sog", {alts, nt: !plays.length && !near.length}, rest.length > N ? `<button type="button" class="x-more js-sx-all">${SOGX.all ? "Show fewer" : `Show all ${rest.length}`}</button>` : ""), sortSel) : "") +
-      (check.length ? `<details class="x-sec" data-keep="sogCheck"${XR.keep.sogCheck ? " open" : ""}><summary>Check before betting <span class="n">${check.length}</span></summary>${xList(check, "sog", {check: true, alts})}</details>` : "");
+    const bar = `${pc0(takeP("sog"))}+`;
+    const here = [app, mk ? MKN[mk].toLowerCase() : "", game ? "this game" : ""].filter(Boolean).join(", ");
+    const none = !items.length ? `${appNames} ${apps0.length === 1 ? "has" : "have"} not posted a line the model prices yet.`
+      : leans.length ? "None right now. Most nights have none; the leans below are the next best."
+      : `None right now, and no leans either${here ? ` (${here})` : ""}: every line is close to a coin flip or pays too little.`;
+    body = (plays.length ? sec("Plays", plays.length, xList(plays, "pk", opt), `${bar} · the strongest`)
+        : qOn ? "" : sec("Plays", 0, `<p class="x-none">${none}</p>`, items.length ? `${bar} · the strongest` : "")) +
+      (leans.length ? sec("Leans", leans.length, xList(leans, "pk", opt), `${pc0(RULE.lean_p)}+ · the likelier side, not a play`) : "") +
+      (rest.length ? fold("pkRest", "No edge", rest.length, `<div class="x-tools">${sortSel}</div>` + xList(cutN(rest, PKX.all), "pk", {...opt, nt: true}, more(rest, "all")),
+        "coin flips and short payouts", qOn || !!game) : "") +
+      (bk.length ? fold("pkBooks", "Sportsbook only", bk.length, xList(cutN(bk, PKX.allb), "pk", {alts, nt: true}, more(bk, "allb")), "not on Pick6 or PrizePicks", qOn && !shown.length) : "") +
+      (um.length ? fold("pkUm", "Couldn't match", um.length, `<ul class="x-um">${um.map(r => `<li><b>${esc(r.name)}</b> ${esc(r.team || "")} · ${esc(MK_LAB[r.market] || r.market || "")} ${lineTx(r.line)}${r.reason ? ` · ${esc(r.reason)}` : ""}</li>`).join("")}</ul>`, "check these in the app", false) : "");
   }
-  box.innerHTML = `<div class="x-head"><h2>Shots on goal</h2>${dateSel}<button type="button" class="x-link js-rules">How picks work</button></div>
-    <div class="x-record">SOG plays graded: ${R && R.n ? `<b>${R.hit}–${R.miss}</b> (${pc0(R.pct)})` : "none yet"} · plays need ${pc0(takeP("sog"))}+ · times CT</div>` +
-    (items.length ? `<div class="x-chips" role="group" aria-label="Game">${chip("", "All games", items.length)}${games.filter(g => byGame[g.id])
-        .map(g => chip(String(g.id), `${g.away} @ ${g.home} ${ctStart(g).replace(" CT", "")}`, byGame[g.id])).join("")}</div>` +
-      `<div class="x-filters">${seg("side", SOGX.side, [["", "Both"], ["OVER", "▲ More"], ["UNDER", "▼ Less"]], "Side")}` +
-      `${books.length > 1 ? seg("book", book, [["", '<span class="lbl-l">All books</span><span class="lbl-s">All</span>'],
-        ...books.map(b => [b, b === "Yours" ? "Your lines" : b === "DraftKings" ? '<span class="lbl-l">DraftKings</span><span class="lbl-s">DK</span>'
-          : b === "PrizePicks" ? '<span class="nw-l">PrizePicks</span><span class="nw-s">PP</span>' : b])], "Book") : ""}` +
-      `${fOn && (shown.length || check.length) ? `<button type="button" class="x-link js-sx-clear">Clear filters</button>` : ""}</div>` : "") + body +
-    `<p class="x-foot">Line not here? <button type="button" class="x-link js-paste">Add your own</button></p>`;
+  const recOf = k => ["sog", "points", "saves"].reduce((a, m) => { const x = ((((D.legs || {}).by_market || {})[m]) || {})[k]; if (x && x.n){ a.hit += x.hit; a.miss += x.miss; } return a; }, {hit: 0, miss: 0});
+  const recTx = (lab, x) => { const n = x.hit + x.miss; return n ? `${lab} <b>${x.hit}–${x.miss}</b> (${pc0(x.hit / n)})` : `${lab}: none yet`; };
+  box.innerHTML = `<div class="x-head"><h2>${!day || day === TODAY_CT ? "Tonight's picks" : "Picks"}</h2>${dateSel}</div>` +
+    (items.length || books.length ? `<div class="x-filters">${apps0.length > 1 ? seg("app", app, [["", '<span class="lbl-l">Both apps</span><span class="lbl-s">Both</span>'], ...apps0.map(a => [a, a])], "App") : ""}${mkSel}` +
+      `${fOn && (shown.length || bk.length) ? `<button type="button" class="x-link js-px-clear">Clear</button>` : ""}</div>` +
+      (Object.keys(byGame).length > 1 ? `<div class="x-chips" role="group" aria-label="Game">${chip("", "All games", items.filter(inMk).length)}${games.filter(g => byGame[g.id])
+        .map(g => chip(String(g.id), `${g.away} @ ${g.home} ${ctStart(g).replace(" CT", "")}`, byGame[g.id])).join("")}</div>` : "") : "") + body +
+    `<p class="x-foot">Graded${(D.legs || {}).rules_from ? ` since ${dayLabel(D.legs.rules_from).replace(/^\w+, /, "")}` : " so far"}: ${recTx("plays", recOf((D.legs || {}).rules_from ? "takes_now" : "takes"))} · ${recTx("leans", recOf("leans"))}. Times are Central.<br>` +
+    `<button type="button" class="x-link js-rules">How picks work</button> · Line not here? <button type="button" class="x-link js-paste">Add your own</button></p>`;
   // keep the game chips where they were scrolled (on first render, bring the selected one into view) and give focus back;
   // the scroll is restored in the next frame so a re-render never forces an extra layout of the page
   const nc = box.querySelector(".x-chips");
@@ -2020,42 +2125,43 @@ function renderSogTab(pb){
     nc.scrollLeft = first ? Math.max(0, on ? on.offsetLeft - 16 : 0) : CHIP_SL; });
   const nb = back && box.querySelector(back); if (nb) nb.focus({preventScroll: true});
 }
-// SOG tab controls: game chips, side / book segments, show all, clear; "How picks work"; the paste link; Board → SOG
+// Picks controls: game chips, app / market segments, show all, clear; "How picks work"; the paste link
 document.addEventListener("click", e => {
-  const b = e.target.closest("[data-sx-game],[data-sx-side],[data-sx-book],.js-sx-all,.js-sx-clear,.js-rules,.js-paste,.js-to-sog");
+  const b = e.target.closest("[data-px-game],[data-px-app],[data-px-mk],.js-px-all,.js-px-clear,.js-rules,.js-paste");
   if (!b) return;
   if (b.matches(".js-rules")){ openRules(); return; }
   if (b.matches(".js-paste")){ openPaste(); return; }
-  if (b.matches(".js-to-sog")){ openSog(); return; }
-  if (b.dataset.sxGame !== undefined) SOGX.game = b.dataset.sxGame;
-  else if (b.dataset.sxSide !== undefined) SOGX.side = b.dataset.sxSide;
-  else if (b.dataset.sxBook !== undefined) SOGX.book = b.dataset.sxBook;
-  else if (b.matches(".js-sx-all")) SOGX.all = !SOGX.all;
-  else if (b.matches(".js-sx-clear")){
-    SOGX.game = SOGX.side = SOGX.book = "";
+  if (b.dataset.pxGame !== undefined) PKX.game = b.dataset.pxGame;
+  else if (b.dataset.pxApp !== undefined) PKX.app = b.dataset.pxApp;
+  else if (b.dataset.pxMk !== undefined) PKX.mk = b.dataset.pxMk;
+  else if (b.matches(".js-px-all")){ const k = b.dataset.all || "all"; PKX[k] = !PKX[k]; }
+  else if (b.matches(".js-px-clear")){
+    PKX.game = PKX.app = PKX.mk = "";
     if (Q()){ $("#q").value = ""; $("#q").dispatchEvent(new Event("input")); }
   }
   // Safari does not focus a tapped button: focus it so the re-render can hand focus back to its replacement
-  if (b.closest("#sogBox") && document.activeElement !== b) b.focus({preventScroll: true});
-  sogxSave(); renderSogTab();
+  if (b.closest("#picksBox") && document.activeElement !== b) b.focus({preventScroll: true});
+  pkxSave(); renderPicks();
 });
 document.addEventListener("change", e => {
   const id = e.target.id;
-  if (id === "sxSort"){ SOGX.sort = e.target.value; sogxSave(); renderSogTab(); }
-  else if (id === "sxDate"){ $("#dateF").value = e.target.value; CHIP_SL = 0; renderSlate(); }
+  if (id === "pxSort"){ PKX.sort = e.target.value; pkxSave(); renderPicks(); }
+  else if (id === "pxMk"){ PKX.mk = e.target.value; pkxSave(); renderPicks(); }
+  else if (id === "pxDate"){ $("#dateF").value = e.target.value; CHIP_SL = 0; renderSlate(); }
   else return;
   const el = document.getElementById(id); if (el) el.focus({preventScroll: true});
 });
 function renderLive(){
   const L = (D.live || {}).legs || [], all = $("#liveAll") && $("#liveAll").checked;
-  const rows = L.filter(r => all || String(r.verdict || "").startsWith("TAKE"));
+  const isT = r => String(r.verdict || "").startsWith("TAKE"), isL = r => !!r.lean && !isT(r);
+  const rows = L.filter(r => all || isT(r) || isL(r));
   $("#cardLive").style.display = L.length ? "" : "none";
   if (!L.length) return;
   const cls = s => s === "HIT" ? "good" : s === "MISS" ? "bad" : "muted";
-  $("#liveT").innerHTML = `<thead><tr><th class="l">Player</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Side</th><th class="l">Call at puck drop</th><th class="num">So far</th><th class="l">Game</th><th class="l">Result</th></tr></thead><tbody>` +
-    (rows.map(r => `<tr><td class="l"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span></td><td class="l">${r.market}</td><td class="num">${n1(+r.line)}</td><td class="l">${sidePill(r.side)}</td><td class="l">${r.verdict || ""}</td><td class="num">${r.stat ?? "–"}</td><td class="l">${r.state || ""}</td><td class="l"><b class="${cls(r.status)}">${r.status || "–"}</b></td></tr>`).join("") || `<tr class="empty"><td colspan="8">No TAKE legs on started games. Tick "all legs" to see every logged leg.</td></tr>`) + "</tbody>";
-  const t = L.filter(r => String(r.verdict || "").startsWith("TAKE")), h = t.filter(r => r.status === "HIT").length, m = t.filter(r => r.status === "MISS").length;
-  $("#nLive").textContent = `TAKE legs ${h}-${m}${t.length - h - m ? ` · ${t.length - h - m} live` : ""} · ${L.length} legs logged on started games`;
+  $("#liveT").innerHTML = `<thead><tr><th class="l">Player</th><th class="l">Prop</th><th class="num">Line</th><th class="l">Side</th><th class="l">Called</th><th class="num">So far</th><th class="l">Game</th><th class="l">Result</th></tr></thead><tbody>` +
+    (rows.map(r => `<tr><td class="l"><b>${r.name}</b> <span class="muted" style="font-size:11px">${r.team}</span></td><td class="l">${r.market}</td><td class="num">${lineTx(r.line)}</td><td class="l">${sidePill(r.side)}</td><td class="l">${isT(r) ? "Play" : isL(r) ? "Lean" : "–"}</td><td class="num">${r.stat ?? "–"}</td><td class="l">${r.state || ""}</td><td class="l"><b class="${cls(r.status)}">${r.status || "–"}</b></td></tr>`).join("") || `<tr class="empty"><td colspan="8">No plays or leans on started games. Tick the box to see every logged line.</td></tr>`) + "</tbody>";
+  const tally = f => { const t = L.filter(f), h = t.filter(r => r.status === "HIT").length, m = t.filter(r => r.status === "MISS").length; return t.length ? `${h}-${m}${t.length - h - m ? ` (${t.length - h - m} live)` : ""}` : "none"; };
+  $("#nLive").textContent = `Plays ${tally(isT)} · Leans ${tally(isL)}`;
 }
 function boardRowsWin(){
   const out = [], minE = 0.03;
@@ -2123,8 +2229,8 @@ function renderBoard(){
   const minS = $("#f60").checked ? 0.60 : 0;
   const S = allS.filter(r => (!dateF || r.date === dateF) && (!plays || r.play) && (!sideF || r.side === sideF) && (!minS || (r.prob ?? 0) >= minS) && matchQ(...r.q));
   const Wn = allW.filter(r => keep(r, false)), Pt = allP.filter(r => keep(r));
-  // one propBoard() feeds Points & saves, Today's plays / Near miss / Check before betting and the SOG tab
-  const pb = propBoard(dateF); LAST_PB = pb; renderRanked(pb); renderPlays(pb); renderSogTab(pb); renderLive();
+  // one propBoard() feeds the Picks tab and the All lines tables
+  const pb = propBoard(dateF); LAST_PB = pb; renderRanked(pb); renderPicks(pb); renderLive();
   // plays the probability filter hides are counted, never hidden silently
   const hid = (all, sides = true) => all.filter(r => r.play && r.prob < minP - 1e-9 && (!dateF || r.date === dateF) && (!sides || !sideF || r.side === sideF) && matchQ(...r.q)).length;
   $("#cardSaves").style.display = !mkF || mkF === "saves" ? "" : "none";
@@ -2236,7 +2342,8 @@ function renderLegs(){
   const table = (title, obj) => `<h3>${title}</h3><div class="tbl"><table><thead><tr><th class="l"></th><th class="num">Record</th><th class="num">Hit %</th><th class="num">Predicted</th></tr></thead><tbody>` +
     Object.entries(obj || {}).map(([k, r]) => `<tr><td class="l">${k}</td>${recCells(r)}</tr>`).join("") + "</tbody></table></div>";
   $("#resLegs").innerHTML = Object.entries(M).map(([mk, x]) => `<div class="card" style="margin:8px 0"><h2>${{sog: "SOG", points: "Points", saves: "Saves"}[mk] || mk} <span class="muted" style="font-weight:400;font-size:13px">${x.all.n} playable graded legs</span></h2>
-    <div class="grid2">${table("Reliability (blended p)", x.reliability)}${table("TAKE legs (rule-passing)", {all: x.takes, ...Object.fromEntries(Object.entries(x.takes_by_side).map(([k, v]) => ["TAKE " + (k === "OVER" ? "MORE" : "LESS"), v]))})}</div>
+    <div class="grid2">${table("Reliability (blended p)", x.reliability)}${table("Plays and leans", {Plays: x.takes, ...Object.fromEntries(Object.entries(x.takes_by_side).map(([k, v]) => ["· play " + (k === "OVER" ? "MORE" : "LESS"), v])),
+      ...(x.leans ? {Leans: x.leans, ...Object.fromEntries(Object.entries(x.leans_by_side || {}).map(([k, v]) => ["· lean " + (k === "OVER" ? "MORE" : "LESS"), v]))} : {})})}</div>
     <div class="grid3">${table("By side", {MORE: x.by_side.OVER, LESS: x.by_side.UNDER})}${table("By line", x.by_line)}${table("By multiplier", x.by_mult)}</div>
     <p class="sub">Model's side where it disagreed with the market: ${x.model_vs_market && x.model_vs_market.n ? `${x.model_vs_market.hit}-${x.model_vs_market.miss} (${pct(x.model_vs_market.pct)})` : "none graded yet"}.</p></div>`).join("");
 }
@@ -2301,9 +2408,11 @@ function renderBacktest(){
     return `<thead><tr><th class="l">Picks</th><th>n</th><th>Record · hit %</th><th>ROI at DK</th><th>1x leg (hyp.)</th><th>Real DFS</th></tr></thead><tbody>` +
       [["All", R.all], ["More", R.over], ["Less", R.under]].map(([k, r]) => `<tr><td class="l">${k}</td><td>${r.n}</td><td>${hitTxt(r)}</td><td>${sgnP(r.roi_dk, r.roi_dk_se)}</td>` +
         `<td>${sgnP(r.roi_1x)}</td><td>${r.real_n ? `${r.real_n} · ${sgnP(r.roi_real)}` : "0"}</td></tr>`).join("") +
-      `<tr><td class="l muted" colspan="6">${R.basis}. Log loss on ${dk ? dk.n : "–"} lines, lower is better: DraftKings ${ll(dk)} · model alone ${ll(raw)} · the board's probability ${ll(live)}.</td></tr></tbody>`; };
+      (m.lean && m.lean.all && m.lean.all.n ? [["Leans (not plays)", m.lean.all], ["· More", m.lean.over], ["· Less", m.lean.under]].map(([k, r]) =>
+        `<tr><td class="l">${k}</td><td>${r.n}</td><td>${hitTxt(r)}</td><td>${sgnP(r.roi_dk, r.roi_dk_se)}</td><td>${sgnP(r.roi_1x)}</td><td>–</td></tr>`).join("") : "") +
+      `<tr><td class="l muted" colspan="6">${R.basis}.${m.lean && m.lean.all && m.lean.all.n ? ` Leans: the favoured side at ${pc0(RULE.lean_p)}+ with the market at ${pc0(RULE.lean_mkt_min)}+ that is not a play; both bars were read off these lines.` : ""} Log loss on ${dk ? dk.n : "–"} lines, lower is better: DraftKings ${ll(dk)} · model alone ${ll(raw)} · the board's probability ${ll(live)}.</td></tr></tbody>`; };
   $("#btRealSog").innerHTML = ruleT(K); $("#btRealPts").innerHTML = ruleT(PT); $("#btRealSaves").innerHTML = ruleT(S);
-  $("#btNeeds").innerHTML = `The market's own side at ${pc0(RULE.mkt_min)}+; the board's probability at ${pc0(takeP("sog"))}+ for shots (${pc0(takeP("points"))} points, ${pc0(takeP("saves"))} saves); a DFS side paying ${RULE.min_mult}x or more; and lines from this build's own pulls. DraftKings-priced lines are information only. The full rules are under Logic.`;
+  $("#btNeeds").innerHTML = `The market's own side at ${pc0(RULE.mkt_min)}+; the board's probability at ${pc0(takeP("sog"))}+ for shots (${pc0(takeP("points"))} points, ${pc0(takeP("saves"))} saves); a DFS side paying ${RULE.min_mult}x or more; and lines from this build's own pulls. DraftKings-priced lines are information only. The full rules are under How it works.`;
   // predicted vs actual for the side each probability leans to: raw model, calibrated, final (blended with the market)
   const calT = m => { if (!m) return ""; const B = m.buckets_side;
     if (!B) return "";
@@ -2481,16 +2590,13 @@ function renderLogic(){
     ["Market blend", [SOG_MB ? `shots: ${Math.round(100 * (1 - RULE.sog_mean_w))}/${Math.round(100 * RULE.sog_mean_w)} model projection and market's expected shots` : "",
       ...["points", "saves", ...(SOG_MB ? [] : ["sog"])].map(mk => { const w = blendW((CAL[mk] || {}).cal); return `${{sog: "shots", points: "points", saves: "saves"}[mk]}: ${fmt(w, 2)} × calibrated model + ${fmt(1 - w, 2)} × no-vig price`; })]
       .filter(Boolean).join("; ")],
-    ["Play rule", `TAKE: a pick'em side at ${RULE.min_mult}x+, the market's side at ${pc0(RULE.mkt_min)}+, a chance of ${pc0(takeP("sog"))}+ (shots) / ${pc0(takeP("points"))}+ (points, saves) that beats break-even; see How picks work`],
+    ["Play rule", `a pick'em side at ${RULE.min_mult}x+, the market's side at ${pc0(RULE.mkt_min)}+, a chance of ${pc0(takeP("sog"))}+ (shots) / ${pc0(takeP("points"))}+ (points, saves) that beats break-even; see How picks work`],
+    ["Lean rule", `not a play: a pick'em side at ${RULE.min_mult}x+, a chance of ${pc0(RULE.lean_p)}+, the market's side at ${pc0(RULE.lean_mkt_min)}+ (shots and points)`],
     ["DFS per-leg break-even", `${pct(dfsBE(1),1)} at 1x (${DFS.legs} legs at ${DFS.payout}x)`]];
   $("#parT").innerHTML = `<tbody>${rows.map(r => `<tr><td class="l">${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</tbody>`;
   // the rules as verdictFor / selectSog apply them, with this build's settings (model/pricing.py)
   const tp = mk => pc0(takeP(mk)), one = takeP("sog") === takeP("points") && takeP("points") === takeP("saves");
   const MKN = {sog: "shots", points: "points", saves: "saves"};
-  // tiers per market, markets with the same bars named together ("shots: Lock 64%+, Strong 62–64%; points and saves: ...")
-  const tierTx = mk => `<b>Lock</b> ${pc0(lockP(mk))}+, <b>Strong</b> ${Math.round(100 * takeP(mk))}–${pc0(lockP(mk))}`;
-  const tierGroups = {}; for (const mk of ["sog", "points", "saves"]) (tierGroups[`${takeP(mk)}|${lockP(mk)}`] ||= []).push(mk);
-  const tiers = Object.values(tierGroups), tiersTx = tiers.length === 1 ? tierTx("sog") : tiers.map(g => `${g.map(k => MKN[k]).join(" and ")}: ${tierTx(g[0])}`).join("; ");
   // markets where this build's blend gives the market all of the weight: there Chance is the market's no-vig price
   const mktOnly = ["sog", "points", "saves"].filter(mk => !(mk === "sog" && SOG_MB) && CAL[mk] && CAL[mk].cal && blendW(CAL[mk].cal) <= 0).map(mk => MKN[mk]);
   const mw = SOG_MB ? RULE.sog_mean_w : 0;
@@ -2499,15 +2605,19 @@ function renderLogic(){
       : "lines with no market price on the same line (model-only picks have not won)", !RULE.saves_take_overs ? "saves overs (they lost at every threshold)" : "",
     `points unders at ${RULE.points_under_max}+ (the model is overconfident there)`,
     `shots-on-goal sides paying under ${RULE.min_mult}x${DFS.sub1x ? "" : `, and points and saves sides under ${RULE.min_mult}x unless you allow them in ⚙ Pick'em`}`].filter(Boolean);
+  // the lean record on this build's graded lines (calibrate.lean_record), when the build has one
+  const leanRec = mk => { const x = CAL[mk] && CAL[mk].lean && CAL[mk].lean.all; return x && x.n ? `${(100 * x.pct).toFixed(0)}% for ${MKN[mk]} (${x.hit}–${x.n - x.hit})` : ""; };
+  const leanTx = [leanRec("sog"), leanRec("points")].filter(Boolean).join(" and ");
   $("#ruleList").innerHTML = [
-    `Every line ends in one call: <b>TAKE MORE</b>, <b>TAKE LESS</b> or <b>PASS</b>. Tap a row for the reason in plain English, the numbers behind it and his other lines.`,
-    `A <b>TAKE</b> needs all of these: a pick'em price (Pick6, PrizePicks or a line you type) paying <b>${RULE.min_mult}x or better</b> on that side; ${mw > 0 ? `the market's probability for the side at <b>${pc0(RULE.mkt_min)}+</b> on that line (its no-vig price there; for shots on a line no book posts, the market's expected shots from his other lines, priced at this one)` : `the market's own no-vig probability for the side at <b>${pc0(RULE.mkt_min)}+</b> on the same line`}; a chance of <b>${one ? tp("sog") : `${tp("sog")} (shots), ${tp("points")} (points), ${tp("saves")} (saves)`}+</b> that also beats the price's break-even (${pc1(dfsBE(1))} at 1x on your ${DFS.legs}-pick ${DFS.payout}x entry); the player matched to his NHL id; ${RULE.sog_model_agree ? "and the model alone leaning the same way" : "for points and saves, the model alone leaning the same way"}; and a line and price from this build's own pulls (a reused board is never a play).`,
-    `<b>Chance</b>${mw > 0 ? ` for shots on goal = the model's projection and the market's expected shots (read from DraftKings' line nearest 50/50, else the other books) averaged ${Math.round(100 * (1 - mw))}/${Math.round(100 * mw)}, then priced at the line; for points and saves it is` : " ="} the calibrated model blended with the market's no-vig price on the same line, by a weight fitted on graded lines (Calibration tab)${mktOnly.length ? `; this build gives the market all of the weight for ${mktOnly.join(" and ")}, so there Chance is the market's no-vig price` : ""}. A line with no market price shows the model alone and is never a play. <b>Needs</b> = the bar or the price's break-even, whichever is higher; <b>edge</b> = chance minus needs, in percentage points. <b>Proj</b> is the model's projection and <b>Diff</b> = projection − line (red when it points against the side).`,
+    `<b>One pick per player.</b> Each row is the side to take (<b>MORE</b> or <b>LESS</b>), the line, our projection, and the app or apps (Pick6, PrizePicks) that offer exactly that bet at ${RULE.min_mult}x or better. When both apps post it, both are named. Tap a row for the reason, the numbers behind it and his other lines.`,
+    `<b>Play</b> (green): a chance of <b>${one ? tp("sog") + "+" : `${tp("sog")}+ (shots), ${tp("points")}+ (points), ${tp("saves")}+ (saves)`}</b> that also beats the payout's break-even (${pc1(dfsBE(1))} at 1x on your ${DFS.legs}-pick ${DFS.payout}x entry); the market's own probability for the side at <b>${pc0(RULE.mkt_min)}+</b>${mw > 0 ? " (its no-vig price on that line; for shots on a line no book posts, the market's expected shots from his other lines, priced at this one)" : " on the same line"}; the side paying <b>${RULE.min_mult}x or better</b> on an app (or a line you type); the player matched to his NHL id; ${RULE.sog_model_agree ? "the model alone leaning the same way" : "for points and saves, the model alone leaning the same way"}; and a line and price from this build's own pulls. Plays are rare: most nights have none.`,
+    `<b>Lean</b> (light green): not a play, but the likelier side. A chance of <b>${pc0(RULE.lean_p)}+</b>, the market leaning the same way (<b>${pc0(RULE.lean_mkt_min)}+</b>), paying ${RULE.min_mult}x or better, shots and points only.${leanTx ? ` On this season's graded DraftKings lines the sides this rule leans to hit ${leanTx}.` : ""} That is about break-even on a pick'em entry (${pc1(dfsBE(1))} needed per leg on your entry), so a lean tells you which way to go and where, not that the bet has an edge.`,
+    `<b>Check</b> (amber): a lean or better where his line changed (for example “↑ line 1 (was 3)”: he moved up, and the projection still leans on his old minutes) or the app lists him with another team. Confirm his spot first.`,
+    `<b>No edge</b> (folded away): close to a coin flip, the market not agreeing, or the likelier side paying under ${RULE.min_mult}x. The row still shows which way he leans and what the app pays. <b>Sportsbook only</b>: DraftKings prices for players neither app lists, for reference; they are never picks.`,
+    `<b>Chance</b>${mw > 0 ? ` for shots on goal = the model's projection and the market's expected shots (read from DraftKings' line nearest 50/50, else the other books) averaged ${Math.round(100 * (1 - mw))}/${Math.round(100 * mw)}, then priced at the line; for points and saves it is` : " ="} the calibrated model blended with the market's no-vig price on the same line, by a weight fitted on graded lines (Calibration tab)${mktOnly.length ? `; this build gives the market all of the weight for ${mktOnly.join(" and ")}, so there Chance is the market's no-vig price` : ""}. On a whole-number line (2, 3) landing exactly on it is a push, and the chance is for the bets that do not push. <b>Proj</b> is the model's projection and the number in brackets is projection − line (red when it points against the side).`,
     `Never a play: ${never.join("; ")}.`,
-    `Saves also need a confirmed starter and a projection <b>${RULE.saves_edge_over}+</b> saves past the line on overs, <b>${RULE.saves_edge_under}+</b> on unders.`,
-    `Tiers: ${tiersTx}. <b>Near miss</b> (shots): ${Math.round(100 * nearP("sog"))}–${tp("sog")} with every other check met; shown, never a play.`,
-    `Shots on goal: at most one line per player per game, his other lines in the row's panel. A line that loses a conflict (a teammate's opposite-side play, or a saves play the other way) falls back to his next-best line; ⚠ marks the conflict.`,
-    `<b>Check before betting</b>: a line that would be a play or a near miss but needs a look first: a role change (old line → new line), a team mismatch or a name that matched more than one player. A flagged line that is a pass anyway stays in the main list, with the flag.`
+    `Saves also need a confirmed starter and a projection <b>${RULE.saves_edge_over}+</b> saves past the line on overs, <b>${RULE.saves_edge_under}+</b> on unders. Saves have no leans: saves calls of ${pc0(RULE.saves_cap_at)}+ have hit 46%.`,
+    `Shots on goal: at most one play per player per game. A line that loses a conflict (a teammate's opposite-side play, or a saves play the other way) falls back to his next-best line; ⚠ marks the conflict.`
   ].map(x => `<li>${x}</li>`).join("");
   document.querySelectorAll(".k_sv").forEach(e => e.textContent = P.k_sv);
   document.querySelectorAll(".carry").forEach(e => e.textContent = Math.round(P.carry*100) + "%");

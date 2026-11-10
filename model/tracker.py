@@ -711,7 +711,7 @@ if __name__ == "__main__":
 LEGS = os.path.join(HERE, "data", "legs.csv")
 LEG_FIELDS = ["date", "game", "built", "player_id", "name", "team", "opp", "market", "line", "source", "mo", "mu",
               "side", "mult", "p_model", "p_mkt", "p_blend", "p", "verdict", "tier", "reason", "role_change", "result", "actual",
-              "price_over", "price_under", "be", "ev", "mkt_src"]
+              "price_over", "price_under", "be", "ev", "mkt_src", "lean"]
 
 
 def _read_legs():
@@ -754,7 +754,9 @@ def log_legs(board_rows, built: str):
              "role_change": b.get("role_change") or "", "result": "", "actual": "",
              # the price the leg was offered at (DraftKings odds; DFS legs use mult), so ROI can be computed
              "price_over": b.get("dk_over"), "price_under": b.get("dk_under"), "be": _r4(b.get("be")), "ev": _r4(b.get("ev")),
-             "mkt_src": b.get("mkt_src") or ""}
+             "mkt_src": b.get("mkt_src") or "",
+             # the player's pick when it is a lean (props_board.picks): not a TAKE, graded as its own record
+             "lean": 1 if b.get("lean") else ""}
         k = _leg_key(r)
         if k in idx:
             if cur[idx[k]].get("result"):
@@ -857,6 +859,14 @@ def _leg_return(r) -> float | None:
     return (m / pricing.dfs_break_even(1.0) if hit else 0.0) - 1.0
 
 
+RULES_FROM = "2026-11-08"   # the first slate decided by the current shots probability and play rule (accuracy_review.md)
+
+
+def _is_lean(r) -> bool:
+    """A leg logged as the player's lean (the CSV stores 1 / "")."""
+    return str(r.get("lean") or "").strip() in ("1", "1.0", "True", "true")
+
+
 def playable_legs(rows):
     """The legs a person could actually have bet, once each: graded; the side offered at >= 1x (DFS) or priced
     at the sportsbook's odds; on the game's last pre-game board (a leg whose last snapshot is older than the
@@ -900,6 +910,7 @@ def legs_summary(rows=None) -> dict:
                 "units": round(sum(rets), 2) if rets else None, "roi": round(sum(rets) / len(rets), 4) if rets else None}
     out = {"n": len(rows), "graded": len(graded), "excluded": len(graded) - len(rows),
            "basis": "playable legs: offered at >= 1x or at a sportsbook price, on the last pre-game board, once each",
+           "rules_from": RULES_FROM,
            "by_market": {}}
     for mk in ("sog", "points", "saves"):
         x = [r for r in rows if r["market"] == mk and r.get("p") not in (None, "")]
@@ -920,6 +931,10 @@ def legs_summary(rows=None) -> dict:
             "by_line": {k: rec([r for r in x if pricing.line_bucket(r["line"]) == k]) for k in sorted({pricing.line_bucket(r["line"]) for r in x})},
             "by_mult": {k: rec(v) for k, v in sorted(mult.items())},
             "takes": rec([r for r in x if str(r.get("verdict", "")).startswith("TAKE")]),
+            # plays made under the rules in force now (earlier TAKEs came from rules since replaced)
+            "takes_now": rec([r for r in x if str(r.get("verdict", "")).startswith("TAKE") and str(r["date"]) >= RULES_FROM]),
+            "leans": rec([r for r in x if _is_lean(r)]),
+            "leans_by_side": {s: rec([r for r in x if _is_lean(r) and r["side"] == s]) for s in ("OVER", "UNDER")},
             "takes_by_side": {s: rec([r for r in x if str(r.get("verdict", "")).startswith("TAKE") and r["side"] == s]) for s in ("OVER", "UNDER")},
             "model_vs_market": _disagree([r for r in x if r.get("p_mkt") not in (None, "") and r.get("p_model") not in (None, "")
                                           and (float(r["p_model"]) >= .5) != (float(r["p_mkt"]) >= .5)]),
