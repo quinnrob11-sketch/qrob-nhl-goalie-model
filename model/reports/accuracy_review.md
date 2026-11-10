@@ -179,6 +179,11 @@ A shots lean on a player whose line changed is labelled **Check** until his spot
 * **Shots overs at 1.5:** the blend says 55.6% and they hit 52.2% (n=1,134). It inherits part of DraftKings' own lean
   toward overs, and no correction fitted on earlier weeks helped later weeks. R1's MORE picks did worse than its LESS
   picks (61.8% vs 68.1% at 1x; -4.8% ± 9.2 vs +5.5% ± 4.5 at DK prices).
+* **Pick6 coverage:** Pick6's page serves one category per request, and the build can only read the one it is
+  given. Some builds get its full Shots On Goal list (105 players on 11-10 at 10:09 AM CT) and some only its
+  featured picks (7 players two hours later). The build now keeps the lines an earlier pull saw that day
+  (`pick6.merge_day`), shows them with their age, and never lets one make a play or a lean. On a day the full
+  list is never served, most Pick6 lines are still missing, and the Picks tab says so.
 * **Stat corrections:** graded lines are now re-graded when the NHL box score changes later
   (`tracker._regrade`). 23 logged lines had stale results (12 shots, 11 saves). No shots play was affected.
 

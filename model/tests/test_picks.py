@@ -133,11 +133,23 @@ class Apps(unittest.TestCase):
         self.assertEqual((r["pick_side"], r["pick_tier"], r["lean"]), ("OVER", "lean", True))
 
     def test_other_app_is_left_out_when_it_differs(self):
-        # same line but 0.8x on that side; a different line; a reused (fallback) board
+        # same line but 0.8x on that side; a different line; a line from an earlier pull that is too old to name
         for other in (row(1, "A", 3.5, .60, mo=0.8, mu=1.1, source="Pick6"), row(1, "A", 2.5, .75, mo=0.7, mu=0.0, source="Pick6"),
-                      row(1, "A", 3.5, .60, source="Pick6", fallback=True, cached=True)):
+                      row(1, "A", 3.5, .60, source="Pick6", fallback=True, cached=True, age_min=pb.OLD_APP_MAX_MIN + 1),
+                      row(1, "A", 3.5, .60, source="Pick6", fallback=True, cached=True, age_min=None)):
             r = self.pick([row(1, "A", 3.5, .60, source="PrizePicks"), other])
             self.assertEqual([a["app"] for a in r["pick_apps"]], ["PrizePicks"], other)
+
+    def test_an_earlier_pulls_line_is_named_with_its_age(self):
+        # Pick6's page showed only its featured picks this build: the line it had two hours ago is named, marked old,
+        # after the fresh app; it never makes the lean itself
+        old = row(1, "A", 3.5, .60, source="Pick6", fallback=True, cached=True, reused=True, age_min=120.0)
+        r = self.pick([old, row(1, "A", 3.5, .60, source="PrizePicks")])
+        self.assertEqual((r["source"], r["pick_tier"]), ("PrizePicks", "lean"))
+        self.assertEqual([(a["app"], a.get("old", False)) for a in r["pick_apps"]], [("PrizePicks", False), ("Pick6", True)])
+        self.assertEqual(r["pick_apps"][1]["age_min"], 120.0)
+        alone = self.pick([row(2, "B", 3.5, .60, source="Pick6", fallback=True, cached=True, reused=True, age_min=120.0)])
+        self.assertEqual((alone["pick_tier"], alone["lean"], alone["pick_apps"][0].get("old")), ("", False, True))
 
     def test_a_fresh_line_is_shown_before_a_reused_one(self):
         # no edge either way: the row shows the app whose line this build pulled itself
