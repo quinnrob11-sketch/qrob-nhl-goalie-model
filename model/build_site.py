@@ -360,7 +360,7 @@ def live_legs(day_games, live) -> list[dict]:
         lv = (live.get(str(r["game"])) or {})
         st = (lv.get("players") or {}).get(str(r["player_id"]), {})
         v = st.get({"sog": "sog", "points": "points", "saves": "saves"}.get(r["market"], ""))
-        out.append({k: r.get(k) for k in ("name", "team", "market", "line", "side", "verdict", "p", "source", "mult")}
+        out.append({k: r.get(k) for k in ("name", "team", "market", "line", "side", "verdict", "p", "source", "mult", "lean")}
                    | {"stat": v, "state": lv.get("state", g.get("state")),
                       "status": slate_mod.leg_status(r["market"], r["side"], float(r["line"]), v, lv.get("state", g.get("state")))})
     return out

@@ -4,6 +4,23 @@ Projects saves for every starting goalie and compares the projection to the book
 It ships as a single self-contained `index.html` that Vercel serves (see `vercel.json`),
 rebuilt through the day by GitHub Actions.
 
+## The page
+
+The first tab, **Picks**, is the one list to bet from. It has one row per player and stat (shots, points,
+saves), built from the lines Pick6 and PrizePicks post:
+
+- the side to take (**MORE** or **LESS**) and the line;
+- the model's projection;
+- the app or apps where that exact bet is offered at 1x or better (both are named when both post it);
+- the chance, and a label: **Play** (passes every rule; rare), **Lean** (the likelier side at 55%+ with the
+  market agreeing, about break-even), or **Check** (a lean on a player whose line just changed).
+
+Lines with no edge and DraftKings-only lines are folded away under the list. The app filter (Both / PrizePicks /
+Pick6) picks each player's best line on that app. The rule is `props_board.picks`, mirrored by `pickFor` in
+`model/template.html`; the reasoning and the backtest are in `model/reports/accuracy_review.md`.
+
+**All lines** keeps the saves, points and winners tables, the starters table and the paste box.
+
 ## The model
 
 ```

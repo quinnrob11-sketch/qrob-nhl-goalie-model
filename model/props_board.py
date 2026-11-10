@@ -446,6 +446,130 @@ def select_sog(sog_rows, saves_takes=()) -> dict:
                        "needs_review": sum(r["sog_section"] == "review" for r in sog_rows), "hidden_discounts": len(disc)}}
 
 
+# ---------- one pick per player and market: which side, on which app, how sure (template.html pickFor mirrors it) ----------
+APPS = ("Pick6", "PrizePicks")
+PICK_RANK = {"play": 0, "lean": 1, "check": 2}
+
+
+def side_offer(r, side):
+    """What `side` ("OVER" / "UNDER") of this line pays: its break-even probability with the multiplier or the price
+    behind it, or None when the side is not offered. A pick'em multiplier m needs dfs_break_even(m); a line that
+    carries American odds (a DraftKings fallback row, a PrizePicks demon / goblin) needs the price's implied
+    probability. `full` = it pays at least what a 1x pick'em leg does."""
+    if r.get("source") == "DraftKings" or r.get("priced"):
+        price = r.get("dk_over") if side == "OVER" else r.get("dk_under")
+        if price in (None, ""):
+            return None
+        o = {"be": pricing.implied(price), "mult": None, "price": price}
+    else:
+        m = r.get("mo") if side == "OVER" else r.get("mu")
+        m = 1.0 if m in (None, "") else float(m)
+        if m <= 0:
+            return None
+        o = {"be": pricing.dfs_break_even(m), "mult": m, "price": None}
+    o["full"] = o["be"] <= pricing.dfs_break_even(pricing.MIN_MULT) + 1e-9
+    return o
+
+
+def pick_options(rs) -> list[dict]:
+    """Every bet a pick'em app offers on one player's lines: {row, side, p (the blended chance of that side at that
+    line), be, mult / price, full}. DraftKings rows are sportsbook odds, not an app, and are left out."""
+    out = []
+    for r in rs:
+        if r.get("source") not in APPS or r.get("p_blend") is None or not r.get("matched", True):
+            continue
+        for side in ("OVER", "UNDER"):
+            o = side_offer(r, side)
+            if o is not None:
+                out.append({"row": r, "side": side, "p": r["p_blend"] if side == "OVER" else 1 - r["p_blend"], **o})
+    return out
+
+
+def pick_key(o):
+    """Best first: the higher chance; then the better pay; then a line this build pulled itself before one from a
+    reused (fallback) board; then Pick6 before PrizePicks; then the lower line and MORE (a stable tie-break only)."""
+    r = o["row"]
+    return (-o["p"], o["be"], bool(r.get("fallback")), SRC_PREF.get(r.get("source"), 3), float(r.get("line") or 0), o["side"])
+
+
+def lean_tier(o) -> str:
+    """"lean": not a play, but the side to take: offered at >= 1x, on this build's own numbers, and a lean by
+    probability (pricing.lean: blended p >= LEAN_P, the market's own probability for the side >= LEAN_MKT_MIN, shots
+    or points, no points unders on 1.5+). "check": the same, on a shots line with a flagged line change or team
+    mismatch (confirm his spot first). "" otherwise."""
+    r, side = o["row"], o["side"]
+    if not o["full"] or r.get("cached"):
+        return ""
+    pk = r.get("p_mkt")
+    if not pricing.lean(r["market"], side, o["p"], None if pk is None else (pk if side == "OVER" else 1 - pk), r["line"]):
+        return ""
+    if r["market"] == "sog" and (r.get("role_change") or r.get("team_mismatch")):
+        return "check"
+    return "lean"
+
+
+def pick_for(rs) -> dict | None:
+    """One player's lines in one market and game -> the one bet to show for him, or None when no app offers him.
+      1. his TAKE, if he has one ("play");
+      2. else the highest-chance bet paying >= 1x that is a lean or a check (lean_tier, ordered by pick_key);
+      3. else there is no edge, and the row only says which way he leans: the highest-chance bet paying >= 1x when
+         that is the likelier side (50%+, e.g. a PrizePicks line near a coin flip); otherwise his main line
+         (main_line_key) on its likelier offered side, whatever it pays (tier "")."""
+    opts = pick_options(rs)
+    if not opts:
+        return None
+    take = next((r for r in rs if _is_take(r) and r.get("source") in APPS), None)
+    if take is not None:
+        o = next((o for o in opts if o["row"] is take and o["side"] == take.get("side")), None)
+        if o is not None:
+            return {**o, "tier": "play"}
+    full = [o for o in opts if o["full"]]
+    good = [o for o in full if lean_tier(o)]
+    if good:
+        o = min(good, key=pick_key)
+        return {**o, "tier": lean_tier(o)}
+    best = min(full, key=pick_key) if full else None
+    if best is not None and best["p"] >= 0.5:
+        return {**best, "tier": ""}
+    main = min({id(o["row"]): o["row"] for o in opts}.values(), key=main_line_key)
+    o = max((o for o in opts if o["row"] is main), key=lambda o: (o["p"], -o["be"]))
+    return {**o, "tier": ""}
+
+
+def picks(rows) -> list[dict]:
+    """The board as a person bets it: one pick per player, market and game, from his Pick6 / PrizePicks lines.
+    Marks each pick's row in place and returns those rows, plays first, then leans, then by chance:
+      pick_side / pick_p   the side to take and its blended chance at that line
+      pick_tier            "play" (a TAKE), "lean", "check" (lean_tier) or "" (no edge)
+      pick_apps            every app that offers exactly this bet (side and line) at >= 1x: [{app, mult, price}],
+                           the pick's own app first; a reused (fallback) board's line is not listed
+      lean                 True for a lean (logged with the leg, so leans get a graded record)
+    Every verdict, tier and probability on the rows is unchanged."""
+    groups = {}
+    for r in rows:
+        r["pick"], r["lean"] = False, False
+        groups.setdefault((r.get("player_id") or r["name"], r["market"], r["game"]), []).append(r)
+    out = []
+    for rs in groups.values():
+        o = pick_for(rs)
+        if o is None:
+            continue
+        r = o["row"]
+        apps = [{"app": r["source"], "mult": o["mult"], "price": o["price"]}]
+        for x in rs:
+            if x is r or x.get("source") not in APPS or x.get("fallback") or x.get("p_blend") is None \
+                    or float(x["line"]) != float(r["line"]) or any(a["app"] == x["source"] for a in apps):
+                continue
+            ox = side_offer(x, o["side"])
+            if ox is not None and ox["full"]:
+                apps.append({"app": x["source"], "mult": ox["mult"], "price": ox["price"]})
+        apps[1:] = sorted(apps[1:], key=lambda a: SRC_PREF.get(a["app"], 3))
+        r.update(pick=True, pick_side=o["side"], pick_p=o["p"], pick_tier=o["tier"], pick_apps=apps, lean=o["tier"] == "lean")
+        out.append(r)
+    out.sort(key=lambda r: (PICK_RANK.get(r["pick_tier"], 9), -r["pick_p"], str(r.get("player_id") or r["name"]), r["market"]))
+    return out
+
+
 def finalize(rows) -> tuple[list[dict], dict]:
     """Saves and points: the legacy rule, run over every row exactly as before, so their verdicts,
     reasons, tiers and conflict flags are unchanged. SOG: select_sog."""
@@ -463,6 +587,10 @@ PLAY_KEYS = ("name", "player_id", "team", "market", "label", "line", "side", "ve
              "mult", "source", "start", "game", "conflicts", "role_change", "role", "reason", "fetched_at", "stale", "fallback")
 
 
+PICK_KEYS = ("name", "player_id", "team", "opp", "market", "label", "line", "game", "date", "start", "source", "proj",
+             "pick_side", "pick_p", "pick_tier", "pick_apps", "p_mkt", "verdict", "tier", "role_change", "fetched_at")
+
+
 def build(payload, pick6_rows, now=None, review=None) -> dict:
     import datetime as _dt
     import sources
@@ -473,6 +601,8 @@ def build(payload, pick6_rows, now=None, review=None) -> dict:
     sources.label_rows(rows, at, payload.get("sources"))
     rows.sort(key=lambda r: (not _is_take(r), -(r.get("p") or 0)))
     plays = [r for r in rows if _is_take(r)]
+    # one pick per player and market from his pick'em lines (side, line, apps, tier): display and the leg log only
+    pk = picks(rows)
     modeled = [r for r in rows if r["market"] in MODELED]
     with_p = [r for r in modeled if r.get("p_blend") is not None]
     # ambiguous / unmatched board rows the Pick6 pull dropped: listed for review, never in a play list
@@ -481,9 +611,12 @@ def build(payload, pick6_rows, now=None, review=None) -> dict:
     pick = lambda xs: [{k: r.get(k) for k in PLAY_KEYS} for x in [xs] for r in x]
     return {"rows": rows, "plays": pick(plays), "near_miss": pick(sel["near"]),
             "review": pick(sel["review"]) + ambiguous,
+            "picks": [{k: r.get(k) for k in PICK_KEYS} for r in pk if r["pick_tier"]],
             "counts": {"lines": len(rows), "modeled": len(modeled), "with_p": len(with_p),
                        "match_rate": round(len(with_p) / len(modeled), 4) if modeled else None,
                        "dk_dropped": dk_drops, "takes": len(plays),
+                       "picks": len(pk), "leans": sum(r["pick_tier"] == "lean" for r in pk),
+                       "checks": sum(r["pick_tier"] == "check" for r in pk),
                        "sog": {**sel["counts"], "needs_review": sel["counts"]["needs_review"] + sum(r["market"] == "sog" for r in ambiguous)}}}
 
 

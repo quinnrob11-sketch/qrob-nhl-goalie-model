@@ -61,6 +61,16 @@ PRICED_TAKES = False        # a line priced at a sportsbook's own odds (DraftKin
 SAVES_TAKE_OVERS = False    # saves overs lost at every edge threshold (5-8, 1-4, 0-2; every DK over 207-235)
 POINTS_UNDER_MAX = 1.0      # points unders only on lines below this: 1.5+ unders were rated 65.6% and hit 50.9%
 
+# ---- leans: the side to take on a pick'em app when it is not strong enough to be a play (props_board.picks) ----
+# A lean is not a TAKE. It answers "which way, and on which app" for the lines the apps post near a coin flip. On
+# graded DraftKings lines (walk-forward projections, last pre-game price) the sides this rule calls a lean hit
+# 57.0% +- 1.1 for shots (n=1,969, 10-01..11-09; the probability said 58.3%) and 62.7% +- 3.9 for points (n=150,
+# 11-02..11-09): about break-even as a 1x pick'em leg (54-58% needed, by entry type). The market has to lean the
+# same way: shots sides rated 55%+ with the market's own number under 52% hit 48.4% +- 6.3 (n=62). Both bars were
+# read off these same lines.
+LEAN_P = 0.55               # blended p of the side at least this ...
+LEAN_MKT_MIN = 0.52         # ... and the market's own probability for the side at least this
+
 
 def config() -> dict:
     """The decision knobs, exported to the page so its mirror of decide() uses the same values."""
@@ -73,7 +83,8 @@ def config() -> dict:
             "saves_bias_hl": SAVES_BIAS_HL, "mkt_min": MKT_MIN, "near_band": NEAR_BAND,
             "sog_take_p": SOG_TAKE_P, "sog_lock_p": SOG_LOCK_P, "sog_mean_w": SOG_MEAN_W,
             "sog_model_agree": SOG_MODEL_AGREE, "priced_takes": PRICED_TAKES,
-            "saves_take_overs": SAVES_TAKE_OVERS, "points_under_max": POINTS_UNDER_MAX}
+            "saves_take_overs": SAVES_TAKE_OVERS, "points_under_max": POINTS_UNDER_MAX,
+            "lean_p": LEAN_P, "lean_mkt_min": LEAN_MKT_MIN}
 
 
 def take_p(market: str) -> float:
@@ -274,6 +285,17 @@ def verdict(market: str, p_over: float, p_model_over: float, line: float, proj: 
         if near:
             out["tier"] = "Near miss"
     return out
+
+
+def lean(market: str, side: str, p: float, p_mkt_side, line) -> bool:
+    """The probability half of a lean (a side that is not a TAKE; the caller checks that it is offered at >= 1x on
+    this build's own lines): shots or points only (saves calls of 65%+ hit 46%), blended p >= LEAN_P, the market's
+    own probability for the side >= LEAN_MKT_MIN, and not a points under on a line of POINTS_UNDER_MAX or more."""
+    if market not in ("sog", "points") or p is None or p < LEAN_P - 1e-9:
+        return False
+    if p_mkt_side is None or p_mkt_side != p_mkt_side or float(p_mkt_side) < LEAN_MKT_MIN - 1e-9:
+        return False
+    return not (market == "points" and side == "UNDER" and float(line) >= POINTS_UNDER_MAX - 1e-9)
 
 
 def best_line(cands: list[dict]) -> int | None:

@@ -415,6 +415,43 @@ def rule_record(x: pd.DataFrame, r: pd.DataFrame, mk: str) -> dict:
                      "live TAKE rule, warm walk-forward weeks, DraftKings lines with a pre-game price"}
 
 
+def lean_record(x: pd.DataFrame, r: pd.DataFrame, mk: str) -> dict | None:
+    """Leans (pricing.lean: the favoured side when it is not a TAKE) replayed on the same graded DraftKings lines as
+    rule_record, each side taken as a 1x pick'em leg: how often the side the board would lean to went on to hit.
+    SOG: the live mean blend, every week; points: the walk-forward blend, warm weeks. LEAN_P and LEAN_MKT_MIN were
+    read off these same lines, so this is a description of them, not an out-of-sample test."""
+    if mk not in ("sog", "points"):
+        return None
+    be1 = pricing.dfs_break_even(1.0)
+    mb = mk == "sog" and "p_mb_over" in x
+    legs = []
+    for i, row in enumerate(x.itertuples()):
+        if row.push or not (mb or r.warm.iloc[i]):
+            continue
+        pk = r.p_mkt_over.iloc[i]
+        pf, pm = (row.p_mb_over, row.p_over) if mb else (r.p_final_over.iloc[i], r.p_cal_over.iloc[i])
+        if pf != pf or pk != pk:
+            continue
+        v = pricing.verdict(mk, pf, pm, row.line, row.model_proj, 1.0, 1.0, p_mkt_over=pk)
+        if v["verdict"].startswith("TAKE") or not pricing.lean(mk, v["side"], v["p"], v["p_mkt_side"], row.line):
+            continue
+        win = bool(row.went_over) == (v["side"] == "OVER")
+        price = row.over if v["side"] == "OVER" else row.under
+        legs.append({"side": v["side"], "win": win, "p": v["p"], "r_dk": pricing.profit(price) if win else -1.0,
+                     "r_1x": (1 / be1 - 1) if win else -1.0})
+    def rec(z):
+        se = lambda v: round(float(np.std(v, ddof=1) / np.sqrt(len(v))), 4) if len(v) > 1 else None
+        w = [float(q["win"]) for q in z]
+        return {"n": len(z), "hit": int(sum(w)), "pct": round(float(np.mean(w)), 4) if z else None, "se": se(w),
+                "pred": round(float(np.mean([q["p"] for q in z])), 4) if z else None,
+                "roi_dk": round(float(np.mean([q["r_dk"] for q in z])), 4) if z else None, "roi_dk_se": se([q["r_dk"] for q in z]),
+                "roi_1x": round(float(np.mean([q["r_1x"] for q in z])), 4) if z else None, "real_n": 0, "roi_real": None}
+    return {"all": rec(legs), "over": rec([q for q in legs if q["side"] == "OVER"]),
+            "under": rec([q for q in legs if q["side"] == "UNDER"]),
+            "basis": f"leans: the favoured side at {pricing.LEAN_P:.0%}+ with the market at {pricing.LEAN_MKT_MIN:.0%}+ "
+                     "that is not a TAKE, as a 1x leg; both bars were read off these lines"}
+
+
 def _final_reliability(x: pd.DataFrame, r: pd.DataFrame, mk: str, wm, use_line: bool):
     """Reliability by side and line of the board's own final probability on the walk-forward lines (SOG: the mean
     blend, where it could be formed)."""
@@ -559,5 +596,5 @@ def fit(log: list[dict], saves_rows: pd.DataFrame | None, dist_prm: dict, prices
                       "note": "50/50 blend of the projection and the market's expected shots; weight chosen on these lines"}
                      if mk == "sog" and "p_mb_over" in x else {"kind": "platt_blend", "w_model": cal.get("w")}),
             "disagree_wf": disagreement(r.p_cal_over.values[wm], r.p_mkt_over.values[wm], x.went_over.values[wm]),
-            "rule": rule_record(x, r, mk)}
+            "rule": rule_record(x, r, mk), "lean": lean_record(x, r, mk)}
     return out

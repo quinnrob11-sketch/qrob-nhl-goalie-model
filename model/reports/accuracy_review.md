@@ -108,6 +108,38 @@ you can see this for yourself.
 are still shown, but no row that leans on them can be a TAKE. A cached PrizePicks line paired with tonight's
 DraftKings price produced 3 phantom plays in testing.
 
+## Leans (added 2026-11-10)
+
+The play rule above leaves most nights empty, and the board still has to say which way to go on the lines the
+apps do post. So each player now gets **one pick** (`props_board.picks`): the side to take, the line, and the
+app or apps that offer exactly that bet at 1x or better. A pick has one of three labels.
+
+* **Play**: a TAKE under the rules in this review. Unchanged.
+* **Lean**: not a play, but the likelier side. It needs a chance of **55%+**, the market's own probability for
+  the side at **52%+**, and a 1x-or-better payout on Pick6 or PrizePicks. Shots and points only.
+* **No edge**: everything else. The row still shows the likelier side and what the app pays for it.
+
+A shots lean on a player whose line changed is labelled **Check** until his spot is confirmed.
+
+| leans on graded DK lines, each side taken as a 1x leg (`calibrate.lean_record`) | n | hit | chance said | ROI as a 1x leg |
+|---|---|---|---|---|
+| shots, 10-01..11-09 | 1,969 | **57.0% ± 1.1** | 58.3% | -1.3% |
+| shots, MORE only | 810 | 56.3% ± 1.7 | 58.0% | -2.5% |
+| shots, LESS only | 1,159 | 57.5% ± 1.5 | 58.4% | -0.5% |
+| points, 11-02..11-09 | 150 | 62.7% ± 4.0 | 56.5% | +8.5% |
+| shots rated 55%+ with the market under 52% (not leans) | 62 | 48.4% ± 6.3 | 56.3% | – |
+
+* **A lean is a direction, not an edge.** A 1x pick'em leg needs 54-58% to break even, depending on the entry.
+  Shots leans hit 57%, which is about break-even. The points number rests on one week of lines.
+* **Both bars were read off these same lines.** The 55% and 52% cut-offs are a description of this sample, not an
+  out-of-sample test. Leans are logged with every build from 2026-11-10 (`legs.csv`, column `lean`), so the
+  Results tab grades them going forward.
+* **Why the market has to agree.** With the market's own number under 52%, sides the board rated 55%+ hit 48%.
+  The sample is small (62), but it matches the rest of this review: model-only picks have not won.
+* **Saves have no leans.** Saves calls of 65%+ hit 46%.
+* **On real app lines so far:** on the two slates since the current shots probability went live (Nov 8-9),
+  24 lines met the lean rule on Pick6 or PrizePicks and 14 hit (58%). That is too few to mean anything yet.
+
 ## Points
 
 * A line priced at DraftKings' own odds is never a TAKE. Walk-forward, DK-priced points TAKEs hit exactly DK's
@@ -152,10 +184,13 @@ DraftKings price produced 3 phantom plays in testing.
 
 ## How to read the board
 
-* **Chance** is the blended probability for the side shown. **Needs** is the higher of the play bar and the
-  price's break-even. **Edge** is chance minus needs.
-* **Proj** is the model's expected shots, and the signed number is projection minus line.
-* A pass explains itself in one line, for example: no market price, the market only gives this side 52%, the
-  side pays 0.8x, or a cached line.
-* The Backtest tab's rule record replays exactly this rule on graded DK lines and settles it three ways: as a
-  hypothetical 1x leg, at DK's price, and only where a DFS board would pay 1x.
+* **Picks** is the one list: one row per player and stat, from the lines Pick6 and PrizePicks post. Each row
+  shows MORE or LESS and the line, the projection, the app or apps where that exact bet is offered, and the
+  chance. Plays come first, then leans; lines with no edge and sportsbook-only lines are folded away.
+* **Chance** is the blended probability for the side shown. **Proj** is the model's projection, and the signed
+  number is projection minus line.
+* Tap a row for the reason in one sentence, the numbers behind it, his last 10 games and his other lines on
+  both apps.
+* The app filter (Both / PrizePicks / Pick6) picks each player's best line on that app only.
+* **All lines** keeps the saves, points and winners tables, the starters table and the paste box.
+* The Backtest tab's rule record replays the play rule and the lean rule on graded DK lines.
