@@ -1,41 +1,41 @@
 {
- "updated": "2026-11-13 04:46 UTC",
+ "updated": "2026-11-13 05:04 UTC",
  "markets": {
   "saves": {
    "cal": {
     "a": 0.0,
     "n": 482,
-    "n_over": 152,
-    "n_under": 330,
-    "b_fit": 0.5077,
-    "b": 0.8503,
-    "b_shrink": 0.304,
-    "b_under_fit": 0.5964,
-    "b_under": 0.7336,
-    "b_under_shrink": 0.66,
+    "n_over": 132,
+    "n_under": 350,
+    "b_fit": 0.911,
+    "b": 0.9765,
+    "b_shrink": 0.264,
+    "b_under_fit": 0.5704,
+    "b_under": 0.6993,
+    "b_under_shrink": 0.7,
     "shrink": 0.964,
     "mode": "shrunk 0.96 toward identity (n < 500)",
     "blend": {
-     "w": 0.044,
-     "w_fit": 0.05,
-     "shrink": 0.886,
+     "w": 0.092,
+     "w_fit": 0.1,
+     "shrink": 0.923,
      "disagree": {
-      "n": 146,
-      "hit": 83,
-      "pct": 0.5685
+      "n": 147,
+      "hit": 84,
+      "pct": 0.5714
      },
      "n": 361,
      "basis": "walk-forward (361 lines)"
     },
-    "w": 0.044,
+    "w": 0.092,
     "line_a_fit": {
-     "3.5+": -0.0017
+     "3.5+": 0.0069
     },
     "line_a_used": false
    },
    "platt_ref": {
-    "a": -0.0285,
-    "b": 0.5156,
+    "a": 0.006,
+    "b": 0.6082,
     "n": 482
    },
    "tier_cap": "LOW",
@@ -118,112 +118,112 @@
    },
    "new": {
     "plays": {
-     "n": 42,
-     "hit": 28,
-     "miss": 14,
-     "pct": 0.6667,
-     "units": 10.32,
-     "roi": 0.2457
+     "n": 38,
+     "hit": 27,
+     "miss": 11,
+     "pct": 0.7105,
+     "units": 12.79,
+     "roi": 0.3365
     },
     "overs": {
-     "n": 7,
+     "n": 5,
      "hit": 4,
-     "miss": 3,
-     "pct": 0.5714,
-     "units": 0.57,
-     "roi": 0.0815
+     "miss": 1,
+     "pct": 0.8,
+     "units": 2.77,
+     "roi": 0.5541
     },
     "unders": {
-     "n": 35,
-     "hit": 24,
-     "miss": 11,
-     "pct": 0.6857,
-     "units": 9.75,
-     "roi": 0.2786
+     "n": 33,
+     "hit": 23,
+     "miss": 10,
+     "pct": 0.697,
+     "units": 10.02,
+     "roi": 0.3035
     },
     "tiers": {
      "HIGH": {
-      "n": 22,
-      "hit": 16,
-      "miss": 6,
-      "pct": 0.7273,
-      "units": 8.01,
-      "roi": 0.3642
+      "n": 19,
+      "hit": 15,
+      "miss": 4,
+      "pct": 0.7895,
+      "units": 9.1,
+      "roi": 0.4791
      },
      "MED": {
-      "n": 12,
-      "hit": 7,
-      "miss": 5,
-      "pct": 0.5833,
-      "units": 1.02,
-      "roi": 0.0849
+      "n": 14,
+      "hit": 10,
+      "miss": 4,
+      "pct": 0.7143,
+      "units": 4.94,
+      "roi": 0.3532
      },
      "LOW": {
-      "n": 8,
-      "hit": 5,
+      "n": 5,
+      "hit": 2,
       "miss": 3,
-      "pct": 0.625,
-      "units": 1.29,
-      "roi": 0.1611
+      "pct": 0.4,
+      "units": -1.26,
+      "roi": -0.2522
      }
     },
     "before_alarm": {
      "plays": {
-      "n": 42,
-      "hit": 28,
-      "miss": 14,
-      "pct": 0.6667,
-      "units": 10.32,
-      "roi": 0.2457
+      "n": 38,
+      "hit": 27,
+      "miss": 11,
+      "pct": 0.7105,
+      "units": 12.79,
+      "roi": 0.3365
      },
      "overs": {
-      "n": 7,
+      "n": 5,
       "hit": 4,
-      "miss": 3,
-      "pct": 0.5714,
-      "units": 0.57,
-      "roi": 0.0815
+      "miss": 1,
+      "pct": 0.8,
+      "units": 2.77,
+      "roi": 0.5541
      },
      "unders": {
-      "n": 35,
-      "hit": 24,
-      "miss": 11,
-      "pct": 0.6857,
-      "units": 9.75,
-      "roi": 0.2786
+      "n": 33,
+      "hit": 23,
+      "miss": 10,
+      "pct": 0.697,
+      "units": 10.02,
+      "roi": 0.3035
      }
     },
     "nights": [
      {
       "date": "2026-10-01",
       "pre_over": 0,
-      "pre_under": 2,
+      "pre_under": 1,
       "over": 0,
-      "under": 2,
-      "alarm": true
+      "under": 1,
+      "alarm": false
      },
      {
       "date": "2026-10-02",
       "pre_over": 0,
-      "pre_under": 5,
+      "pre_under": 4,
       "over": 0,
-      "under": 5,
+      "under": 4,
       "alarm": true
      },
      {
       "date": "2026-10-03",
       "pre_over": 2,
-      "pre_under": 9,
+      "pre_under": 8,
       "over": 2,
-      "under": 9,
+      "under": 8,
       "alarm": true
      },
      {
       "date": "2026-10-04",
       "pre_over": 1,
-      "pre_under": 3,
+      "pre_under": 2,
       "over": 1,
-      "under": 3,
+      "under": 2,
       "alarm": false
      },
      {
@@ -236,11 +236,11 @@
      },
      {
       "date": "2026-10-06",
-      "pre_over": 2,
+      "pre_over": 1,
       "pre_under": 4,
-      "over": 2,
+      "over": 1,
       "under": 4,
-      "alarm": false
+      "alarm": true
      },
      {
       "date": "2026-10-07",
@@ -252,26 +252,26 @@
      },
      {
       "date": "2026-10-08",
-      "pre_over": 0,
-      "pre_under": 4,
-      "over": 0,
-      "under": 4,
+      "pre_over": 1,
+      "pre_under": 5,
+      "over": 1,
+      "under": 5,
       "alarm": true
      },
      {
       "date": "2026-10-09",
-      "pre_over": 1,
+      "pre_over": 0,
       "pre_under": 2,
-      "over": 1,
+      "over": 0,
       "under": 2,
-      "alarm": false
+      "alarm": true
      },
      {
       "date": "2026-10-10",
-      "pre_over": 1,
-      "pre_under": 4,
-      "over": 1,
-      "under": 4,
+      "pre_over": 0,
+      "pre_under": 5,
+      "over": 0,
+      "under": 5,
       "alarm": true
      },
      {
@@ -594,50 +594,50 @@
     {
      "bucket": "(0.5, 0.55]",
      "pred": 0.524,
-     "actual": 0.516,
-     "n": 221
+     "actual": 0.531,
+     "n": 207
     },
     {
      "bucket": "(0.55, 0.6]",
-     "pred": 0.573,
-     "actual": 0.554,
-     "n": 148
+     "pred": 0.575,
+     "actual": 0.567,
+     "n": 150
     },
     {
      "bucket": "(0.6, 0.65]",
-     "pred": 0.622,
-     "actual": 0.579,
-     "n": 76
+     "pred": 0.619,
+     "actual": 0.568,
+     "n": 81
     },
     {
      "bucket": "(0.65, 0.7]",
-     "pred": 0.666,
-     "actual": 0.538,
-     "n": 26
+     "pred": 0.668,
+     "actual": 0.543,
+     "n": 35
     },
     {
      "bucket": "(0.7, 1.0]",
-     "pred": 0.713,
-     "actual": 0.545,
-     "n": 11
+     "pred": 0.716,
+     "actual": 0.667,
+     "n": 9
     }
    ],
    "buckets_cal": [
     {
      "bucket": "(0.5, 0.55]",
      "pred": 0.52,
-     "actual": 0.527,
-     "n": 262
+     "actual": 0.54,
+     "n": 274
     },
     {
      "bucket": "(0.55, 0.6]",
-     "pred": 0.574,
+     "pred": 0.57,
      "actual": 0.7,
      "n": 40
     },
     {
      "bucket": "(0.6, 0.65]",
-     "pred": 0.627,
+     "pred": 0.625,
      "actual": 0.727,
      "n": 11
     }
@@ -647,59 +647,59 @@
      "OVER": [
       {
        "bucket": "(0.5, 0.55]",
-       "pred": 0.523,
-       "actual": 0.505,
-       "n": 99
+       "pred": 0.524,
+       "actual": 0.527,
+       "n": 91
       },
       {
        "bucket": "(0.55, 0.6]",
-       "pred": 0.572,
-       "actual": 0.583,
-       "n": 36
+       "pred": 0.573,
+       "actual": 0.613,
+       "n": 31
       },
       {
        "bucket": "(0.6, 0.65]",
-       "pred": 0.617,
-       "actual": 0.467,
-       "n": 15
+       "pred": 0.612,
+       "actual": 0.571,
+       "n": 7
       },
       {
        "bucket": "(0.65, 0.7]",
-       "pred": 0.668,
-       "actual": 0.5,
-       "n": 2
+       "pred": 0.654,
+       "actual": 0.333,
+       "n": 3
       }
      ],
      "UNDER": [
       {
        "bucket": "(0.5, 0.55]",
-       "pred": 0.525,
-       "actual": 0.525,
-       "n": 122
+       "pred": 0.524,
+       "actual": 0.534,
+       "n": 116
       },
       {
        "bucket": "(0.55, 0.6]",
-       "pred": 0.573,
-       "actual": 0.545,
-       "n": 112
+       "pred": 0.575,
+       "actual": 0.555,
+       "n": 119
       },
       {
        "bucket": "(0.6, 0.65]",
-       "pred": 0.624,
-       "actual": 0.607,
-       "n": 61
+       "pred": 0.62,
+       "actual": 0.568,
+       "n": 74
       },
       {
        "bucket": "(0.65, 0.7]",
-       "pred": 0.666,
-       "actual": 0.542,
-       "n": 24
+       "pred": 0.669,
+       "actual": 0.562,
+       "n": 32
       },
       {
        "bucket": "(0.7, 1.0]",
-       "pred": 0.713,
-       "actual": 0.545,
-       "n": 11
+       "pred": 0.716,
+       "actual": 0.667,
+       "n": 9
       }
      ]
     },
@@ -707,59 +707,59 @@
      "OVER": [
       {
        "bucket": "(0.5, 0.55]",
-       "pred": 0.521,
-       "actual": 0.505,
-       "n": 99
+       "pred": 0.524,
+       "actual": 0.522,
+       "n": 90
       },
       {
        "bucket": "(0.55, 0.6]",
-       "pred": 0.57,
-       "actual": 0.595,
-       "n": 37
+       "pred": 0.572,
+       "actual": 0.645,
+       "n": 31
       },
       {
        "bucket": "(0.6, 0.65]",
-       "pred": 0.616,
-       "actual": 0.429,
-       "n": 14
+       "pred": 0.61,
+       "actual": 0.5,
+       "n": 8
       },
       {
        "bucket": "(0.65, 0.7]",
-       "pred": 0.665,
-       "actual": 0.5,
-       "n": 2
+       "pred": 0.657,
+       "actual": 0.333,
+       "n": 3
       }
      ],
      "UNDER": [
       {
        "bucket": "(0.5, 0.55]",
-       "pred": 0.526,
-       "actual": 0.522,
-       "n": 138
+       "pred": 0.525,
+       "actual": 0.527,
+       "n": 129
       },
       {
        "bucket": "(0.55, 0.6]",
-       "pred": 0.573,
-       "actual": 0.551,
-       "n": 107
+       "pred": 0.574,
+       "actual": 0.545,
+       "n": 121
       },
       {
        "bucket": "(0.6, 0.65]",
-       "pred": 0.622,
-       "actual": 0.608,
-       "n": 51
+       "pred": 0.619,
+       "actual": 0.617,
+       "n": 60
       },
       {
        "bucket": "(0.65, 0.7]",
        "pred": 0.668,
-       "actual": 0.542,
-       "n": 24
+       "actual": 0.586,
+       "n": 29
       },
       {
        "bucket": "(0.7, 1.0]",
        "pred": 0.719,
-       "actual": 0.6,
-       "n": 10
+       "actual": 0.545,
+       "n": 11
       }
      ]
     },
@@ -768,32 +768,32 @@
       {
        "bucket": "(0.5, 0.55]",
        "pred": 0.518,
-       "actual": 0.488,
+       "actual": 0.506,
        "n": 172
       },
       {
        "bucket": "(0.55, 0.6]",
-       "pred": 0.569,
-       "actual": 0.533,
-       "n": 15
+       "pred": 0.568,
+       "actual": 0.5,
+       "n": 8
       }
      ],
      "UNDER": [
       {
        "bucket": "(0.5, 0.55]",
        "pred": 0.518,
-       "actual": 0.504,
-       "n": 254
+       "actual": 0.514,
+       "n": 259
       },
       {
        "bucket": "(0.55, 0.6]",
-       "pred": 0.576,
-       "actual": 0.8,
-       "n": 25
+       "pred": 0.571,
+       "actual": 0.75,
+       "n": 32
       },
       {
        "bucket": "(0.6, 0.65]",
-       "pred": 0.627,
+       "pred": 0.625,
        "actual": 0.727,
        "n": 11
       }
@@ -806,13 +806,13 @@
    "scores": {
     "raw model": {
      "n": 361,
-     "brier": 0.2545,
-     "logloss": 0.70269
+     "brier": 0.25457,
+     "logloss": 0.70289
     },
     "calibrated model": {
      "n": 361,
-     "brier": 0.25444,
-     "logloss": 0.70264
+     "brier": 0.25443,
+     "logloss": 0.70271
     },
     "DK no-vig": {
      "n": 361,
@@ -821,18 +821,18 @@
     },
     "blend 0.6 (old)": {
      "n": 361,
-     "brier": 0.25147,
-     "logloss": 0.69618
+     "brier": 0.25125,
+     "logloss": 0.69574
     },
     "blend fitted (new)": {
      "n": 361,
-     "brier": 0.25,
-     "logloss": 0.69315
+     "brier": 0.24991,
+     "logloss": 0.69297
     },
     "blend fitted + line intercepts": {
      "n": 361,
-     "brier": 0.25003,
-     "logloss": 0.69321
+     "brier": 0.24996,
+     "logloss": 0.69307
     }
    },
    "reliability": {
@@ -840,43 +840,43 @@
      {
       "side": "More",
       "line": "3.5+",
-      "n": 111,
-      "pred": 0.5396,
-      "actual": 0.5495
+      "n": 94,
+      "pred": 0.5388,
+      "actual": 0.5638
      },
      {
       "side": "Less",
       "line": "3.5+",
-      "n": 250,
-      "pred": 0.5718,
-      "actual": 0.516
+      "n": 267,
+      "pred": 0.5771,
+      "actual": 0.5169
      }
     ],
     "final": [
      {
       "side": "More",
       "line": "3.5+",
-      "n": 150,
-      "pred": 0.5166,
-      "actual": 0.4867
+      "n": 142,
+      "pred": 0.5161,
+      "actual": 0.507
      },
      {
       "side": "Less",
       "line": "3.5+",
-      "n": 211,
-      "pred": 0.5164,
-      "actual": 0.4834
+      "n": 219,
+      "pred": 0.5172,
+      "actual": 0.4977
      }
     ]
    },
    "live": {
     "kind": "platt_blend",
-    "w_model": 0.044
+    "w_model": 0.092
    },
    "disagree_wf": {
-    "n": 146,
-    "hit": 83,
-    "pct": 0.5685
+    "n": 147,
+    "hit": 84,
+    "pct": 0.5714
    },
    "rule": {
     "all": {
