@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-14 01:03 UTC",
+ "updated": "2026-11-14 01:18 UTC",
  "markets": {
   "saves": {
    "cal": {
@@ -7,8 +7,8 @@
     "n": 503,
     "n_over": 161,
     "n_under": 342,
-    "b_fit": 0.5704,
-    "b": 0.8617,
+    "b_fit": 0.5707,
+    "b": 0.8618,
     "b_shrink": 0.322,
     "b_under_fit": 0.664,
     "b_under": 0.7702,
@@ -35,7 +35,7 @@
    },
    "platt_ref": {
     "a": -0.0268,
-    "b": 0.5891,
+    "b": 0.5892,
     "n": 503
    },
    "tier_cap": "LOW",
@@ -765,7 +765,7 @@
       },
       {
        "bucket": "(0.7, 1.0]",
-       "pred": 0.719,
+       "pred": 0.718,
        "actual": 0.6,
        "n": 10
       }
@@ -814,7 +814,7 @@
    "scores": {
     "raw model": {
      "n": 382,
-     "brier": 0.25283,
+     "brier": 0.25282,
      "logloss": 0.69927
     },
     "calibrated model": {
