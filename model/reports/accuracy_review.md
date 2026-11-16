@@ -270,6 +270,39 @@ the page's copy of those rules, the grading and the records. Numbers are through
   Slice promos, and Pick6 takes one promo pick per entry. Its correlation table is confirmed by the three seasons
   above; its 0.18 for shooter and goalie is this season's sample.
 
+## Recent shot and save volume (2026-11-16)
+
+Is every number current with recent shot and save volume? Checked on the builds of Nov 11-16 and on every
+game through Nov 15.
+
+* **Freshness.** Each build has the box scores through the previous night by the first build of the morning
+  (6:38 AM CT on Nov 16, the first day of the early builds). Pick6, DraftKings and PrizePicks are pulled on
+  every build; rosters come from the NHL feed (plus call-ups from recent box scores); MoneyPuck's shot attempts
+  now cover every game but the latest. The Backtest tab's files are fixed by design: they score finished
+  seasons. Everything about the current season is recomputed every build.
+* **League volume is falling, and the model follows it.** Shots on goal per team-game: 30.3 (2023-24), 28.3,
+  27.8, 27.4 (2026-27 so far). The saves model's expected shots this season average 27.4-27.6 a week against
+  27.1-28.1 actual, within noise. Skater shots: projections within ±0.05 of actual every week.
+* **Recent form adds nothing beyond the model.** Actual minus expected, regressed on the last 5 or 10 games
+  minus expected: team shots against and opponents' shots for, coefficients within ±0.1 and inconsistent in sign
+  across four seasons; skater shots, within ±0.04; goalie save %, inconsistent in sign. The recency settings are
+  about right; giving recent games more weight would not help.
+* **League save % is falling too** (.904, .900, .896, .892), while each goalie's save % is shrunk toward a fixed
+  .900. Anchoring it to the league's own recent save % predicts save % slightly better (0.2-1.4% lower squared
+  error) but leaves the saves projection unchanged (mean absolute error equal to 0.001 in every season), because
+  the league-wide rolling bias correction already absorbs the level. Not changed.
+* **Home and away (watch).** This season home teams have allowed about 2% fewer shots than the model expects
+  and away teams about 2% more (about half a shot a game, 2.5 standard errors over 330 games). The two previous
+  seasons matched the fitted home factor, so it is not changed; re-check in December.
+* **Points: refit.** The points settings had been chosen on the raw projection, before calibration, which
+  penalised a stronger prior on a player's scoring rate for a scale change the calibration removes (shots were
+  already chosen at their best calibration). Refit with the corrected procedure on 2025-26 only: prior 100 -> 400
+  minutes, carry-over 0.7 -> 0.9. On 2026-27, never used to fit: log-likelihood -0.84012 -> -0.83952 per
+  player-game (+0.0006 ± 0.0004; forwards +0.0008 ± 0.0004), most of it in the first weeks of the season; Brier
+  at 0.5 points 0.20176 -> 0.20158; on the 1,839 graded points lines no measurable difference (log loss 0.65854
+  -> 0.65843). A player's chance of a point moves by 1 percentage point on average, more for players with
+  little history.
+
 ## Known gaps
 
 * **Saves calibration:** saves are calibrated on a probability without the rolling bias correction, while the page
