@@ -3071,7 +3071,7 @@ function renderLogic(){
     ["Team rate half-life (games)", P.half_life], ["Team prior strength (games)", P.k_team], ["Carry-over between seasons", P.carry],
     ["Save% prior (shots)", P.k_sv], ["Save% half-life (starts)", P.sv_half_life], ["Home multiplier", P.home], ["Playoff multiplier", P.playoff],
     ["Back-to-back multiplier", P.b2b], ["Opponent back-to-back multiplier", P.opp_b2b ?? 1], ["League time-in-net share", pct(D.lg_share)],
-    ["Game script: shots × exp(−gs × logit(win prob)), gs", DIST.gs], ["Shots dispersion (NegBin size K)", DIST.nb_k], ["Minimum saves spread (sd floor)", DIST.sd_floor],
+    [`Game script: shots × exp(−gs × logit(win prob)), gs${DIST.gs_mode === "mp" ? " (MoneyPuck mode)" : DIST.gs_mode === "corsi" ? " (Corsi mode)" : ""}`, DIST.gs], ["Shots dispersion (NegBin size K)", DIST.nb_k], ["Minimum saves spread (sd floor)", DIST.sd_floor],
     ["Game-script cap", `±${pct(DIST.gs_cap ?? .12, 0)}`], ["League average half-life (team-games)", P.lg_half_life ?? 693],
     ["Saves calibration", calTxt(CAL.saves)], [SOG_MB ? "SOG calibration (reference only: shots use the blend below)" : "SOG calibration", calTxt(CAL.sog)],
     ["Market blend", [SOG_MB ? `shots: ${Math.round(100 * (1 - RULE.sog_mean_w))}/${Math.round(100 * RULE.sog_mean_w)} model projection and market's expected shots` : "",

@@ -294,6 +294,24 @@ game through Nov 15.
 * **Home and away (watch).** This season home teams have allowed about 2% fewer shots than the model expects
   and away teams about 2% more (about half a shot a game, 2.5 standard errors over 330 games). The two previous
   seasons matched the fitted home factor, so it is not changed; re-check in December.
+* **Game script: refit for the mode the model runs in.** Underdogs' goalies face more shots, so expected shots
+  against are scaled by exp(-gs x logit(win probability)). gs (0.025) was fitted on Oct 24 while the model ran on its
+  own Corsi counts. Back on MoneyPuck's attempts (Nov 16), whose terms already carry most of the strength gap, the same
+  fit (`python model/fit_sa.py --gs-mp`) gives 0.005 (weekly walk-forward picks 0.005-0.010). The saves projection as
+  the site computes it (with the rolling bias), squared error per start: 2024-25 47.36 -> 47.11 (-0.25 ± 0.06),
+  2025-26 45.92 -> 45.88 (-0.04 ± 0.05), 2026-27 43.58 -> 43.37 (-0.22 ± 0.13); in lopsided games -1.1, -0.1 and
+  -1.5. Found by an independent check of this section. The build uses the value for its mode (`saves_dist.for_mode`),
+  so a fall back to Corsi uses 0.025 again.
+* **Call-ups: debut ice time.** A player with no NHL history got the position-average ice time (15.5 minutes for a
+  forward); debuts play 10.5-11.4 minutes (forwards) and 13-15 (defence). The model now learns what debuts play,
+  walk-forward by position (`sog.State.debut_toi`), and uses it until the player has a game of his own. Debut forwards'
+  shots bias: -0.66 -> -0.10 (2024-25), -0.50 -> +0.01 (2025-26), -0.92 -> -0.47 (2026-27); every season's shots and
+  points log-likelihood improves (shots +0.0002, +0.0002, +0.0005 per player-game). Debut defence is mixed: they play
+  less but shoot more per minute than the average defenceman.
+* **Independently checked.** A second analysis with its own code confirmed the freshness, the level and recency
+  results and the save % anchor result, and found the game-script and debut items above. On home/away it found no
+  330-game stretch of the last three seasons with a split this large, and early splits never predicted the rest of a
+  season.
 * **Points: refit.** The points settings had been chosen on the raw projection, before calibration, which
   penalised a stronger prior on a player's scoring rate for a scale change the calibration removes (shots were
   already chosen at their best calibration). Refit with the corrected procedure on 2025-26 only: prior 100 -> 400

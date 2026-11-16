@@ -334,7 +334,7 @@ def saves_rows(df: pd.DataFrame, season: int) -> pd.DataFrame:
     return x
 
 
-def saves_bias_now(df: pd.DataFrame, season: int, today) -> float:
+def saves_bias_now(df: pd.DataFrame, season: int, today, dist: dict | None = None) -> float:
     """Rolling saves bias (30-day half-life) from every graded start of this season and last: actual saves
     minus the walk-forward projection the page would have shown (game script included)."""
     rows = []
@@ -345,7 +345,7 @@ def saves_bias_now(df: pd.DataFrame, season: int, today) -> float:
     if not rows:
         return 0.0
     x = pd.concat(rows)
-    proj = [saves_dist.project(r.exp_sa, r.share, r.sv, r.p_win, DIST)["proj"] for r in x.itertuples()]
+    proj = [saves_dist.project(r.exp_sa, r.share, r.sv, r.p_win, dist or DIST)["proj"] for r in x.itertuples()]
     return saves_dist.bias_now(pd.to_datetime(x.date).dt.strftime("%Y-%m-%d").values, x.saves.values - np.array(proj),
                                today, pricing.SAVES_BIAS_HL)
 
@@ -391,6 +391,7 @@ def main():
     ppath = os.path.join(OUT, "params.json")
     p = engine.Params.load(ppath)
     df, state = engine.run(tg, st_df, p)
+    dist = saves_dist.for_mode(DIST, state.mode)    # the game script fitted for the mode the engine runs in
     # Preseason: the new season hasn't started in the data yet, so apply the
     # same between-season regression the backtest uses.
     if latest < cur:
@@ -454,7 +455,7 @@ def main():
     starter_rows = starters.fetch(goalies, sorted({g["date"] for g in slate}))
     combos = linecombos.fetch({g[k] for g in slate for k in ("home", "away")} - DEFUNCT)
     sv_rows = saves_rows(df, cur)
-    saves_bias = round(saves_bias_now(df, cur, today), 3)
+    saves_bias = round(saves_bias_now(df, cur, today, dist), 3)
     slots = linecombos.slot_toi(skater_df, latest)
     # Goalies on the board we have no NHL history for get the same treatment.
     for r in pp:
@@ -522,7 +523,7 @@ def main():
         "odds_books": odds.books_used,
         "rosters": {t: [[p["id"], p["first"], p["last"], p["pos"]] for p in ps] for t, ps in R.teams.items() if t in teams},
         "ml": odds.ml_rows,
-        "dist": DIST,
+        "dist": dist,
         "pricing": pricing.config(),
         # slips (entries of 2-6 legs): the payout tables, the apps' same-game cuts and how legs move together, with
         # this season's correlations measured from the box scores just loaded and Pick6's own payout table
@@ -551,7 +552,7 @@ def main():
         print(f"  [tracker] grading failed: {e}")
         payload["tracking"] = json.load(open(tracker.OUT)) if os.path.exists(tracker.OUT) else None
     try:
-        payload["calib"] = calibrate.fit(tracker._read_log(), sv_rows, DIST,
+        payload["calib"] = calibrate.fit(tracker._read_log(), sv_rows, dist,
                                          pd.read_csv(PRICES) if os.path.exists(PRICES) else None,
                                          sog_rows=sog_rows, sog_prm=sp, points_rows=points_rows, points_prm=pp_)
         with open(os.path.join(OUT, "calibration.json"), "w") as f:
