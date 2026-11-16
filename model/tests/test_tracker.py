@@ -160,6 +160,18 @@ class Shown(unittest.TestCase):
         out = tracker.shown_legs([a, b, other_line], "lean")
         self.assertEqual(sorted((r["line"], r["p"]) for r in out), [("2.5", "0.60"), ("3.5", "0.59")])     # the earlier showing
 
+    def test_split_by_what_the_last_board_still_showed(self):
+        # the same bet on two apps: dropped on one, still a lean on the other at puck drop -> still standing
+        a = self.graded(1, "lean", "UNDER", 1, source="PrizePicks", lean="")
+        b = self.graded(1, "lean", "UNDER", 1, source="Pick6", lean="1")
+        gone = self.graded(2, "lean", "UNDER", 4, lean="")
+        play = self.graded(3, "lean", "UNDER", 1, lean="", verdict="TAKE LESS")       # became a play: still a call
+        flipped = self.graded(4, "lean", "OVER", 3, shown_side="UNDER", lean="1")     # a lean again, on the other side
+        left = self.graded(5, "lean", "UNDER", 1, lean="1", built="t1")              # his line left the board at noon
+        rows = [{"game": "g1", "built": "t2", **r} for r in (a, b, gone, play, flipped)] + [{"game": "g1", **left}]
+        got = {k: sorted(r["player_id"] for r in v) for k, v in tracker.shown_split(rows, tracker.shown_legs(rows, "lean")).items()}
+        self.assertEqual(got, {"last": ["1", "3"], "gone": ["5"], "erased": ["2", "4"]})
+
     def test_since_keeps_calls_first_shown_under_the_current_rules(self):
         early = self.graded(1, "play", "OVER", 3, shown_at="2026-11-08T13:00:00+00:00")
         late = self.graded(2, "play", "OVER", 3, shown_at="2026-11-08T15:00:00+00:00")
@@ -181,6 +193,9 @@ class Shown(unittest.TestCase):
         self.assertEqual((sog["leans"]["n"], sog["leans"]["hit"]), (1, 1))            # the survivor only: 1-0
         self.assertEqual((sog["leans_shown"]["n"], sog["leans_shown"]["hit"]), (3, 1))   # every lean shown: 1-2
         self.assertEqual((sog["leans_shown_by_side"]["UNDER"]["n"], sog["leans_shown_by_side"]["OVER"]["n"]), (3, 0))
+        self.assertEqual((sog["leans_shown_last"]["hit"], sog["leans_shown_last"]["miss"]), (1, 0))       # still a lean on the last board
+        self.assertEqual((sog["leans_shown_erased"]["hit"], sog["leans_shown_erased"]["miss"]), (0, 2))   # the page dropped them
+        self.assertEqual(sog["leans_shown_gone"]["n"], 0)
         self.assertEqual((sog["plays_shown"]["n"], sog["plays_shown"]["hit"], sog["takes_now"]["n"]), (1, 1, 0))
         self.assertEqual(sog["plays_shown_by_side"]["UNDER"]["n"], 1)
         self.assertAlmostEqual(sog["leans_shown"]["pred"], .59)                       # the chance shown, not the last one

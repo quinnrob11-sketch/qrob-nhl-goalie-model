@@ -977,6 +977,30 @@ def shown_legs(rows, kind: str, since_at: str | None = None) -> list[dict]:
     return list(best.values())
 
 
+def shown_split(rows, legs) -> dict:
+    """What became of the calls from shown_legs by the game's last pre-game board. For each bet (date, player,
+    market, line, side), over the apps that showed it:
+      "last"    still a call (a lean or a play) on the game's latest build;
+      "gone"    its line left the board while it was still a call (the app took the line down or moved it: a leg
+                whose last snapshot is older than the game's latest build, as in playable_legs);
+      "erased"  a later snapshot of the same line carried no call (the market or our own number moved against it).
+    Someone who bet a call when it was shown holds it in all three cases."""
+    last = {}
+    for r in rows:
+        last[r.get("game")] = max(last.get(r.get("game"), ""), str(r.get("built") or ""))
+    key = lambda x: (x["date"], str(x["player_id"]), x["market"], float(x["line"]), x.get("side"))
+    state = {}
+    for r in rows:
+        if _call_of(r):
+            k = key(r)
+            on_last = str(r.get("built") or "") == last.get(r.get("game"))
+            state[k] = "last" if on_last or state.get(k) == "last" else "gone"
+    out = {"last": [], "gone": [], "erased": []}
+    for x in legs:
+        out[state.get(key(x), "erased")].append(x)
+    return out
+
+
 def legs_summary(rows=None) -> dict:
     """Records a person could have bet (playable_legs): reliability of the shown probability and records by
     side, line, price and TAKE legs, with units and ROI at the price offered. Unplayable sides (not offered,
@@ -1025,6 +1049,9 @@ def legs_summary(rows=None) -> dict:
             "leans_shown": rec(shown_legs([r for r in allrows if r["market"] == mk], "lean")),
             "plays_shown_by_side": {s: rec([r for r in shown_legs([r for r in allrows if r["market"] == mk], "play", RULES_LIVE_AT) if r["side"] == s]) for s in ("OVER", "UNDER")},
             "leans_shown_by_side": {s: rec([r for r in shown_legs([r for r in allrows if r["market"] == mk], "lean") if r["side"] == s]) for s in ("OVER", "UNDER")},
+            # ... and what became of each lean by the game's last pre-game board (shown_split)
+            **{f"leans_shown_{k}": rec(v) for k, v in shown_split([r for r in allrows if r["market"] == mk],
+                                                                  shown_legs([r for r in allrows if r["market"] == mk], "lean")).items()},
             "takes_by_side": {s: rec([r for r in x if str(r.get("verdict", "")).startswith("TAKE") and r["side"] == s]) for s in ("OVER", "UNDER")},
             "model_vs_market": _disagree([r for r in x if r.get("p_mkt") not in (None, "") and r.get("p_model") not in (None, "")
                                           and (float(r["p_model"]) >= .5) != (float(r["p_mkt"]) >= .5)]),
