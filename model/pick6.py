@@ -629,9 +629,10 @@ def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30, now: dt.date
     import slate as slate_mod
     rows, st = _pull(slate, R, timeout)
     now_ = now or dt.datetime.now(dt.timezone.utc)
-    if not rows and nothing_open(slate, st, now_):
-        # every line the page had was for a game already under way, or no game starts soon: an empty board is the
-        # true answer, not a failed pull (late at night this used to read "fallback" and raise the stale banner)
+    if not rows and "raw" in (st or {}) and nothing_open(slate, st, now_):
+        # the page came back (a request that failed carries no counts and is still a failure) and every line it
+        # had was for a game already under way, or no game starts soon: an empty board is the true answer, not a
+        # failed pull (late at night this used to read "fallback" and raise the stale banner)
         fetch_status, fetched_at, status = "fresh", now_.isoformat(timespec="seconds"), "ok"
         print("  [pick6] nothing open to pull (games under way or none soon)")
         return [], {**st, "idle": True}

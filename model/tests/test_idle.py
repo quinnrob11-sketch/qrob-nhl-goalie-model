@@ -59,6 +59,15 @@ class Pick6Idle(unittest.TestCase):
         self.assertEqual(pick6.fetched_at, NOW.isoformat(timespec="seconds"))
         self.assertFalse(sources.info(pick6.fetch_status, pick6.fetched_at, NOW)["stale"])
 
+    def test_a_request_that_failed_is_a_failure_at_any_hour(self):
+        def blocked(slate, R, timeout=30):
+            pick6.status = "blocked (HTTP 403)"
+            return [], {}
+        pick6._pull = blocked
+        rows, st = pick6.fetch([game(1, -3, "LIVE"), game(2, 19)], None, now=NOW)
+        self.assertEqual((rows, pick6.fetch_status, pick6.status), ([], "error", "blocked (HTTP 403)"))
+        self.assertNotIn("idle", st)
+
     def test_an_empty_pull_with_a_game_close_is_still_a_failure(self):
         def empty(slate, R, timeout=30):
             pick6.status = "parse failed: 0 rows"
