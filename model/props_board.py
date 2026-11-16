@@ -23,6 +23,7 @@ import math
 import pricing
 import saves_dist
 import slate as slate_mod
+import slips
 import sog
 import tracker
 
@@ -153,7 +154,26 @@ def _saves_p(payload, pid, team, g, line):
     pr = saves_dist.project(sa, gl["share"], gl["sv"], pw, payload.get("dist") or saves_dist.DEFAULTS)
     proj = pr["proj"] + float(payload.get("saves_bias") or 0.0)
     confirmed = gid == pid and src in ("dk", "pp", "df", "manual")
-    return proj, saves_dist.p_over(proj, pr["sd"], line), confirmed
+    return proj, saves_dist.p_over(proj, pr["sd"], line), confirmed, pr["sd"]
+
+
+def push_p(mk, line, mean, prm=None, pos=None, sd=None) -> float:
+    """The chance a result lands exactly on a whole-number line (a push: the apps void that leg and pay the entry one
+    level down). 0 on a half-point line. Shots and points: the negative binomial at `mean`; saves: the normal band
+    half a save either side of the line. `p` everywhere on the board is the chance given no push."""
+    line = float(line)
+    if line != math.floor(line) or mean is None:
+        return 0.0
+    if mk == "saves":
+        if not sd:
+            return 0.0
+        cdf = lambda x: 0.5 * math.erfc(-(x - mean) / sd / math.sqrt(2))
+        return max(0.0, cdf(line + 0.5) - cdf(line - 0.5))
+    if prm is None:
+        return 0.0
+    mean = max(float(mean), 0.02)
+    size = sog.size_for(mean, prm, pos)
+    return max(0.0, sog.nb_cdf(int(line), mean, size) - sog.nb_cdf(int(line) - 1, mean, size))
 
 
 def score_lines(payload, lines) -> list[dict]:
@@ -164,7 +184,11 @@ def score_lines(payload, lines) -> list[dict]:
     books = _books_index(payload)
     pquotes = _player_quotes(payload)
     sprm = _prm(payload, "sog")
+    pprm = _prm(payload, "points") if payload.get("points") else None
     cached = _cached_sources(payload)
+    import sources as _src
+    at = _src._ts(payload.get("sources_at"))
+    dk_at = ((payload.get("sources") or {}).get("dk") or {}).get("fetched_at")
     out = []
     for r in lines:
         g = games[r["game"]]; mk = r["market"]
@@ -177,9 +201,9 @@ def score_lines(payload, lines) -> list[dict]:
         if mk not in MODELED:
             row.update(verdict="PASS", reason=f"no model for {row['label'].lower()}", side=None, p=None)
             out.append(row); continue
-        confirmed = True
+        confirmed, sd, push_mean = True, None, None
         if mk == "saves":
-            proj, po, confirmed = _saves_p(payload, r["player_id"], r["team"], g, r["line"])
+            proj, po, confirmed, sd = _saves_p(payload, r["player_id"], r["team"], g, r["line"])
         else:
             pl = sk.get(r["player_id"])
             if pl is None:
@@ -209,6 +233,7 @@ def score_lines(payload, lines) -> list[dict]:
             line = float(r["line"])
             if mu_mkt is not None:
                 mu_b = (1 - pricing.SOG_MEAN_W) * proj + pricing.SOG_MEAN_W * mu_mkt
+                push_mean = mu_b
                 pb = sog.p_over(mu_b, line, sog.size_for(mu_b, sprm, pos))
                 pk = mkt if mkt is not None else sog.p_over(mu_mkt, line, sog.size_for(mu_mkt, sprm, pos))
                 mkt_src = mkt_src if mkt is not None else f"{msrc} (other line)"
@@ -223,12 +248,14 @@ def score_lines(payload, lines) -> list[dict]:
         v["p_model_side"] = v.pop("p_model")
         # a line or a market price reused from an earlier build (this build's pull failed) is never a TAKE: paired
         # with tonight's other numbers it can show an edge that no longer exists
-        stale_src = _cached_reason(r, cached, pk is not None)
+        stale_src = _cached_reason(r, cached, pk is not None, at, dk_at)
         if stale_src and (str(v.get("verdict", "")).startswith("TAKE") or v.get("tier") == "Near miss"):
             v.update(verdict="PASS", tier="", reason=stale_src)      # a reused line is not a near miss either
         # probabilities ship at full precision: the page re-decides every row from them (finishRow), and a value
         # rounded onto a bar (61.996% -> 62.00%) would turn a near miss into a TAKE there but not here
         row.update(proj=round(proj, 3), p_raw=po, p_model=pm, p_mkt=pk, p_blend=pb, w=pricing.blend_w(cal),
+                   p_push=round(push_p(mk, r["line"], proj if push_mean is None else push_mean, sprm if mk == "sog" else pprm,
+                                       (sk.get(r["player_id"]) or {}).get("pos"), sd), 6),
                    dk_over=over_p, dk_under=under_p, confirmed=confirmed,
                    mkt_src=mkt_src if pk is not None else None, mu_mkt=mu_mkt, mu_src=msrc if mu_mkt is not None else None,
                    mean_blend=mk == "sog" and pricing.SOG_MEAN_W > 0, cached=bool(stale_src), **v)
@@ -241,16 +268,26 @@ def _cached_sources(payload) -> set:
     return {k for k, v in (payload.get("sources") or {}).items() if (v or {}).get("status") in ("fallback", "error")}
 
 
-def _cached_reason(r, cached: set, priced: bool) -> str | None:
-    """Why a row's numbers are not this build's, or None: its own line came from a reused board or an earlier pull
-    (`reused`), or the market price it leans on did (DraftKings and the other books arrive in one Odds API pull)."""
+def recent_enough(fetched_at, at) -> bool:
+    """A line or price pulled within sources.STALE_MIN minutes of this build: as current as anything on a page that
+    is rebuilt every 15 minutes. One missed pull must not wipe every call off the board (it did: a single empty
+    PrizePicks response dropped all 19 leans for a build on 2026-11-14, and they came back on the next)."""
+    import sources
+    a = sources.age_min(fetched_at, at) if at is not None else None
+    return a is not None and -1 <= a <= sources.STALE_MIN
+
+
+def _cached_reason(r, cached: set, priced: bool, at=None, dk_at=None) -> str | None:
+    """Why a row's numbers are too old to act on, or None: its own line came from a reused board or an earlier pull
+    (`reused`), or the market price it leans on did (DraftKings and the other books arrive in one Odds API pull),
+    and that pull is older than the stale window (recent_enough)."""
     import sources
     src = sources.SOURCE_KEY.get(r.get("source"), "")
-    if src in cached:
+    if src in cached and not recent_enough(r.get("fetched_at"), at):
         return f"cached {r.get('source')} line (this build's pull failed): not a play"
-    if r.get("reused"):       # pick6.merge_day: an earlier pull's line the page did not show this build
+    if r.get("reused") and not recent_enough(r.get("fetched_at"), at):       # pick6.merge_day: an earlier pull's line
         return f"cached {r.get('source')} line (from an earlier pull today): not a play"
-    if priced and "dk" in cached:
+    if priced and "dk" in cached and not recent_enough(dk_at, at):
         return "cached market price (this build's odds pull failed): not a play"
     return None
 
@@ -266,7 +303,7 @@ def legacy_choose(rows) -> list[dict]:
         for j, r in enumerate(rs):
             r["primary"] = i == j if i is not None else j == _main_index(rs)
             if i is not None and j != i and str(r.get("verdict", "")).startswith("TAKE"):
-                r.update(verdict="PASS", reason=f"alt line (best is {rs[i]['line']:g} {rs[i]['side'].lower()})", tier="")
+                r.update(verdict="PASS", reason=f"alt line (best is {rs[i]['line']:g} {'more' if rs[i]['side'] == 'OVER' else 'less'})", tier="")
     # no player ever shows two TAKEs: across markets keep both, they are different props; within a
     # market best_line already left one.
     return rows
@@ -470,7 +507,24 @@ def side_offer(r, side):
             return None
         o = {"be": pricing.dfs_break_even(m), "mult": m, "price": None}
     o["full"] = o["be"] <= pricing.dfs_break_even(pricing.MIN_MULT) + 1e-9
+    o["promo"] = promo_on(r, side)
     return o
+
+
+def promo_on(r, side) -> str | None:
+    """The name of the Pick6 promo this side of the line is ("Stat Slice", "Power Up", ...), or None: its multiplier is
+    the promo card's, not the ordinary card's (pick6.merge_promo). An entry can hold only one promo pick."""
+    return r.get("promo") if r.get("promo") and ("O" if side == "OVER" else "U") in str(r.get("promo_sides") or "") else None
+
+
+def play_grade(r) -> bool:
+    """A TAKE, or a line that met every bar of one and stands down only because the player's better line was kept
+    (the "alt line" of select_sog / legacy_choose). On one app's own lines that line is the play."""
+    if _is_take(r):
+        return True
+    if not str(r.get("reason") or "").startswith("alt line"):
+        return False
+    return r.get("market") != "sog" or r.get("sog_tier") in ("Lock", "Strong")
 
 
 def pick_options(rs) -> list[dict]:
@@ -503,7 +557,10 @@ def lean_tier(o) -> str:
     if not o["full"] or r.get("cached"):
         return ""
     pk = r.get("p_mkt")
-    if not pricing.lean(r["market"], side, o["p"], None if pk is None else (pk if side == "OVER" else 1 - pk), r["line"]):
+    pk_side = None if pk is None else (pk if side == "OVER" else 1 - pk)
+    # a boosted promo side is judged on what it is worth (chance x multiplier); every other side on its chance
+    boosted = bool(o.get("promo")) and pricing.promo_lean(r["market"], o["p"], pk_side, o.get("mult"))
+    if not boosted and not pricing.lean(r["market"], side, o["p"], pk_side, r["line"]):
         return ""
     if r["market"] == "sog" and (r.get("role_change") or r.get("team_mismatch")):
         return "check"
@@ -521,6 +578,11 @@ def pick_for(rs) -> dict | None:
     if not opts:
         return None
     take = next((r for r in rs if _is_take(r) and r.get("source") in APPS), None)
+    if take is None:
+        # his kept line is on another app (the caller passed one app's lines): the best line here that met every
+        # bar of a play is this app's play
+        alts = [o for o in opts if o["full"] and not o["row"].get("cached") and play_grade(o["row"]) and o["side"] == o["row"].get("side")]
+        take = min(alts, key=pick_key)["row"] if alts else None
     if take is not None:
         o = next((o for o in opts if o["row"] is take and o["side"] == take.get("side")), None)
         if o is not None:
@@ -567,7 +629,7 @@ def picks(rows) -> list[dict]:
         if o is None:
             continue
         r = o["row"]
-        apps = [{"app": r["source"], "mult": o["mult"], "price": o["price"], **_old_app(r)}]
+        apps = [{"app": r["source"], "mult": o["mult"], "price": o["price"], **_old_app(r), **({"promo": o["promo"]} if o.get("promo") else {})}]
         for x in rs:
             if x is r or x.get("source") not in APPS or x.get("p_blend") is None \
                     or float(x["line"]) != float(r["line"]) or any(a["app"] == x["source"] for a in apps):
@@ -577,9 +639,10 @@ def picks(rows) -> list[dict]:
                 continue
             ox = side_offer(x, o["side"])
             if ox is not None and ox["full"]:
-                apps.append({"app": x["source"], "mult": ox["mult"], "price": ox["price"], **_old_app(x)})
+                apps.append({"app": x["source"], "mult": ox["mult"], "price": ox["price"], **_old_app(x), **({"promo": ox["promo"]} if ox.get("promo") else {})})
         apps[1:] = sorted(apps[1:], key=lambda a: (bool(a.get("old")), SRC_PREF.get(a["app"], 3)))
-        r.update(pick=True, pick_side=o["side"], pick_p=o["p"], pick_tier=o["tier"], pick_apps=apps, lean=o["tier"] == "lean")
+        r.update(pick=True, pick_side=o["side"], pick_p=o["p"], pick_tier=o["tier"], pick_apps=apps, lean=o["tier"] == "lean",
+                 pick_promo=o.get("promo"))
         out.append(r)
     out.sort(key=lambda r: (PICK_RANK.get(r["pick_tier"], 9), -r["pick_p"], str(r.get("player_id") or r["name"]), r["market"]))
     return out
@@ -603,7 +666,74 @@ PLAY_KEYS = ("name", "player_id", "team", "market", "label", "line", "side", "ve
 
 
 PICK_KEYS = ("name", "player_id", "team", "opp", "market", "label", "line", "game", "date", "start", "source", "proj",
-             "pick_side", "pick_p", "pick_tier", "pick_apps", "p_mkt", "verdict", "tier", "role_change", "fetched_at")
+             "pick_side", "pick_p", "pick_tier", "pick_apps", "pick_promo", "promo_from", "p_mkt", "p_push", "verdict", "tier",
+             "role_change", "fetched_at")
+
+
+# ---------- slips: one app's legs, and the entries worth the most (slips.py; template.html slipLegs mirrors it) ----------
+def slip_legs(rows, app) -> list[dict]:
+    """The legs one app offers tonight that are worth putting in an entry: for each player, market and game, his best
+    bet on THAT app's own lines (pick_for), kept when it is a play or a lean at full pay on a line this build pulled
+    itself. A "check" (his spot is in doubt) is left out. Each leg carries what the entry maths needs: the side, its
+    chance (given no push), the push chance, the multiplier, the promo it uses (if any) and who and where."""
+    groups = {}
+    for r in rows:
+        if r.get("source") == app and r.get("p_blend") is not None:
+            groups.setdefault((r.get("player_id") or r["name"], r["market"], r["game"]), []).append(r)
+    out = []
+    for rs in groups.values():
+        o = pick_for(rs)
+        if o is None or o["tier"] not in ("play", "lean") or not o["full"]:
+            continue
+        r = o["row"]
+        if r.get("cached") or r.get("fallback") or r.get("stale"):
+            continue
+        out.append(_leg(o, o["tier"], app))
+    # An entry needs two picks, and at most one of them a promo card. When an app has a leg worth playing but not
+    # two that can share an entry (Pick6 most nights: its only 1x-plus edges are promo cards), add the best partners
+    # it does offer, marked "fill": no edge of their own, there so the entry's real worth can be shown.
+    if out and sum(1 for l in out if not l["promo"]) < 2:
+        have = {l["id"] for l in out}
+        fill = []
+        for key, rs in groups.items():
+            lid = f"{key[0]}|{key[1]}|{key[2]}"
+            if lid in have or key[1] not in ("sog", "points"):
+                continue
+            opts = [o for o in pick_options(rs) if o["mult"] and o["p"] >= 0.5 - 1e-9 and not o.get("promo")
+                    and not (o["row"].get("cached") or o["row"].get("fallback") or o["row"].get("stale")
+                             or o["row"].get("role_change") or o["row"].get("team_mismatch"))]
+            if not opts:
+                continue
+            o = max(opts, key=lambda o: (o["p"] * o["mult"], o["p"], -float(o["row"]["line"]), o["side"]))
+            if o["p"] * o["mult"] >= slips.FILL_MIN_VALUE - 1e-9:
+                fill.append(o)
+        fill.sort(key=lambda o: (-o["p"] * o["mult"], -o["p"], str(o["row"].get("player_id") or o["row"]["name"]), o["row"]["market"]))
+        for o in fill[:slips.FILLERS]:
+            out.append(_leg(o, "fill", app))
+    out.sort(key=lambda l: (-l["p"], l["id"]))
+    return out
+
+
+def _leg(o, tier, app) -> dict:
+    r = o["row"]
+    pm = r.get("p_model")
+    return {"id": f"{r.get('player_id') or r['name']}|{r['market']}|{r['game']}", "name": r["name"], "player_id": r.get("player_id"),
+            "team": r.get("team"), "opp": r.get("opp"), "game": r["game"], "start": r.get("start"), "market": r["market"],
+            "label": r.get("label"), "line": float(r["line"]), "side": o["side"], "p": o["p"],
+            "p_model": None if pm is None else (pm if o["side"] == "OVER" else 1 - pm),
+            "push": float(r.get("p_push") or 0.0), "mult": float(o["mult"] or 1.0), "promo": o.get("promo"),
+            "proj": r.get("proj"), "tier": tier, "app": app}
+
+
+def build_slips(rows, cfg: dict | None = None, tables: dict | None = None) -> dict:
+    """{app: {"legs": [...], "top": the best entries, "by_size": the best of each size, "searched", ...}} for the
+    apps that have at least two legs."""
+    out = {}
+    for app in APPS:
+        legs = slip_legs(rows, app)
+        best = slips.best_slips(legs, app, tables, cfg) if len(legs) >= 2 else {"top": [], "by_size": {}, "searched": 0, "n_legs": len(legs)}
+        out[app] = {"legs": legs, **best}
+    return out
 
 
 def build(payload, pick6_rows, now=None, review=None) -> dict:
@@ -624,8 +754,15 @@ def build(payload, pick6_rows, now=None, review=None) -> dict:
     ambiguous = [{"name": r.get("name"), "team": r.get("team"), "market": r.get("market"), "line": r.get("line"),
                   "reason": r.get("reason")} for r in (review or [])]
     pick = lambda xs: [{k: r.get(k) for k in PLAY_KEYS} for x in [xs] for r in x]
+    try:
+        cfg, tables = slips.run_cfg(payload.get("slips"))
+        slip_out = build_slips(rows, cfg, tables)
+    except Exception as e:       # the entries are an extra: never let them cost the board
+        import traceback
+        traceback.print_exc()
+        slip_out = {"error": str(e)}
     return {"rows": rows, "plays": pick(plays), "near_miss": pick(sel["near"]),
-            "review": pick(sel["review"]) + ambiguous,
+            "review": pick(sel["review"]) + ambiguous, "slips": slip_out,
             "picks": [{k: r.get(k) for k in PICK_KEYS} for r in pk if r["pick_tier"]],
             "counts": {"lines": len(rows), "modeled": len(modeled), "with_p": len(with_p),
                        "match_rate": round(len(with_p) / len(modeled), 4) if modeled else None,

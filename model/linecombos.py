@@ -31,7 +31,9 @@ DEF = {"d1": 1, "d2": 2, "d3": 3}
 
 status = "not run"
 CONFIRM_H = 6.0       # a role change moves TOI only if the combination was updated this recently
-TOI_CAP = 0.15        # ... and by at most this fraction of the player's expected TOI
+TOI_CAP = 0.05        # ... and by at most this fraction of the player's expected TOI. Was 0.15: on the 83 adjusted
+                      # player-games of Nov 8-14 only ~30% of the move showed up in the ice time (promoted: +0.6 of
+                      # a projected +1.8 min; demoted: -0.7 of -2.5), and shots error was worse with it than without
 UPDATED_KEYS = ("updatedAt", "lastUpdated", "updated_at", "modifiedAt", "lastModified", "publishedAt", "dateModified")
 
 

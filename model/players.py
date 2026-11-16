@@ -127,6 +127,15 @@ class Rosters:
                     if "".join(tk[-k:]) in keys and first_ok(" ".join(tk[:-k]), p.get("first", "")):
                         out.append(dict(p, team=team_code(t)))
                         break
+        if len(out) > 1:
+            # one player found on two teams (his live roster, and the team he last dressed for: add_recent) is one
+            # candidate, on the roster's team
+            seen, uniq = set(), []
+            for p in sorted(out, key=lambda p: bool(p.get("recent"))):
+                if p["id"] not in seen:
+                    seen.add(p["id"])
+                    uniq.append(p)
+            out = uniq
         if len(out) > 1 and pos_group(pos):
             narrowed = [p for p in out if pos_group(p.get("pos")) == pos_group(pos)]
             out = narrowed or out
@@ -219,6 +228,37 @@ def fetch(teams, box_fallback: dict | None = None, timeout: int = 30) -> Rosters
     status = f"{live} live, {len(teams_out) - live} fallback" if teams_out else "unavailable"
     print(f"  [rosters] {status}")
     return Rosters(teams_out, source)
+
+
+def add_recent(R: Rosters, recent: dict) -> int:
+    """Players who dressed for a team in its recent games but are not on its live roster: the NHL roster feed lags
+    call-ups and trades (on 2026-11-15 P. Tomasino had played Ottawa's last three games and was on no roster, so
+    every one of his lines went unmatched for days). Each is added to that team for name matching, from the box
+    score (an initial and a surname), unless a rostered teammate would answer to the same name: the roster wins.
+    A player the feed lists on another team (a trade the feed has not caught up with, or one it caught before his
+    first game there) stays on that roster as well: the line's own team decides which entry answers, and a search
+    of both teams finds him once, on the roster's (Rosters.candidates). Returns how many were added."""
+    global status
+    n = 0
+    for t, ps in (recent or {}).items():
+        t = team_code(t)
+        if t not in R.teams:
+            continue
+        on_team = {q["id"] for q in R.teams[t]}
+        for p in ps:
+            if p["id"] in on_team:
+                continue
+            given = fold(p.get("first", "")).replace(" ", "")
+            if any(p["_keys"] & (q.get("_keys") or last_keys(q["last"])) and first_ok(given, q.get("first", "")) for q in R.teams[t]):
+                continue
+            R.teams[t].append(dict(p, recent=True))
+            R.by_id.setdefault(p["id"], dict(p, team=t))
+            on_team.add(p["id"])
+            n += 1
+    if n:
+        status = f"{status} (+{n} from recent box scores)"
+        print(f"  [rosters] added {n} players who dressed recently and are not on that team's live roster")
+    return n
 
 
 def match_rows(rows: list[dict], R: Rosters, team_key="team", game_key="teams", pos_key="pos") -> dict:

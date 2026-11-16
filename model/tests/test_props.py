@@ -60,9 +60,10 @@ class LineCombos(unittest.TestCase):
         fresh, stale = "2026-11-03T19:30:00Z", "2026-11-03T12:00:00Z"
         slots = {"F1": 19.0, "F4": 10.0}
         self.assertEqual(linecombos.role_toi(17.0, "F1", "F1", slots, fresh, now), (17.0, False, False))
-        # confirmed within 6 hours: halfway to the slot (13.5) but capped at -15% (14.45)
+        # confirmed within 6 hours: halfway to the slot (13.5) but capped at TOI_CAP below his own number
         toi, changed, adj = linecombos.role_toi(17.0, "F4", "F2", slots, fresh, now)
-        self.assertTrue(changed and adj); self.assertAlmostEqual(toi, 17.0 * 0.85)
+        self.assertTrue(changed and adj); self.assertAlmostEqual(toi, 17.0 * (1 - linecombos.TOI_CAP))
+        self.assertEqual(linecombos.TOI_CAP, 0.05)
         # older than 6 hours (or no timestamp): badge only, TOI unchanged, the prop stays
         self.assertEqual(linecombos.role_toi(17.0, "F4", "F2", slots, stale, now), (17.0, True, False))
         self.assertEqual(linecombos.role_toi(17.0, "F4", "F2", slots, None, now), (17.0, True, False))

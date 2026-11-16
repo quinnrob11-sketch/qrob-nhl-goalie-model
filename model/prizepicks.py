@@ -198,12 +198,16 @@ def from_odds(odds_rows, slate: list[dict], now: dt.datetime | None = None) -> l
 
 
 def props(slate: list[dict], R, now: dt.datetime | None = None, odds_rows=None, odds_status: str | None = None,
-          odds_at: str | None = None) -> list[dict]:
+          odds_at: str | None = None, odds_idle: bool = False) -> list[dict]:
     """This build's PrizePicks lines for the board.
     1. PrizePicks' own API (fetch() already pulled it), when PrizePicks lets the build through.
     2. Otherwise the PrizePicks lines The Odds API carries (odds.pp_rows), with the Odds pull's status and fetch time.
     3. Otherwise the last good board in model/data/pp_cache.json, ORIGINAL fetch time, status "fallback"."""
     global props_status, props_fetched_at
+    if last_js is None and not odds_rows and odds_idle and odds_status == "fresh":
+        # the odds pull had no game to ask about (none starts soon): no lines is the true answer, not a failure
+        props_status, props_fetched_at = "fresh", odds_at
+        return []
     if last_js is None and odds_rows:
         rows = from_odds(odds_rows, slate, now)
         props_status, props_fetched_at = (odds_status or "fresh"), (odds_at or (rows[0]["fetched_at"] if rows else None))

@@ -170,6 +170,8 @@ CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "odds_c
 match_counts: dict = {}
 # every build pulls DraftKings fresh; the cache is the last-known-good pull, used ONLY when this pull fails
 status: str = "not run"       # "fresh" | "fallback" (last good pull reused because this one failed) | "error"
+idle: bool = False            # this pull had nothing to get: no game within WINDOW_H, or no line posted yet (not a failure)
+OPEN_WITHIN_H = 12.0          # an empty pull is "nothing posted yet" only when no game starts within this many hours
 fetched_at: str | None = None  # when the lines in use were really pulled (never the build time of a later build)
 
 
@@ -221,6 +223,12 @@ def fetch(goalies: list[dict], now: dt.datetime | None = None, R=None) -> list[d
         except OSError:
             pass
         return rows
+    if idle:
+        # every game on the list has started or is more than WINDOW_H away, or no book has posted yet for games
+        # still half a day off: there is nothing to pull, which is not a failed pull
+        status, fetched_at, last_error = "fresh", at, None
+        print("  [odds] nothing to pull yet (no game soon, or no lines posted)")
+        return rows
     err = last_error or "no DraftKings lines returned"
     try:
         with open(CACHE) as f:
@@ -251,8 +259,9 @@ _raw_saves: list[dict] = []
 
 
 def _fetch(goalies: list[dict], now: dt.datetime | None = None, R=None) -> list[dict]:
-    global last_error, sog_rows, points_rows, ml_rows, _raw_saves, pp_rows, book_rows, books_used
+    global last_error, sog_rows, points_rows, ml_rows, _raw_saves, pp_rows, book_rows, books_used, idle
     last_error = None
+    idle = False
     sog_rows = []
     points_rows = []
     pp_rows = []
@@ -274,12 +283,15 @@ def _fetch(goalies: list[dict], now: dt.datetime | None = None, R=None) -> list[
         return []
     ml_rows = fetch_moneylines(key)
     rows = []
+    n_window, first_start = 0, None
     for ev in events:
         start = dt.datetime.fromisoformat(ev["commence_time"].replace("Z", "+00:00"))
         # games that have started are skipped: their props are off the board, and pulling them cost credits and
         # stored in-game prices that later read as pre-game ones
         if not (now < start <= now + dt.timedelta(hours=WINDOW_H)):
             continue
+        n_window += 1
+        first_start = start if first_start is None else min(first_start, start)
         try:
             # DraftKings, PrizePicks and the other books in one request: up to 10 named bookmakers bill as one region.
             # If the API rejects a bookmaker key, fall back to DraftKings + PrizePicks for the rest of the build.
@@ -317,6 +329,12 @@ def _fetch(goalies: list[dict], now: dt.datetime | None = None, R=None) -> list[
                     r.update(start=ev["commence_time"], market=MARKET_OF[mk], book=BOOK_NAME[b], source=BOOK_NAME[b])
                     book_rows.append(r)
     _raw_saves = [dict(r) for r in rows]
+    # Nothing to pull is not a failed pull: the events list came back and holds no game in the window, or every
+    # request worked and no book has posted a line yet for games that are all still more than OPEN_WITHIN_H away
+    # (lines go up through the morning of game day; overnight this used to read "fallback" for hours).
+    none_yet = not (rows or sog_rows or points_rows or pp_rows or book_rows) and first_start is not None \
+        and first_start > now + dt.timedelta(hours=OPEN_WITHIN_H)
+    idle = last_error is None and (n_window == 0 or none_yet)
     if R is not None:
         _skater_ids(R)
     rows = match(rows, goalies, R)

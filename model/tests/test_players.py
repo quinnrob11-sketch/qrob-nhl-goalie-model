@@ -104,5 +104,49 @@ class TestMatching(unittest.TestCase):
         self.assertEqual(rows[1]["match"], "UNMATCHED")
 
 
+class RecentBoxScores(unittest.TestCase):
+    """The roster feed lags call-ups and trades: a player who dressed in the last days is matched on that team."""
+
+    def setUp(self):
+        self.status = players.status
+        self.R = players.Rosters({"OTT": players.parse_roster(_api(fwd=[(8482116, "Tim", "Stützle")])),
+                                  "TOR": players.parse_roster(_api(fwd=[(8478483, "Mitchell", "Marner")]))})
+
+    def tearDown(self):
+        players.status = self.status
+
+    def box(self, rows):
+        import pandas as pd
+        return players.from_box(pd.DataFrame([{"player_id": pid, "player_name": name, "team_abbrev": team, "position": pos,
+                                               "game_date": "2026-11-14", "season": 2027} for pid, name, team, pos in rows]))
+
+    def test_a_call_up_is_matched(self):
+        self.assertEqual(self.R.match("Philip Tomasino", "OTT")["status"], "UNMATCHED")
+        n = players.add_recent(self.R, self.box([(8481000, "P. Tomasino", "OTT", "C"), (8482116, "T. Stützle", "OTT", "C"),
+                                                 (8489999, "T. Stutzle", "OTT", "L"), (8470000, "X. Nobody", "ZZZ", "C")]))
+        self.assertEqual(n, 1)                                  # Stützle is rostered; a second "T. Stutzle" would be ambiguous: the roster wins
+        self.assertEqual(self.R.match("Philip Tomasino", "OTT")["player_id"], 8481000)
+        self.assertEqual(self.R.match("P. Tomasino", None, ["OTT", "TOR"])["team"], "OTT")
+        self.assertEqual(self.R.match("Tim Stutzle", "OTT")["player_id"], 8482116)
+        self.assertEqual(self.R.match("Philip Tomasino", "TOR")["status"], "UNMATCHED")     # never on a team he did not dress for
+        self.assertIn("(+1 from recent box scores)", players.status)
+        self.assertEqual(players.add_recent(self.R, self.box([(8481000, "P. Tomasino", "OTT", "C")])), 0)   # already there
+
+    def test_a_trade_the_feed_has_not_caught_up_with(self):
+        # the feed still lists Marner on Toronto; his last game was for Ottawa
+        self.assertEqual(self.R.match("Mitch Marner", "OTT")["status"], "UNMATCHED")
+        self.assertEqual(players.add_recent(self.R, self.box([(8478483, "M. Marner", "OTT", "R")])), 1)
+        self.assertEqual(self.R.match("Mitch Marner", "OTT")["player_id"], 8478483)          # the line's own team decides
+        self.assertEqual(self.R.match("Mitch Marner", "TOR")["player_id"], 8478483)
+        both = self.R.match("M. Marner", None, ["OTT", "TOR"])                              # found once, not "2 players match"
+        self.assertEqual((both["status"], both["player_id"], both["team"]), ("MATCHED", 8478483, "TOR"))
+        self.assertEqual(self.R.by_id[8478483]["team"], "TOR")
+
+    def test_nothing_to_add(self):
+        self.assertEqual(players.add_recent(self.R, {}), 0)
+        self.assertEqual(players.add_recent(self.R, None), 0)
+        self.assertEqual(players.status, self.status)
+
+
 if __name__ == "__main__":
     unittest.main()

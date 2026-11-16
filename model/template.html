@@ -268,6 +268,7 @@ details.x-sec[open]>summary::before{content:"▾"}
 .x-app.short b{color:var(--under)}
 .x-app.old{border-style:dashed;color:var(--text-2)}
 .x-app i{font-style:normal;color:var(--under);font-weight:600}
+.x-app em{font-style:normal;font-weight:700;color:var(--accent-text);letter-spacing:.01em}
 .x-cov{font-size:var(--fs-s);color:var(--text);background:var(--warn-bg);border-radius:8px;padding:var(--sp-2) var(--sp-3);margin:0 0 var(--sp-4);line-height:1.45}
 .x-ctx .x-w{row-gap:3px;align-items:center}
 .x-ctx .x-w>.x-app::before{content:none}
@@ -394,6 +395,41 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
 .x-seg button+button{border-left:1px solid var(--border)}
 .x-seg button.on{background:var(--surface-2);color:var(--text);font-weight:600}
 @media (max-width:760px){ .x-filters{gap:var(--sp-2)} .x-seg button{padding:6px 10px} .x-head h2{font-size:20px} }
+/* ---------- slips: an entry as a card (its legs, how often they all hit, what it is worth) ---------- */
+.s-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--sp-3)}
+.s-grid.one{grid-template-columns:minmax(0,560px)}
+.s-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:12px 14px;border-left:4px solid var(--border);min-width:0}
+.s-card.is-good{border-left-color:var(--over)} .s-card.is-thin{border-left-color:var(--warn)}
+.s-hd{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.s-app{font-weight:700;font-size:var(--fs-m)} .s-kind{color:var(--text-2);font-size:var(--fs-s)}
+.s-ev{margin-left:auto;font-size:var(--fs-l);font-weight:700;line-height:1.1}
+.v-good{color:var(--over)} .v-thin{color:var(--warn)} .v-no{color:var(--muted)}
+.s-legs{list-style:none;margin:0 0 8px;padding:0}
+.s-legs li,.s-pick{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:10px;align-items:baseline;padding:5px 0;border-top:1px solid var(--border)}
+.s-legs li:first-child{border-top:0}
+.s-legs .x-side,.s-pick .x-side{font-size:var(--fs-s);white-space:nowrap}
+.s-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;font-size:var(--fs-s)}
+.s-tm{font-weight:400;color:var(--muted);font-size:var(--fs-xs);margin-left:6px}
+.s-p{font-weight:700;font-variant-numeric:tabular-nums;font-size:var(--fs-s)}
+.s-ft{margin:0;font-size:var(--fs-s);color:var(--text-2);line-height:1.5}
+.s-ft b{color:var(--text)} .s-ft b.v-good{color:var(--over)} .s-ft b.v-thin{color:var(--warn)} .s-ft b.v-no{color:var(--muted)}
+.s-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;border-radius:var(--r-chip);padding:0 7px;line-height:16px;margin-left:4px;border:1px solid currentColor;white-space:nowrap}
+.s-note{font-size:var(--fs-xs);color:var(--muted);margin:6px 0 0;line-height:1.5} .s-note.bad{color:var(--under)} .s-note b{color:var(--text-2)}
+.s-more{margin:var(--sp-2) 0 0;font-size:var(--fs-s)}
+.s-tbl{width:100%;font-size:var(--fs-s);background:var(--surface);border:1px solid var(--border);border-radius:8px;border-collapse:separate;border-spacing:0;overflow:hidden}
+.s-tbl th,.s-tbl td{padding:7px 10px;white-space:nowrap} .s-tbl td.s-names{white-space:normal;color:var(--text-2);min-width:150px}
+.s-tbl tr.best td{background:var(--over-bg)} .s-tbl tr:last-child td{border-bottom:0}
+.s-tbl tr[data-sl-size]{cursor:pointer} .s-tbl .s-names{font-size:var(--fs-xs)} .s-narrow{display:none}
+@media (max-width:760px){ .s-wide{display:none} .s-narrow{display:block} span.s-narrow{display:inline} .s-tbl th,.s-tbl td{padding:7px 8px} .s-tbl td .s-names{white-space:normal;color:var(--muted);font-weight:400;margin-top:2px} }
+.s-own{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sp-4);align-items:start}
+.s-picks{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:2px 12px;max-height:440px;overflow:auto}
+.s-pick{grid-template-columns:auto auto minmax(0,1fr) auto;cursor:pointer;min-height:40px;align-items:center;flex-direction:initial;color:var(--text)}
+.s-pick:first-child{border-top:0} .s-pick.on{background:var(--surface-2);margin:0 -12px;padding:5px 12px}
+.s-pick input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.s-res .s-card+.s-card{margin-top:var(--sp-3)}
+.s-cfg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sp-4);align-items:start}
+.s-cfg h4{margin:12px 0 4px;font-size:var(--fs-s)} .sl-in{width:68px;padding:3px 6px;text-align:right;font-size:16px}
+@media (max-width:760px){ .s-own,.s-cfg{grid-template-columns:minmax(0,1fr)} .s-picks{max-height:320px} .s-nm{white-space:normal;overflow:visible} .s-tm{display:block;margin-left:0;line-height:1.35} .s-legs li{align-items:start} }
 .nw-s{display:none}
 @media (max-width:359px){ .nw-l{display:none} .nw-s{display:inline} .x-seg button{padding:6px 9px} }
 /* the tab row scrolls on phones: a fade on the right says there is more */
@@ -421,6 +457,7 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
 </header>
 <div class="navwrap" id="navWrap"><nav id="tabs">
   <button data-t="proj" class="on">Picks</button>
+  <button data-t="slips">Slips</button>
   <button data-t="lines">All lines</button>
   <button data-t="res">Results</button>
   <button data-t="win">Winners</button>
@@ -444,6 +481,10 @@ details.x-ownd[open]>summary{color:var(--text);font-weight:600}
   <details class="card" id="statusBox"><summary>Data status</summary>
     <div class="statusbar" id="statusBar"></div>
     <div id="feedBanner"></div></details>
+</section>
+
+<section id="slips">
+  <div id="slipsBox"></div>
 </section>
 
 <section id="lines">
@@ -677,7 +718,7 @@ const RULE = Object.assign({margin: 0.02, margin_sog: 0.03, sog_gap: 0.15, sog_g
   alarm_share: 0.75, alarm_min_plays: 2, saves_cap_at: 0.65, saves_cap_to: 0.60, take_p: 0.58, near_miss_p: 0.55,
   lock_p: 0.62, min_mult: 1, saves_edge_over: 2.5, saves_edge_under: 3.0, saves_take_p: 0.58,
   mkt_min: 0.55, near_band: 0.03, sog_take_p: 0.62, sog_lock_p: 0.64, sog_mean_w: 0.5, sog_model_agree: false,
-  priced_takes: false, saves_take_overs: false, points_under_max: 1.0, lean_p: 0.55, lean_mkt_min: 0.52}, D.pricing || {});
+  priced_takes: false, saves_take_overs: false, points_under_max: 1.0, lean_p: 0.55, lean_mkt_min: 0.52, promo_value: 0.58}, D.pricing || {});
 // the TAKE bar, Lock tier and near-miss band per market (pricing.take_p / lock_p / near_p)
 const takeP = mk => mk === "saves" ? RULE.saves_take_p : mk === "sog" ? RULE.sog_take_p : RULE.take_p;
 const lockP = mk => mk === "sog" ? RULE.sog_lock_p : RULE.lock_p;
@@ -1284,7 +1325,15 @@ function scoreSkaterLine(l){
       if (mkt == null){ mkt = nbOver(muM, l.line, prm, pl.pos); msrc = `${src} (other line)`; }
     } else Object.assign(mb, {mean_blend: true, mu_mkt: null, p_blend: po});
   }
-  return {...base, proj, p_raw: po, p_mkt: mkt, mkt_src: mkt != null ? msrc : null, ...mb, ...(l.market === "sog" ? {team_mismatch: !!(l.team && pl.team && l.team !== pl.team), roster_team: pl.team} : {}), role: [pl.line, pl.pp].filter(Boolean).join(" · "), role_change: pl.role_change, role_adjusted: pl.role_adjusted, pos: pl.pos};
+  const pushMean = mb.mu_mkt != null ? (1 - RULE.sog_mean_w) * proj + RULE.sog_mean_w * mb.mu_mkt : proj;
+  return {...base, proj, p_raw: po, p_mkt: mkt, mkt_src: mkt != null ? msrc : null, ...mb, p_push: pushP(l.line, pushMean, prm, pl.pos), ...(l.market === "sog" ? {team_mismatch: !!(l.team && pl.team && l.team !== pl.team), roster_team: pl.team} : {}), role: [pl.line, pl.pp].filter(Boolean).join(" · "), role_change: pl.role_change, role_adjusted: pl.role_adjusted, pos: pl.pos};
+}
+// the chance a shots / points result lands exactly on a whole-number line (a push: the apps void the leg), 0 on a
+// half-point line (props_board.push_p)
+function pushP(line, mean, prm, pos){
+  line = +line; if (line !== Math.floor(line) || mean == null || !prm) return 0;
+  mean = Math.max(+mean, 0.02); const size = sizeFor(mean, prm, pos);
+  return Math.max(0, nbCdf(line, mean, size) - nbCdf(line - 1, mean, size));
 }
 function finishRow(r){
   if (r.p_raw == null && r.p_blend == null) return r;
@@ -1303,10 +1352,15 @@ function finishRow(r){
 // typed and PrizePicks lines this browser pulled itself are fresh
 const CACHED_SRC = new Set(Object.entries(D.sources || {}).filter(([, v]) => v && (v.status === "fallback" || v.status === "error")).map(([k]) => k));
 const SRC_KEY = {"Pick6": "pick6", "DraftKings": "dk", "PrizePicks": "pp"};
+// a line or price pulled within the stale window of this build is as current as the page itself: one missed pull
+// does not wipe the calls (props_board.recent_enough; ages are measured from the build, as there)
+const SRC_AT = Date.parse(D.sources_at || "");
+const recentEnough = at => { const t = Date.parse(at || ""); if (isNaN(t) || isNaN(SRC_AT)) return false;
+  const a = Math.round((SRC_AT - t) / 6e3) / 10; return a >= -1 && a <= STALE_MIN; };
 function cachedReason(r, priced){
-  if (!r.mine && !r.live && CACHED_SRC.has(SRC_KEY[r.source] || "")) return `cached ${r.source} line (this build's pull failed): not a play`;
-  if (!r.mine && !r.live && r.reused) return `cached ${r.source} line (from an earlier pull today): not a play`;
-  if (priced && CACHED_SRC.has("dk")) return "cached market price (this build's odds pull failed): not a play";
+  if (!r.mine && !r.live && CACHED_SRC.has(SRC_KEY[r.source] || "") && !recentEnough(r.fetched_at)) return `cached ${r.source} line (this build's pull failed): not a play`;
+  if (!r.mine && !r.live && r.reused && !recentEnough(r.fetched_at)) return `cached ${r.source} line (from an earlier pull today): not a play`;
+  if (priced && CACHED_SRC.has("dk") && !recentEnough((SRC.dk || {}).fetched_at)) return "cached market price (this build's odds pull failed): not a play";
   return null;
 }
 function demoteCached(v, src, priced){
@@ -1824,7 +1878,7 @@ function noLeanTag(r, v, pk){
   return "";
 }
 // where the pick can be made: one tag per app, with its multiplier when it is not 1x
-const appTags = pk => pk.apps.map(a => `<span class="x-app${a.short ? " short" : ""}${a.old ? " old" : ""}"${a.old ? ` title="Seen ${ageLong(a.age_min)} ago, not on ${esc(a.app)}'s page this build: check the app"` : ""}>${esc(a.app)}${payTx(a) === "1x" ? "" : ` <b>${payTx(a)}</b>`}${a.old ? ` <i>⏱${a.age_min == null ? "?" : ageTx(a.age_min)}</i>` : ""}</span>`).join("");
+const appTags = pk => pk.apps.map(a => `<span class="x-app${a.short ? " short" : ""}${a.old ? " old" : ""}"${a.old ? ` title="Seen ${ageLong(a.age_min)} ago, not on ${esc(a.app)}'s page this build: check the app"` : ""}>${esc(a.app)}${payTx(a) === "1x" ? "" : ` <b>${payTx(a)}</b>`}${a.promo ? ` <em>${esc(a.promo)}</em>` : ""}${a.old ? ` <i>⏱${a.age_min == null ? "?" : ageTx(a.age_min)}</i>` : ""}</span>`).join("");
 // phone: name / the bet + projection / where (the apps) and the game, with the chance on the right. >= 1080px: one grid row.
 // A Picks row shows its player's pick (opt.P / opt.V, from pickItems); any other row shows its own line (dispSide).
 function xRow(r, ctx, opt = {}){
@@ -1931,8 +1985,14 @@ const appOf = r => bookKey(r.source);
 function sideOffer(r, side){
   const o = offered(r, side); if (!o) return null;
   const be = o.kind === "book" ? impliedP(o.price) : dfsBE(o.mult);
-  return {be, mult: o.kind === "dfs" ? o.mult : null, price: o.kind === "book" ? o.price : null, full: be <= dfsBE(RULE.min_mult) + 1e-9, o};
+  return {be, mult: o.kind === "dfs" ? o.mult : null, price: o.kind === "book" ? o.price : null, full: be <= dfsBE(RULE.min_mult) + 1e-9, o, promo: promoOn(r, side)};
 }
+// the Pick6 promo this side of the line is ("Stat Slice", "Power Up"), or null: its multiplier is the promo card's,
+// not the ordinary card's (props_board.promo_on). An entry can hold only one promo pick.
+const promoOn = (r, side) => r.promo && String(r.promo_sides || "").includes(side === "OVER" ? "O" : "U") ? r.promo : null;
+// a TAKE, or a line that met every bar of one and stands down only because the player's better line was kept
+// (props_board.play_grade): on one app's own lines that line is the play
+const playGrade = r => isTake(r) || (String(r.reason || "").startsWith("alt line") && (r.market !== "sog" || r.sog_tier === "Lock" || r.sog_tier === "Strong"));
 // every bet an app offers on one player's lines (props_board.pick_options)
 function pickOptions(rs){
   const out = [];
@@ -1960,9 +2020,15 @@ function pickCmp(a, b){
 // "lean" / "check" / "" (props_board.lean_tier): the side to take when it is not a play
 function leanTier(o){
   const r = o.row, mk = r.market;
-  if (!o.full || (mk !== "sog" && mk !== "points") || r.cached || o.p < RULE.lean_p - 1e-9) return "";
-  if (!hasVal(r.p_mkt) || (o.side === "OVER" ? +r.p_mkt : 1 - r.p_mkt) < RULE.lean_mkt_min - 1e-9) return "";
-  if (mk === "points" && o.side === "UNDER" && +r.line >= RULE.points_under_max - 1e-9) return "";
+  if (!o.full || (mk !== "sog" && mk !== "points") || r.cached) return "";
+  const pk = hasVal(r.p_mkt) ? (o.side === "OVER" ? +r.p_mkt : 1 - r.p_mkt) : null;
+  // a boosted promo side is judged on what it is worth, chance x multiplier (pricing.promo_lean); every other side on its chance
+  const boosted = !!o.promo && o.mult != null && +o.mult > 1 + 1e-9 && o.p >= 0.5 - 1e-9 && pk != null &&
+    o.p * o.mult >= RULE.promo_value - 1e-9 && pk * o.mult >= RULE.promo_value - 1e-9;
+  if (!boosted){
+    if (o.p < RULE.lean_p - 1e-9 || pk == null || pk < RULE.lean_mkt_min - 1e-9) return "";
+    if (mk === "points" && o.side === "UNDER" && +r.line >= RULE.points_under_max - 1e-9) return "";
+  }
   if (mk === "sog" && (r.role_change || r.team_mismatch)) return "check";
   return "lean";
 }
@@ -1971,7 +2037,11 @@ function leanTier(o){
 function pickFor(rs){
   const opts = pickOptions(rs); if (!opts.length) return null;
   const best = xs => xs.reduce((m, o) => pickCmp(o, m) < 0 ? o : m);
-  const take = rs.find(r => isTake(r) && isApp(r));
+  let take = rs.find(r => isTake(r) && isApp(r));
+  if (!take){   // his kept line is on another app (one app's lines were passed): the best line here that met every bar
+    const alts = opts.filter(o => o.full && !o.row.cached && playGrade(o.row) && o.side === o.row.side);
+    if (alts.length) take = best(alts).row;
+  }
   if (take){ const o = opts.find(o => o.row === take && o.side === take.side); if (o) return {...o, tier: "play"}; }
   const full = opts.filter(o => o.full), good = full.filter(o => leanTier(o));
   if (good.length){ const o = best(good); return {...o, tier: leanTier(o)}; }
@@ -1985,13 +2055,13 @@ function pickFor(rs){
 // this build did not pull itself is marked old with its age, and dropped after OLD_APP_MAX_MIN
 function pickApps(rs, o){
   const oldOf = x => reusedLine(x) ? {old: true, age_min: rowAge(x)} : {};
-  const r = o.row, apps = [{app: bookName(r.source), key: appOf(r), mult: o.mult, price: o.price, short: !o.full, ...oldOf(r)}];
+  const r = o.row, apps = [{app: bookName(r.source), key: appOf(r), mult: o.mult, price: o.price, short: !o.full, ...oldOf(r), ...(o.promo ? {promo: o.promo} : {})}];
   for (const x of rs){
     if (x === r || !isApp(x) || !hasVal(x.p_blend) || +x.line !== +r.line || apps.some(a => a.key === appOf(x))) continue;
     const old = oldOf(x);
     if (old.old && !(old.age_min != null && old.age_min <= OLD_APP_MAX_MIN)) continue;
     const ox = sideOffer(x, o.side);
-    if (ox && ox.full) apps.push({app: bookName(x.source), key: appOf(x), mult: ox.mult, price: ox.price, ...old});
+    if (ox && ox.full) apps.push({app: bookName(x.source), key: appOf(x), mult: ox.mult, price: ox.price, ...old, ...(ox.promo ? {promo: ox.promo} : {})});
   }
   return [apps[0], ...apps.slice(1).sort((a, b) => (a.old ? 1 : 0) - (b.old ? 1 : 0) || (SRC_PREF[a.app] ?? 3) - (SRC_PREF[b.app] ?? 3))];
 }
@@ -2023,8 +2093,12 @@ function pickWhy(r, v, pk){
   const bet = `<b>${sideWord(v.side)} ${lineTx(r.line)} ${lab}</b>`;
   const where = pk.apps.map(a => esc(a.app) + (payTx(a) === "1x" ? "" : " at " + payTx(a)) + (a.old ? ` (seen ${ageLong(a.age_min)} ago: check the app)` : "")).join(" or ");
   const push = r.market !== "saves" && +r.line === Math.round(+r.line) ? ` Exactly ${lineTx(r.line)} is a push.` : "";
-  if (pk.tier === "play") return `Take ${bet} on ${where}.${push ? `<span class="muted">${push}</span>` : ""}`;
-  if (pk.tier === "lean") return `Lean ${bet} on ${where}.<span class="muted"> ${chanceTx(v.p, r.market)}: the likelier side, but short of a play (${pc0(takeP(r.market))}+).${push}</span>`;
+  // a Pick6 promo card: what it is, and that an entry can hold only one
+  const pa = pk.apps.find(a => a.promo), reg = pa ? (v.side === "OVER" ? r.mo_reg : r.mu_reg) : null;
+  const promo = !pa ? "" : ` <span class="muted">This is Pick6's <b>${esc(pa.promo)}</b> card${r.promo_from != null ? `: his line cut from ${lineTx(r.promo_from)} to ${lineTx(r.line)}` : `: ${payTx(pa)} instead of the usual ${hasVal(reg) && +reg > 0 ? (+reg) + "x" : "price"}`}${r.promo_from != null && hasVal(reg) && +reg > 0 ? ` (the ordinary ${lineTx(r.line)} pays ${+reg}x)` : ""}. Pick6 allows one promo pick per entry and may cap what you can enter with it.</span>`;
+  if (pk.tier === "play") return `Take ${bet} on ${where}.${push ? `<span class="muted">${push}</span>` : ""}${promo}`;
+  if (pk.tier === "lean" && pa && pa.mult != null && +pa.mult > 1 && v.p < RULE.lean_p - 1e-9) return `Lean ${bet} on ${where}.<span class="muted"> ${chanceTx(v.p, r.market)} is near a coin flip, but at ${payTx(pa)} the likelier side is worth more than an ordinary lean.${push}</span>${promo}`;
+  if (pk.tier === "lean") return `Lean ${bet} on ${where}.<span class="muted"> ${chanceTx(v.p, r.market)}: the likelier side, but short of a play (${pc0(takeP(r.market))}+).${push}</span>${promo}`;
   if (pk.tier === "check") return `Check his spot first.<span class="muted"> ${r.role_change ? `He is listed on ${esc(roleTx(r.role_change).replace(/^[↑↓] /, ""))}, which the projection may not reflect yet` : `The app lists him with ${esc(r.team)}, the roster with ${esc(r.roster_team || "another team")}`}. If that holds, lean ${sideWord(v.side)} ${lineTx(r.line)} on ${where} (${chanceTx(v.p, r.market)}).</span>`;
   const pkm = hasVal(r.p_mkt) ? (v.side === "OVER" ? +r.p_mkt : 1 - r.p_mkt) : null;
   if (!pk.full) return `No edge${m(`${sideCap(v.side)} is the likelier side (${pc0(v.p)}), but ${esc(pk.apps[0].app)} pays only ${payTx(pk.apps[0])} for it`)}`;
@@ -2111,6 +2185,7 @@ function renderPicks(pb){
     body = (plays.length ? sec("Plays", plays.length, xList(plays, "pk", opt), `${bar} · the strongest`)
         : qOn ? "" : sec("Plays", 0, `<p class="x-none">${none}</p>`, items.length ? `${bar} · the strongest` : "")) +
       (leans.length ? sec("Leans", leans.length, xList(leans, "pk", opt), `${pc0(RULE.lean_p)}+ · the likelier side, not a play`) : "") +
+      (fOn || qOn ? "" : slipTeaser(pb)) +
       (rest.length ? fold("pkRest", "No edge", rest.length, `<div class="x-tools">${sortSel}</div>` + xList(cutN(rest, PKX.all), "pk", {...opt, nt: true}, more(rest, "all")),
         "coin flips and short payouts", qOn || !!game) : "") +
       (bk.length ? fold("pkBooks", "Sportsbook only", bk.length, xList(cutN(bk, PKX.allb), "pk", {alts, nt: true}, more(bk, "allb")), "not on Pick6 or PrizePicks", qOn && !shown.length) : "") +
@@ -2122,12 +2197,14 @@ function renderPicks(pb){
     (P6S.reused ? "Its other lines here are from earlier today (marked ⏱): check the app before betting them." : "Most of its shots lines are missing here: check the app, or tap a player and enter his line.") + `</p>`;
   const recOf = k => ["sog", "points", "saves"].reduce((a, m) => { const x = ((((D.legs || {}).by_market || {})[m]) || {})[k]; if (x && x.n){ a.hit += x.hit; a.miss += x.miss; } return a; }, {hit: 0, miss: 0});
   const recTx = (lab, x) => { const n = x.hit + x.miss; return n ? `${lab} <b>${x.hit}–${x.miss}</b> (${pc0(x.hit / n)})` : `${lab}: none yet`; };
+  // the records count every play and lean the page ever showed, once each (tracker.shown_legs), when the build has them
+  const SHOWN_REC = Object.values((D.legs || {}).by_market || {}).some(x => x && x.leans_shown);
   box.innerHTML = `<div class="x-head"><h2>${!day || day === TODAY_CT ? "Tonight's picks" : "Picks"}</h2>${dateSel}</div>` +
     (items.length || books.length ? `<div class="x-filters">${apps0.length > 1 ? seg("app", app, [["", '<span class="lbl-l">Both apps</span><span class="lbl-s">Both</span>'], ...apps0.map(a => [a, a])], "App") : ""}${mkSel}` +
       `${fOn && (shown.length || bk.length) ? `<button type="button" class="x-link js-px-clear">Clear</button>` : ""}</div>` +
       (Object.keys(byGame).length > 1 ? `<div class="x-chips" role="group" aria-label="Game">${chip("", "All games", items.filter(inMk).length)}${games.filter(g => byGame[g.id])
         .map(g => chip(String(g.id), `${g.away} @ ${g.home} ${ctStart(g).replace(" CT", "")}`, byGame[g.id])).join("")}</div>` : "") : "") + p6Note + body +
-    `<p class="x-foot">Graded${(D.legs || {}).rules_from ? ` since ${dayLabel(D.legs.rules_from).replace(/^\w+, /, "")}` : " so far"}: ${recTx("plays", recOf((D.legs || {}).rules_from ? "takes_now" : "takes"))} · ${recTx("leans", recOf("leans"))}. Times are Central.<br>` +
+    `<p class="x-foot">Every call shown${(D.legs || {}).rules_from ? ` since ${dayLabel(D.legs.rules_from).replace(/^\w+, /, "")}` : " so far"}, graded: ${recTx("plays", recOf(SHOWN_REC ? "plays_shown" : (D.legs || {}).rules_from ? "takes_now" : "takes"))} · ${recTx("leans", recOf(SHOWN_REC ? "leans_shown" : "leans"))}. Times are Central.<br>` +
     `<button type="button" class="x-link js-rules">How picks work</button> · Line not here? <button type="button" class="x-link js-paste">Add your own</button></p>`;
   // keep the game chips where they were scrolled (on first render, bring the selected one into view) and give focus back;
   // the scroll is restored in the next frame so a re-render never forces an extra layout of the page
@@ -2161,6 +2238,402 @@ document.addEventListener("change", e => {
   else if (id === "pxDate"){ $("#dateF").value = e.target.value; CHIP_SL = 0; renderSlate(); }
   else return;
   const el = document.getElementById(id); if (el) el.focus({preventScroll: true});
+});
+// ---------- slips: entries of 2-6 legs (mirrors model/slips.py: keep the two in step) ----------
+// The board grades one leg at a time; the apps pay on the whole entry. For a set of one app's legs: how likely they
+// are to hit together (same-game legs move together), what the entry pays (the level's multiple x each leg's
+// multiplier x the app's own same-game cut, capped), what it is worth, and the same with every chance trimmed.
+// A calculator only: nothing here places or submits anything.
+const SLIP_DEF = {rho: {sog_opp_g: 0.23, sog_own_g: -0.04, tm_sog: 0.03, opp_sog: -0.01, tm_pts: 0.23, opp_pts: -0.01, tm_sog_pts: 0.02, opp_sog_pts: 0.02, pts_opp_g: -0.06, pts_own_g: 0.03, g_g: -0.10},
+  rho_top: {sog_opp_g: 0.32, tm_pts: 0.34}, top_sog: 2.5, top_pts: 0.8,
+  p6_factor: [["sog_opp_g", "same", 0.82], ["tm_sog", "same", 0.95], ["tm_sog_pts", "same", 0.88], ["tm_pts", "same", 0.90], ["pts_own_g", "same", 0.94], ["sog_own_g", "opp", 0.97]],
+  payouts: {"Pick6": {"2": {all: 3, cap: 20}, "3": {all: 6, cap: 60}, "4": {all: 10, cap: 100}, "5": {all: 12, cap: 150, miss1: 1, cap1: 6}, "6": {all: 25, cap: 300, miss1: 1.5, cap1: 10}},
+    "PrizePicks Power": {"2": {all: 3}, "3": {all: 6}, "4": {all: 10}, "5": {all: 20}, "6": {all: 37.5}},
+    "PrizePicks Flex": {"3": {all: 3, miss1: 1}, "4": {all: 6, miss1: 1.5}, "5": {all: 10, miss1: 2, miss2: 0.4}, "6": {all: 25, miss1: 2, miss2: 0.4}}},
+  plays: {"Pick6": ["Pick6"], "PrizePicks": ["PrizePicks Power", "PrizePicks Flex"]}, fallback: {"PrizePicks Flex": "PrizePicks Power"},
+  stress: 0.03, max_legs: 6, search_top: {"2": 15, "3": 15, "4": 15, "5": 12, "6": 12}, min_teams: 2, max_promo: 1, fillers: 5, fill_min: 0.5, measured: {}, payouts_from: {}};
+const SLIP_BASE = Object.assign({}, SLIP_DEF, D.slips || {});
+// your own edits to the payout tables and to Pick6's same-game cuts (kept in this browser): {payouts: {play: {n: {field: v}}}, factor: {"type|dir": v}}
+let SLIP_USER = store.get("gm_slipcfg", {});
+function slipSettings(){
+  const pay = JSON.parse(JSON.stringify(SLIP_BASE.payouts));
+  for (const [play, lv] of Object.entries(SLIP_USER.payouts || {})) for (const [n, f] of Object.entries(lv || {}))
+    if (pay[play] && pay[play][n]) for (const [k, v] of Object.entries(f || {})) if (hasVal(v) && +v >= 0) pay[play][n][k] = +v;
+  const fac = new Map(SLIP_BASE.p6_factor.map(([t, d, v]) => [t + "|" + d, v]));
+  for (const [k, v] of Object.entries(SLIP_USER.factor || {})) if (hasVal(v) && +v > 0 && +v <= 1) fac.set(k, +v);
+  return {...SLIP_BASE, payouts: pay, factor: fac};
+}
+// the normal distribution: erfc above is the same approximation slips.py uses
+const nCdf = x => 0.5 * erfc(-x / Math.SQRT2);
+const NI_A = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+const NI_B = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
+const NI_C = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+const NI_D = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
+function nInv(p){
+  p = Math.min(Math.max(p, 1e-12), 1 - 1e-12);
+  if (p < 0.02425 || p > 1 - 0.02425){
+    const q = Math.sqrt(-2 * Math.log(p < 0.5 ? p : 1 - p));
+    const x = (((((NI_C[0] * q + NI_C[1]) * q + NI_C[2]) * q + NI_C[3]) * q + NI_C[4]) * q + NI_C[5]) / ((((NI_D[0] * q + NI_D[1]) * q + NI_D[2]) * q + NI_D[3]) * q + 1);
+    return p < 0.5 ? x : -x;
+  }
+  const q = p - 0.5, r = q * q;
+  return (((((NI_A[0] * r + NI_A[1]) * r + NI_A[2]) * r + NI_A[3]) * r + NI_A[4]) * r + NI_A[5]) * q / (((((NI_B[0] * r + NI_B[1]) * r + NI_B[2]) * r + NI_B[3]) * r + NI_B[4]) * r + 1);
+}
+const GL_N = {};
+function gauleg(n){
+  if (!GL_N[n]){
+    const xs = [], ws = [];
+    for (let i = 1; i <= n; i++){
+      let x = Math.cos(Math.PI * (i - 0.25) / (n + 0.5)), dp = 1;
+      for (let it = 0; it < 100; it++){
+        let p1 = 1, p2 = 0;
+        for (let j = 1; j <= n; j++){ const t = ((2 * j - 1) * x * p1 - (j - 1) * p2) / j; p2 = p1; p1 = t; }
+        dp = n * (x * p1 - p2) / (x * x - 1);
+        const dx = p1 / dp; x -= dx;
+        if (Math.abs(dx) < 1e-15) break;
+      }
+      xs.push(x); ws.push(2 / ((1 - x * x) * dp * dp));
+    }
+    GL_N[n] = [xs, ws];
+  }
+  return GL_N[n];
+}
+function quadGL(f, a, b, n){
+  const [xs, ws] = gauleg(n), h = 0.5 * (b - a), m = 0.5 * (a + b);
+  let s = 0; for (let i = 0; i < n; i++) s += ws[i] * f(m + h * xs[i]);
+  return h * s;
+}
+// P(X < h, Y < k), correlation r: the independent product plus the density integrated over the correlation
+function bvn(h, k, r){
+  const pq = nCdf(h) * nCdf(k);
+  if (Math.abs(r) < 1e-12) return pq;
+  r = Math.max(-0.999, Math.min(0.999, r));
+  const f = t => Math.exp(-(h * h + k * k - 2 * h * k * Math.sin(t)) / (2 * Math.cos(t) ** 2));
+  return Math.min(1, Math.max(0, pq + quadGL(f, 0, Math.asin(r), 20) / (2 * Math.PI)));
+}
+// P(every X_i < z_i), correlation matrix R: the first variable is integrated out, the rest is one dimension smaller
+function mvn(z, R){
+  const n = z.length;
+  if (n === 0) return 1;
+  if (n === 1) return nCdf(z[0]);
+  if (n === 2) return bvn(z[0], z[1], R[0][1]);
+  const p0 = nCdf(z[0]); if (p0 <= 0) return 0;
+  const s = []; for (let i = 1; i < n; i++) s.push(Math.sqrt(Math.max(1e-9, 1 - R[i][0] ** 2)));
+  const R2 = []; for (let i = 1; i < n; i++){ const row = []; for (let j = 1; j < n; j++) row.push(i === j ? 1 : Math.max(-0.999, Math.min(0.999, (R[i][j] - R[i][0] * R[j][0]) / (s[i - 1] * s[j - 1])))); R2.push(row); }
+  const inner = u => { const x = nInv(u), z2 = []; for (let i = 1; i < n; i++) z2.push((z[i] - R[i][0] * x) / s[i - 1]); return mvn(z2, R2); };
+  return Math.min(1, Math.max(0, quadGL(inner, 0, p0, n === 3 ? 16 : n === 4 ? 12 : 8)));
+}
+// the kind of same-game pair two legs are, or null (different games: independent)
+function pairType(a, b){
+  if (a.game == null || a.game !== b.game) return null;
+  const same = a.team === b.team, ms = [a.market, b.market].sort().join("+");
+  return ms === "sog+sog" ? (same ? "tm_sog" : "opp_sog") : ms === "points+points" ? (same ? "tm_pts" : "opp_pts")
+    : ms === "points+sog" ? (same ? "tm_sog_pts" : "opp_sog_pts") : ms === "saves+sog" ? (same ? "sog_own_g" : "sog_opp_g")
+    : ms === "points+saves" ? (same ? "pts_own_g" : "pts_opp_g") : ms === "saves+saves" ? "g_g" : null;
+}
+const slipTop = (l, st) => l.proj != null && ((l.market === "sog" && l.proj >= st.top_sog) || (l.market === "points" && l.proj >= st.top_pts));
+function legRho(a, b, st){
+  const t = pairType(a, b); if (t == null) return 0;
+  let r = st.rho[t] ?? 0;
+  if (t in st.rho_top && [a, b].filter(x => x.market !== "saves").every(x => slipTop(x, st))) r = st.rho_top[t];
+  return a.side === b.side ? r : -r;
+}
+function pairFactor(a, b, st){
+  const t = pairType(a, b); if (t == null) return 1;
+  return st.factor.get(t + "|" + (a.side === b.side ? "same" : "opp")) ?? 1;
+}
+function jointR(ps, R){
+  const n = ps.length, seen = new Set(); let out = 1;
+  for (let i = 0; i < n; i++){
+    if (seen.has(i)) continue;
+    const grp = [], todo = [i];
+    while (todo.length){ const k = todo.pop(); if (seen.has(k)) continue; seen.add(k); grp.push(k);
+      for (let j = 0; j < n; j++) if (!seen.has(j) && Math.abs(R[k][j]) > 1e-12) todo.push(j); }
+    grp.sort((a, b) => a - b);
+    out *= grp.length === 1 ? ps[grp[0]] : mvn(grp.map(g => nInv(ps[g])), grp.map(a => grp.map(b => R[a][b])));
+  }
+  return out;
+}
+const slipClip = p => Math.min(0.999, Math.max(0.001, p));
+function* slipCombos(n, k){
+  if (k > n) return;
+  const idx = Array.from({length: k}, (_, i) => i);
+  for (;;){
+    yield idx.slice();
+    let i = k - 1; while (i >= 0 && idx[i] === i + n - k) i--;
+    if (i < 0) return;
+    idx[i]++; for (let j = i + 1; j < k; j++) idx[j] = idx[j - 1] + 1;
+  }
+}
+// one app's legs with everything about pairs worked out once and every joint chance remembered (slips.Book)
+function slipBook(legs, app, st){
+  const n = legs.length;
+  const R = legs.map((a, i) => legs.map((b, j) => i === j ? 1 : legRho(a, b, st)));
+  const F = legs.map((a, i) => legs.map((b, j) => app === "Pick6" && i !== j ? pairFactor(a, b, st) : 1));
+  const tied = R.map((row, i) => row.some((v, j) => j !== i && Math.abs(v) > 1e-12));
+  const push = legs.map(l => Math.min(0.95, Math.max(0, +(l.push || 0)))), mult = legs.map(l => +(l.mult || 1)), memo = new Map();
+  const J = (idx, stress = 0) => {
+    const key = stress + ":" + idx.join(",");
+    let v = memo.get(key);
+    if (v === undefined){
+      const ps = idx.map(i => slipClip(legs[i].p - stress));
+      if (!idx.some(i => tied[i])){ v = 1; for (const p of ps) v *= p; }
+      else v = jointR(ps, idx.map(a => idx.map(b => R[a][b])));
+      memo.set(key, v);
+    }
+    return v;
+  };
+  const mults = idx => { let m = 1, f = 1; for (const i of idx) m *= mult[i];
+    for (let a = 0; a < idx.length; a++) for (let b = a + 1; b < idx.length; b++) f *= F[idx[a]][idx[b]]; return [m, f]; };
+  const settle = (idx, table, fb, stress) => {
+    const m = idx.length; if (m < 2) return [1, 0];
+    const lvl = table[String(m)] || (fb || {})[String(m)]; if (!lvl) return [1, 0];
+    const [mm, ff] = mults(idx);
+    let pay = lvl.all * mm * ff; if (lvl.cap) pay = Math.min(pay, lvl.cap);
+    const pAll = J(idx, stress);
+    let ret = pAll * pay, cash = pAll;
+    if (lvl.miss1){
+      const less1 = new Map(idx.map(i => [i, J(idx.filter(x => x !== i), stress)]));
+      let sum = 0; for (const i of idx) sum += less1.get(i);
+      const p1 = sum - m * pAll;
+      let pay1 = lvl.miss1 * mm * ff; if (lvl.cap1) pay1 = Math.min(pay1, lvl.cap1);
+      ret += p1 * pay1; cash += pay1 >= 1 ? p1 : 0;
+      if (lvl.miss2){
+        let p2 = 0;
+        for (let a = 0; a < m; a++) for (let b = a + 1; b < m; b++){ const i = idx[a], j = idx[b];
+          p2 += J(idx.filter(x => x !== i && x !== j), stress) - less1.get(i) - less1.get(j) + pAll; }
+        ret += p2 * lvl.miss2; cash += lvl.miss2 >= 1 ? p2 : 0;
+      }
+    }
+    return [ret, cash];
+  };
+  const value = (idx, table, fb, stress = 0) => {
+    const lvl = table[String(idx.length)], [mm, ff] = mults(idx);
+    let pays = null; if (lvl){ pays = lvl.all * mm * ff; if (lvl.cap) pays = Math.min(pays, lvl.cap); }
+    const can = idx.filter(i => push[i] > 0);
+    let ret = 0, cash = 0;
+    for (let k = 0; k <= can.length; k++) for (const c of slipCombos(can.length, k)){
+      const T = new Set(c.map(x => can[x])); let w = 1;
+      for (const i of can) w *= T.has(i) ? push[i] : 1 - push[i];
+      const [r_, c_] = settle(idx.filter(i => !T.has(i)), table, fb, stress);
+      ret += w * r_; cash += w * c_;
+    }
+    let noPush = 1; for (const i of can) noPush *= 1 - push[i];
+    return {ret, p_all: noPush * J(idx, stress), p_cash: cash, pays, factor: ff, mult: mm};
+  };
+  const slip = (idx, play) => {
+    const table = st.payouts[play] || {}; if (!(String(idx.length) in table)) return null;
+    const fb = play in st.fallback ? st.payouts[st.fallback[play]] : null;
+    const v = value(idx, table, fb, 0), s = value(idx, table, fb, st.stress);
+    let ind = 1; for (const i of idx) ind *= legs[i].p;
+    let sameGame = false; for (let a = 0; a < idx.length; a++) for (let b = a + 1; b < idx.length; b++) if (legs[idx[a]].game === legs[idx[b]].game) sameGame = true;
+    return {app, play, n: idx.length, legs: idx.map(i => legs[i].id), pays: v.pays, factor: v.factor, p_all: v.p_all, p_cash: v.p_cash, joint: J(idx), indep: ind,
+      ev: v.ret - 1, ev_stress: s.ret - 1, same_game: sameGame, promo: idx.some(i => legs[i].promo), pushes: idx.filter(i => push[i] > 0).length};
+  };
+  return {legs, slip};
+}
+// why a set of legs cannot be one entry, or null (slips.allowed)
+function slipAllowed(legs, st){
+  if (new Set(legs.map(l => l.player_id ?? l.name)).size < legs.length) return "one pick per player";
+  if (new Set(legs.map(l => l.team)).size < st.min_teams) return `needs players from ${st.min_teams} teams`;
+  if (legs.filter(l => l.promo).length > st.max_promo) return "one promo pick per entry";
+  return null;
+}
+const r9 = x => Math.round(x * 1e9) / 1e9;
+function slipCmp(a, b){
+  const k = s => [-r9(s.ev_stress), -r9(s.ev), s.n, s.play, s.legs.join(",")], x = k(a), y = k(b);
+  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
+  return 0;
+}
+function bestSlips(legs, app, st, sizes = [2, 3, 4, 5, 6], keep = 3){
+  const maxTop = Math.max(...Object.values(st.search_top));
+  const pool = legs.slice().sort((a, b) => b.p - a.p || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)).slice(0, maxTop);
+  const book = slipBook(pool, app, st), bySize = {};
+  let best = [], seen = 0;
+  for (const n of sizes){
+    for (const idx of slipCombos(Math.min(pool.length, st.search_top[String(n)] ?? 12), n)){
+      if (slipAllowed(idx.map(i => pool[i]), st)) continue;
+      let top = null;
+      for (const play of st.plays[app] || [app]){ const s = book.slip(idx, play); if (!s) continue; seen++; if (!top || slipCmp(s, top) < 0) top = s; }
+      if (!top) continue;
+      best.push(top);
+      if (!bySize[n] || slipCmp(top, bySize[n]) < 0) bySize[n] = top;
+    }
+    best.sort(slipCmp); best = best.slice(0, Math.max(keep, 1));
+  }
+  return {top: best.slice(0, keep), by_size: bySize, searched: seen, n_legs: legs.length, pool};
+}
+// ---------- slips: the board's legs (everything above this line is pure maths, run against slips.py by tests/test_slips.py) ----------
+// one app's legs worth putting in an entry (props_board.slip_legs): for each player, market and game his best bet on
+// THAT app's own lines, kept when it is a play or a lean at full pay on a line this build pulled itself
+function slipLegs(pb, app, st){
+  st = st || slipSettings();
+  const leg = (o, tier) => { const r = o.row; return {id: `${r.player_id ?? r.name}|${r.market}|${r.game}`, name: r.name, player_id: r.player_id, team: r.team, opp: r.opp, game: r.game, start: r.start,
+    market: r.market, label: r.label, line: +r.line, side: o.side, p: o.p, p_model: r.p_model == null ? null : o.side === "OVER" ? +r.p_model : 1 - r.p_model,
+    push: +(r.p_push || 0), mult: +(o.mult || 1), promo: o.promo || null, proj: r.proj, tier, app, row: r}; };
+  const by = new Map();
+  for (const r of pb){ if (appOf(r) !== app || !hasVal(r.p_blend)) continue;
+    const k = [r.player_id ?? r.name, r.market, r.game].join("|"); if (!by.has(k)) by.set(k, []); by.get(k).push(r); }
+  const out = [];
+  for (const rs of by.values()){
+    const o = pickFor(rs);
+    if (!o || (o.tier !== "play" && o.tier !== "lean") || !o.full) continue;
+    const r = o.row;
+    if (r.cached || reusedLine(r) || r.stale) continue;
+    out.push(leg(o, o.tier));
+  }
+  // an entry needs two picks, at most one of them a promo card: when the app has a leg worth playing but not two that
+  // can share an entry, add the best partners it does offer ("fill": no edge of their own)
+  if (out.length && out.filter(l => !l.promo).length < 2){
+    const have = new Set(out.map(l => l.id)), fill = [], cmpT = (x, y) => { for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1; return 0; };
+    for (const [k, rs] of by){
+      if (have.has(k) || (rs[0].market !== "sog" && rs[0].market !== "points")) continue;
+      const opts = pickOptions(rs).filter(o => o.mult && o.p >= 0.5 - 1e-9 && !o.promo && !(o.row.cached || reusedLine(o.row) || o.row.stale || o.row.role_change || o.row.team_mismatch));
+      if (!opts.length) continue;
+      const key = o => [o.p * o.mult, o.p, -(+o.row.line), o.side];
+      const b = opts.reduce((m, o) => cmpT(key(o), key(m)) > 0 ? o : m);
+      if (b.p * b.mult >= st.fill_min - 1e-9) fill.push(b);
+    }
+    const fk = o => [-(o.p * o.mult), -o.p, String(o.row.player_id ?? o.row.name), o.row.market];
+    fill.sort((a, b) => cmpT(fk(a), fk(b)));
+    for (const o of fill.slice(0, st.fillers)) out.push(leg(o, "fill"));
+  }
+  return out.sort((a, b) => b.p - a.p || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+const SLIP_CACHE = new WeakMap();
+function slipsFor(pb){
+  let v = SLIP_CACHE.get(pb);
+  if (!v){
+    const st = slipSettings(); v = {st, apps: {}};
+    for (const app of ["PrizePicks", "Pick6"]){ const legs = slipLegs(pb, app, st);
+      v.apps[app] = legs.length >= 2 ? {legs, ...bestSlips(legs, app, st)} : {legs, top: [], by_size: {}, searched: 0, n_legs: legs.length, pool: legs}; }
+    SLIP_CACHE.set(pb, v);
+  }
+  return v;
+}
+// ---------- slips: what is shown ----------
+const SLX = Object.assign({app: "", picked: [], size: "3"}, store.get("gm_slx", {}));
+// the entry of the size you prefer (the best of that size; "best" = whatever is worth most after the trim), else the nearest smaller size it has
+function slipPick(a){
+  if (SLX.size === "best") return a.top[0] || null;
+  for (let n = +SLX.size; n >= 2; n--) if (a.by_size[n]) return a.by_size[n];
+  return a.top[0] || null;
+}
+const evTx = x => x == null || isNaN(x) ? "–" : (x >= 0 ? "+" : "−") + Math.abs(Math.round(100 * x)) + "%";
+const multTx = x => x == null ? "–" : (Math.round(100 * x) / 100) + "x";
+const playTx = (s) => `${s.n}-pick${s.play.includes("Flex") ? " Flex" : s.play.includes("Power") ? " Power" : ""}`;
+const slipGrade = s => s.ev_stress >= 0 ? ["good", "holds up"] : s.ev > 0 ? ["thin", "thin"] : ["no", "no edge"];
+function slipLegLine(l){
+  return `<li><span class="x-side ${l.side}"><span class="ar">${arrow(l.side)}</span>${sideWord(l.side)} ${lineTx(l.line)} ${MK_LAB[l.market] || ""}</span>` +
+    `<span class="s-nm">${esc(fullName(l.row || l))}<span class="s-tm">${esc(l.team || "")}${l.mult !== 1 ? ` · ${multTx(l.mult)}` : ""}${l.promo ? ` · ${esc(l.promo)}` : ""}${l.tier === "fill" ? " · partner" : ""}</span></span><span class="s-p">${chanceTx(l.p, l.market)}</span></li>`;
+}
+function slipNotes(s, legs, st){
+  const out = [];
+  if (s.factor < 1 - 1e-9) out.push(`Same-game legs Pick6 treats as tied: it pays about ${Math.round(100 * (1 - s.factor))}% less (counted).`);
+  else if (s.same_game && Math.abs(s.joint - s.indep) > 0.002) out.push(`Same-game legs move ${s.joint > s.indep ? "together" : "against each other"}: all hit ${pc1(s.joint)} against ${pc1(s.indep)} if they were unrelated.`);
+  if (s.pushes) out.push(`${s.pushes === 1 ? "One leg sits" : s.pushes + " legs sit"} on a whole-number line: landing exactly on it voids that leg and the entry pays one level down (counted).`);
+  if (s.promo) out.push("Uses a Pick6 promo card: one per entry, and the app may cap what you can enter with it.");
+  if (s.play.includes("Flex")) out.push(`Flex pays part when one misses: it cashes ${pc0(s.p_cash)} of the time.`);
+  if (legs.some(l => l.tier === "fill")) out.push("“Partner” legs have no edge of their own: an entry needs two picks (and only one promo card), so the best available one is added.");
+  return out;
+}
+function slipCard(s, byId, st, opt = {}){
+  const legs = s.legs.map(id => byId.get(id)).filter(Boolean), [g, gtx] = slipGrade(s), notes = slipNotes(s, legs, st);
+  return `<div class="s-card is-${g}"><div class="s-hd"><span class="s-app">${esc(s.app)}</span><span class="s-kind">${playTx(s)} · pays ${multTx(s.pays)}</span><span class="s-ev v-${g}" title="Expected return per $1 at the chances shown">${evTx(s.ev)}</span></div>` +
+    `<ul class="s-legs">${legs.map(slipLegLine).join("")}</ul>` +
+    `<p class="s-ft">All ${s.n} hit <b>${pc1(s.p_all)}</b> of the time. Worth <b>${evTx(s.ev)}</b> per $1 at these chances; <b class="v-${g}">${evTx(s.ev_stress)}</b> if every leg is ${Math.round(100 * st.stress)} points worse <span class="s-tag v-${g}">${gtx}</span></p>` +
+    (notes.length ? `<p class="s-note">${notes.join(" ")}</p>` : "") + (opt.foot || "") + `</div>`;
+}
+// the one best entry per app, for the Picks tab
+function slipTeaser(pb){
+  const S = slipsFor(pb), cards = [];
+  for (const app of ["PrizePicks", "Pick6"]){
+    const a = S.apps[app], s = slipPick(a); if (!s) continue;
+    cards.push(slipCard(s, new Map(a.legs.map(l => [l.id, l])), S.st));
+  }
+  if (!cards.length) return "";
+  return `<div class="x-sec"><h3>Best ${SLX.size === "best" ? "" : SLX.size + "-pick "}entries <span class="n">${cards.length}</span><span class="r">tonight's plays and leans, combined</span></h3><div class="s-grid">${cards.join("")}</div>` +
+    `<p class="s-more"><button type="button" class="x-link js-slips">Other sizes, or build your own</button> <span class="muted">· estimates, not promises: confirm the payout on the app's entry screen.</span></p></div>`;
+}
+function renderSlips(pb){
+  const box = $("#slipsBox"); if (!box) return;
+  pb = pb || LAST_PB; if (!pb){ box.innerHTML = ""; return; }
+  const S = slipsFor(pb), st = S.st, have = ["PrizePicks", "Pick6"].filter(a => S.apps[a].legs.length);
+  const app = have.includes(SLX.app) ? SLX.app : (have.slice().sort((a, b) => ((S.apps[b].top[0] || {}).ev_stress ?? -9) - ((S.apps[a].top[0] || {}).ev_stress ?? -9))[0] || "PrizePicks");
+  const A = S.apps[app], byId = new Map(A.legs.map(l => [l.id, l]));
+  const seg = `<div class="x-seg" role="group" aria-label="App">${["PrizePicks", "Pick6"].map(a => `<button type="button" class="${a === app ? "on" : ""}" data-sl-app="${a}" aria-pressed="${a === app}">${a} <span class="muted">${S.apps[a].legs.length}</span></button>`).join("")}</div>`;
+  const sizes = Object.keys(A.by_size).map(Number).sort((a, b) => a - b), bestOf = slipPick(A);
+  const sizeSeg = `<div class="x-seg" role="group" aria-label="Entry size">${[["2", "2"], ["3", "3"], ["4", "4"], ["5", "5"], ["6", "6"], ["best", "Most value"]].map(([v, l]) => `<button type="button" class="${SLX.size === v ? "on" : ""}" data-sl-size="${v}" aria-pressed="${SLX.size === v}">${l}</button>`).join("")}</div>`;
+  const head = `<div class="x-head"><h2>Slips</h2></div><p class="sub" style="margin:-6px 0 12px">Tonight's plays and leans combined into entries: how often every leg hits together, what the app pays, and what that is worth. One app per entry. A calculator only: it places nothing.</p><div class="x-filters">${seg}${sizeSeg}</div>`;
+  let body;
+  if (A.legs.length < 2){
+    body = `<div class="x-empty">${A.legs.length ? `Only one ${esc(app)} leg is a play or a lean right now` : `No ${esc(app)} line is a play or a lean right now`}, and an entry needs two. ${app === "Pick6" ? "Pick6 prices most likelier sides under 1x, so its legs are rare: its promo cards (Stat Slice, Power Up) are the usual exceptions." : "Lines firm up through the afternoon."}</div>`;
+  } else {
+    const rowsBy = sizes.map(n => { const s = A.by_size[n], [g] = slipGrade(s);
+      const names = s.legs.map(id => esc(String(fullName((byId.get(id) || {}).row || byId.get(id) || {})).replace(/^(\S)\S*\s+/, "$1. "))).join(", ");
+      return `<tr class="${s === bestOf ? "best" : ""}" data-sl-size="${n}" title="Show this entry"><td class="l"><b>${playTx(s)}</b><div class="s-narrow s-names">${names}</div></td><td class="l s-names s-wide">${names}</td><td class="num">${multTx(s.pays)}</td><td class="num s-wide">${pc1(s.p_all)}</td><td class="num">${evTx(s.ev)}</td><td class="num"><b class="v-${g}">${evTx(s.ev_stress)}</b></td></tr>`; }).join("");
+    // build your own: tick legs, see the entry
+    const picked = SLX.picked.filter(id => byId.has(id)).slice(0, st.max_legs), pl = picked.map(id => byId.get(id));
+    let own = `<p class="s-note">Tick two to ${st.max_legs} legs.</p>`;
+    if (pl.length >= 2){
+      const why = slipAllowed(pl, st);
+      if (why) own = `<p class="s-note bad">Not a valid entry: ${why}.</p>`;
+      else { const book = slipBook(pl, app, st), idx = pl.map((_, i) => i);
+        const opts = (st.plays[app] || [app]).map(p => book.slip(idx, p)).filter(Boolean).sort(slipCmp);
+        own = opts.length ? opts.map(s => slipCard(s, byId, st)).join("") : `<p class="s-note">${esc(app)} has no ${pl.length}-pick entry in the table below.</p>`; }
+    }
+    const legRows = A.legs.map(l => `<label class="s-pick${picked.includes(l.id) ? " on" : ""}"><input type="checkbox" class="sl-leg" value="${esc(l.id)}" ${picked.includes(l.id) ? "checked" : ""}>` +
+      `<span class="x-side ${l.side}"><span class="ar">${arrow(l.side)}</span>${sideWord(l.side)} ${lineTx(l.line)} ${MK_LAB[l.market] || ""}</span><span class="s-nm">${esc(fullName(l.row || l))}<span class="s-tm">${esc(l.team || "")}${l.mult !== 1 ? ` · ${multTx(l.mult)}` : ""}${l.promo ? ` · ${esc(l.promo)}` : ""} · ${l.tier === "fill" ? "partner" : l.tier}</span></span><span class="s-p">${chanceTx(l.p, l.market)}</span></label>`).join("");
+    body = (bestOf ? `<div class="x-sec"><h3>Best ${esc(app)} ${SLX.size === "best" ? "entry" : bestOf.n + "-pick"} <span class="r">of ${A.searched.toLocaleString()} valued</span></h3><div class="s-grid one">${slipCard(bestOf, byId, st)}</div></div>` : "") +
+      `<div class="x-sec"><h3>Best of each size</h3><div class="tbl"><table class="s-tbl"><thead><tr><th class="l">Entry</th><th class="l s-wide">Legs</th><th class="num">Pays</th><th class="num s-wide">All hit</th><th class="num">Worth</th><th class="num"><span class="s-wide">If ${Math.round(100 * st.stress)} pts worse</span><span class="s-narrow">−${Math.round(100 * st.stress)} pts</span></th></tr></thead><tbody>${rowsBy}</tbody></table></div>` +
+      `<p class="s-note">Worth = expected return per $1 at the chances shown (+10% means $1.10 back per $1 on average). The last column trims every leg by ${Math.round(100 * st.stress)} points: an entry that is still positive there does not depend on the chances being exactly right. Bigger entries pay more and hit less often.</p></div>` +
+      `<div class="x-sec"><h3>Build your own <span class="n">${picked.length}</span>${picked.length ? `<span class="r"><button type="button" class="x-link js-sl-clear">Clear</button></span>` : ""}</h3><div class="s-own"><div class="s-picks">${legRows}</div><div class="s-res">${own}</div></div></div>`;
+  }
+  // the numbers behind it: payout tables and Pick6's cuts (editable), how legs move together (measured)
+  const payRow = (play, n, lv) => `<tr><td class="l">${n}-pick</td>${["all", "miss1", "miss2"].map(f => `<td class="num">${lv[f] != null || (f !== "all" && play !== "Pick6" && play.includes("Flex")) || (f === "miss1" && lv.miss1 != null) ? `<input type="number" step="0.1" min="0" class="sl-in" data-sl-pay="${esc(play)}|${n}|${f}" value="${lv[f] ?? ""}" aria-label="${esc(play)} ${n}-pick ${f}">` : "–"}</td>`).join("")}<td class="num muted">${lv.cap ?? "–"}</td></tr>`;
+  const payTbl = play => `<h4>${esc(play)}</h4><table class="s-tbl"><thead><tr><th class="l"></th><th class="num">All hit</th><th class="num">1 miss</th><th class="num">2 miss</th><th class="num">Cap</th></tr></thead><tbody>${Object.entries(st.payouts[play] || {}).map(([n, lv]) => payRow(play, n, lv)).join("")}</tbody></table>`;
+  const FN = {"sog_opp_g|same": "A shooter's shots with the OPPOSING goalie's saves, same direction", "tm_sog|same": "Teammates' shots, same direction", "tm_sog_pts|same": "A skater's shots with a teammate's points, same direction",
+    "tm_pts|same": "Teammates' points, same direction", "pts_own_g|same": "A skater's points with his OWN goalie's saves, same direction", "sog_own_g|opp": "A skater's shots LESS with his own goalie's saves MORE"};
+  const facRows = [...st.factor.entries()].map(([k, v]) => `<tr><td class="l">${FN[k] || k}</td><td class="num"><input type="number" step="0.01" min="0.5" max="1" class="sl-in" data-sl-fac="${k}" value="${v}" aria-label="${FN[k] || k}"></td></tr>`).join("");
+  const RN = {sog_opp_g: "Shooter's shots and the opposing goalie's saves", sog_own_g: "Skater's shots and his own goalie's saves", tm_sog: "Teammates' shots", opp_sog: "Opponents' shots", tm_pts: "Teammates' points", opp_pts: "Opponents' points",
+    tm_sog_pts: "A skater's shots and a teammate's points", opp_sog_pts: "A skater's shots and an opponent's points", pts_opp_g: "Skater's points and the opposing goalie's saves", pts_own_g: "Skater's points and his own goalie's saves", g_g: "The two goalies' saves"};
+  const rhoRows = Object.entries(st.rho).map(([k, v]) => { const m = (st.measured || {})[k], t = st.rho_top[k], mt = (st.measured || {})[k + "_top"];
+    const sg = x => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(2);
+    return `<tr><td class="l">${RN[k] || k}</td><td class="num">${sg(v)}${t != null ? ` <span class="muted">(${sg(t)} high-volume)</span>` : ""}</td><td class="num muted">${m ? sg(m.rho) : "–"}${mt ? ` (${sg(mt.rho)})` : ""}</td></tr>`; }).join("");
+  const rhoGames = Math.max(0, ...Object.values(st.measured || {}).map(m => m.games || 0));
+  const edited = Object.keys(SLIP_USER.payouts || {}).length || Object.keys(SLIP_USER.factor || {}).length;
+  const cfg = `<details class="x-sec" data-keep="slCfg"${XR.keep.slCfg ? " open" : ""}><summary>The numbers behind it <span class="r">payout tables, Pick6's same-game cuts, how legs move together</span></summary>` +
+    `<div class="s-cfg"><div><p class="s-note"><b>What an entry pays</b> (x the stake). Pick6: ${esc((st.payouts_from || {}).Pick6 || "default table")}. PrizePicks: ${esc((st.payouts_from || {}).PrizePicks || "its published table")}. Tables differ by state and can change: if your entry screen shows something else, type it here${edited ? ` <button type="button" class="x-link js-sl-reset">Reset to the defaults</button>` : ""}.</p>${["PrizePicks Power", "PrizePicks Flex", "Pick6"].map(payTbl).join("")}</div>` +
+    `<div><p class="s-note"><b>Pick6's same-game cut.</b> Pick6 multiplies the payout down when it treats two legs of one game as tied. These are the cuts measured in its app on Nov 14, 2026 (your research); the entry screen is the authority, and anything not listed is taken as no cut.</p><table class="s-tbl"><tbody>${facRows}</tbody></table>` +
+    `<p class="s-note" style="margin-top:12px"><b>How legs in one game move together</b> (correlation; 0 = unrelated). The starting values are the average of the last three full seasons, which agree closely; every build measures this season${rhoGames ? ` (${rhoGames.toLocaleString()} games so far)` : ""} and moves toward it as the games add up. Legs in different games are unrelated. A MORE with a LESS flips the sign.</p><table class="s-tbl"><thead><tr><th class="l">Pair</th><th class="num">In use</th><th class="num">This season alone</th></tr></thead><tbody>${rhoRows}</tbody></table></div></div></details>`;
+  box.innerHTML = head + body + cfg;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-sl-app],[data-sl-size],.js-slips,.js-sl-clear,.js-sl-reset"); if (!b) return;
+  if (b.matches(".js-slips")){ const t = document.querySelector('#tabs button[data-t="slips"]'); if (t) t.click(); scrollTo(0, 0); return; }
+  if (b.dataset.slApp){ SLX.app = b.dataset.slApp; SLX.picked = []; }
+  else if (b.dataset.slSize){ SLX.size = b.dataset.slSize; store.set("gm_slx", SLX); renderPicks(); renderSlips(); return; }
+  else if (b.matches(".js-sl-clear")) SLX.picked = [];
+  else if (b.matches(".js-sl-reset")){ SLIP_USER = {}; store.set("gm_slipcfg", SLIP_USER); if (LAST_PB) SLIP_CACHE.delete(LAST_PB); renderPicks(); }
+  store.set("gm_slx", SLX); renderSlips();
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.matches && t.matches(".sl-leg")){
+    const st = slipSettings();
+    SLX.picked = t.checked ? [...new Set([...SLX.picked, t.value])].slice(0, st.max_legs) : SLX.picked.filter(x => x !== t.value);
+    const box = document.querySelector(".s-picks"), top = box ? box.scrollTop : 0;
+    store.set("gm_slx", SLX); renderSlips();
+    // the list is redrawn: put it back where it was scrolled and hand focus back to the box just ticked
+    const nb = document.querySelector(".s-picks"); if (nb) nb.scrollTop = top;
+    const el = [...document.querySelectorAll(".sl-leg")].find(x => x.value === t.value); if (el) el.focus({preventScroll: true});
+    return;
+  }
+  if (t.dataset && (t.dataset.slPay || t.dataset.slFac)){
+    if (t.dataset.slPay){ const [play, n, f] = t.dataset.slPay.split("|"); ((SLIP_USER.payouts ||= {})[play] ||= {})[n] ||= {}; if (t.value === "") delete SLIP_USER.payouts[play][n][f]; else SLIP_USER.payouts[play][n][f] = +t.value; }
+    else { (SLIP_USER.factor ||= {})[t.dataset.slFac] = +t.value; }
+    store.set("gm_slipcfg", SLIP_USER); if (LAST_PB) SLIP_CACHE.delete(LAST_PB); XR.keep.slCfg = true; renderPicks(); renderSlips();
+  }
 });
 function renderLive(){
   const L = (D.live || {}).legs || [], all = $("#liveAll") && $("#liveAll").checked;
@@ -2241,7 +2714,7 @@ function renderBoard(){
   const S = allS.filter(r => (!dateF || r.date === dateF) && (!plays || r.play) && (!sideF || r.side === sideF) && (!minS || (r.prob ?? 0) >= minS) && matchQ(...r.q));
   const Wn = allW.filter(r => keep(r, false)), Pt = allP.filter(r => keep(r));
   // one propBoard() feeds the Picks tab and the All lines tables
-  const pb = propBoard(dateF); LAST_PB = pb; renderRanked(pb); renderPicks(pb); renderLive();
+  const pb = propBoard(dateF); LAST_PB = pb; renderRanked(pb); renderPicks(pb); renderSlips(pb); renderLive();
   // plays the probability filter hides are counted, never hidden silently
   const hid = (all, sides = true) => all.filter(r => r.play && r.prob < minP - 1e-9 && (!dateF || r.date === dateF) && (!sides || !sideF || r.side === sideF) && matchQ(...r.q)).length;
   $("#cardSaves").style.display = !mkF || mkF === "saves" ? "" : "none";
@@ -2353,7 +2826,10 @@ function renderLegs(){
   const table = (title, obj) => `<h3>${title}</h3><div class="tbl"><table><thead><tr><th class="l"></th><th class="num">Record</th><th class="num">Hit %</th><th class="num">Predicted</th></tr></thead><tbody>` +
     Object.entries(obj || {}).map(([k, r]) => `<tr><td class="l">${k}</td>${recCells(r)}</tr>`).join("") + "</tbody></table></div>";
   $("#resLegs").innerHTML = Object.entries(M).map(([mk, x]) => `<div class="card" style="margin:8px 0"><h2>${{sog: "SOG", points: "Points", saves: "Saves"}[mk] || mk} <span class="muted" style="font-weight:400;font-size:13px">${x.all.n} playable graded legs</span></h2>
-    <div class="grid2">${table("Reliability (blended p)", x.reliability)}${table("Plays and leans", {Plays: x.takes, ...Object.fromEntries(Object.entries(x.takes_by_side).map(([k, v]) => ["· play " + (k === "OVER" ? "MORE" : "LESS"), v])),
+    <div class="grid2">${table("Reliability (blended p)", x.reliability)}${x.leans_shown ? table("Every play and lean shown, once each", {"Plays (current rules)": x.plays_shown, ...Object.fromEntries(Object.entries(x.plays_shown_by_side || {}).map(([k, v]) => ["· play " + (k === "OVER" ? "MORE" : "LESS"), v])),
+        Leans: x.leans_shown, ...Object.fromEntries(Object.entries(x.leans_shown_by_side || {}).map(([k, v]) => ["· lean " + (k === "OVER" ? "MORE" : "LESS"), v])),
+        "Leans still standing at puck drop": x.leans})
+      : table("Plays and leans", {Plays: x.takes, ...Object.fromEntries(Object.entries(x.takes_by_side).map(([k, v]) => ["· play " + (k === "OVER" ? "MORE" : "LESS"), v])),
       ...(x.leans ? {Leans: x.leans, ...Object.fromEntries(Object.entries(x.leans_by_side || {}).map(([k, v]) => ["· lean " + (k === "OVER" ? "MORE" : "LESS"), v]))} : {})})}</div>
     <div class="grid3">${table("By side", {MORE: x.by_side.OVER, LESS: x.by_side.UNDER})}${table("By line", x.by_line)}${table("By multiplier", x.by_mult)}</div>
     <p class="sub">Model's side where it disagreed with the market: ${x.model_vs_market && x.model_vs_market.n ? `${x.model_vs_market.hit}-${x.model_vs_market.miss} (${pct(x.model_vs_market.pct)})` : "none graded yet"}.</p></div>`).join("");
@@ -2626,6 +3102,9 @@ function renderLogic(){
     `<b>Check</b> (amber): a lean or better where his line changed (for example “↑ line 1 (was 3)”: he moved up, and the projection still leans on his old minutes) or the app lists him with another team. Confirm his spot first.`,
     `<b>No edge</b> (folded away): close to a coin flip, the market not agreeing, or the likelier side paying under ${RULE.min_mult}x. The row still shows which way he leans and what the app pays. <b>Sportsbook only</b>: DraftKings prices for players neither app lists, for reference; they are never picks.`,
     `<b>Chance</b>${mw > 0 ? ` for shots on goal = the model's projection and the market's expected shots (read from DraftKings' line nearest 50/50, else the other books) averaged ${Math.round(100 * (1 - mw))}/${Math.round(100 * mw)}, then priced at the line; for points and saves it is` : " ="} the calibrated model blended with the market's no-vig price on the same line, by a weight fitted on graded lines (Calibration tab)${mktOnly.length ? `; this build gives the market all of the weight for ${mktOnly.join(" and ")}, so there Chance is the market's no-vig price` : ""}. On a whole-number line (2, 3) landing exactly on it is a push, and the chance is for the bets that do not push. <b>Proj</b> is the model's projection and the number in brackets is projection − line (red when it points against the side).`,
+    `<b>Pick6 promo cards</b> carry their name next to the app: a <b>Stat Slice</b> (his line cut, MORE only, at 1x where the ordinary card pays less) or a <b>Power Up</b> (both sides of his line at a boosted multiplier). Pick6 allows one promo pick per entry. A boosted side is judged on what it is worth: it is a lean when it is the likelier side and chance × multiplier is at least ${RULE.promo_value} on our number and on the market's own (a 1x leg breaks even at ${dfsBE(1).toFixed(3)}).`,
+    `<b>Slips</b> (its own tab, and the best one under the leans): tonight's plays and leans combined into entries on one app. It shows how often every leg hits together (legs in one game move together: a shooter's shots with the opposing goalie's saves, teammates' points), what the app pays for that entry, what it is worth per $1, and the same with every chance trimmed ${Math.round(100 * SLIP_BASE.stress)} points. An entry that is still positive after the trim does not depend on the chances being exactly right. It is a calculator: it never places anything, and the app's entry screen is the authority on the payout.`,
+    `<b>The record</b> under the list counts every play and lean this page showed at any time before the game, once each, at the numbers it had when first shown, including calls that were dropped later in the day. (Until Nov 16 it counted only calls still standing at puck drop, which flattered the leans: the dropped ones lost far more often.) A line pulled within the last ${STALE_MIN} minutes keeps its call when one refresh fails; older than that it does not.`,
     `Never a play: ${never.join("; ")}.`,
     `Saves also need a confirmed starter and a projection <b>${RULE.saves_edge_over}+</b> saves past the line on overs, <b>${RULE.saves_edge_under}+</b> on unders. Saves have no leans: saves calls of ${pc0(RULE.saves_cap_at)}+ have hit 46%.`,
     `Shots on goal: at most one play per player per game. A line that loses a conflict (a teammate's opposite-side play, or a saves play the other way) falls back to his next-best line; ⚠ marks the conflict.`
