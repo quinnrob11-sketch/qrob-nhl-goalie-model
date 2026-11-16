@@ -302,24 +302,26 @@ game through Nov 15.
   2025-26 45.92 -> 45.88 (-0.04 ± 0.05), 2026-27 43.58 -> 43.37 (-0.22 ± 0.13); in lopsided games -1.1, -0.1 and
   -1.5. Found by an independent check of this section. The build uses the value for its mode (`saves_dist.for_mode`),
   so a fall back to Corsi uses 0.025 again.
-* **Call-ups: debut ice time.** A player with no NHL history got the position-average ice time (15.5 minutes for a
-  forward); debuts play 10.5-11.4 minutes (forwards) and 13-15 (defence). The model now learns what debuts play,
-  walk-forward by position (`sog.State.debut_toi`), and uses it until the player has a game of his own. Debut forwards'
-  shots bias: -0.66 -> -0.10 (2024-25), -0.50 -> +0.01 (2025-26), -0.92 -> -0.47 (2026-27); every season's shots and
-  points log-likelihood improves (shots +0.0002, +0.0002, +0.0005 per player-game). Debut defence is mixed: they play
-  less but shoot more per minute than the average defenceman.
+* **Call-ups: debut ice time (forwards).** A forward with no NHL history got the position-average ice time (15.5
+  minutes); debut forwards play 10.5-11.4. The model now learns what debut forwards play, walk-forward
+  (`sog.State.debut_toi`), and uses it until the player has a game of his own. Debut forwards' shots bias: -0.66 ->
+  -0.10 (2024-25), -0.50 -> +0.01 (2025-26), -0.92 -> -0.47 (2026-27). Log-likelihood per player-game, every season up:
+  shots +0.00026, +0.00013, +0.00044; points +0.00014, +0.00010, +0.00019. Defence is left on the position average:
+  debut defencemen also play less (13-15 minutes against 19.3) but shoot more per minute, and the same change was
+  mixed for them.
 * **Independently checked.** A second analysis with its own code confirmed the freshness, the level and recency
   results and the save % anchor result, and found the game-script and debut items above. On home/away it found no
   330-game stretch of the last three seasons with a split this large, and early splits never predicted the rest of a
   season.
-* **Points: refit.** The points settings had been chosen on the raw projection, before calibration, which
-  penalised a stronger prior on a player's scoring rate for a scale change the calibration removes (shots were
-  already chosen at their best calibration). Refit with the corrected procedure on 2025-26 only: prior 100 -> 400
-  minutes, carry-over 0.7 -> 0.9. On 2026-27, never used to fit: log-likelihood -0.84012 -> -0.83952 per
-  player-game (+0.0006 ± 0.0004; forwards +0.0008 ± 0.0004), most of it in the first weeks of the season; Brier
-  at 0.5 points 0.20176 -> 0.20158; on the 1,839 graded points lines no measurable difference (log loss 0.65854
-  -> 0.65843). A player's chance of a point moves by 1 percentage point on average, more for players with
-  little history.
+* **Points: refit tested, not shipped.** The points settings had been chosen on the raw projection, before
+  calibration (shots are chosen at their best calibration), which penalises a stronger prior on a player's scoring
+  rate. `fit_props.py` now compares points candidates the same way as shots. Its refit on 2025-26 (prior 100 -> 400
+  minutes, carry-over 0.7 -> 0.9) was better on 2026-27 overall (log-likelihood +0.0006 ± 0.0004 per player-game; 2+
+  points Brier better by 3 standard errors; a tie on the graded 0.5 lines). An independent check found one band
+  clearly worse: the chance of 2+ points for low-projection players, mostly depth defencemen (Brier worse by 2.7
+  standard errors, the same direction in the two earlier seasons). The cause is the single linear calibration shared
+  by forwards and defence, which the refit makes steeper. Not shipped; calibrating forwards and defence separately
+  (in the build and on the page) comes first.
 
 ## Known gaps
 

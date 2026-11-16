@@ -136,7 +136,9 @@ def fit_stat(stat, sk, season, log):
         """NB log-lik on season ss after refitting proj = a + b x raw there (size = disp_k x mean): the search
         then compares candidates at their best calibration, which is how they are used. (Until 2026-11-16 points
         were compared on the raw projection, which penalised a stronger prior for the scale change the calibration
-        then removes: k_min 100 / rate_hl 120 won there, while calibrated a stronger prior is better in every season.)"""
+        then removes. Points refit with this, 2026-11-16: k_min 400, carry 0.9, better out of sample overall, NOT
+        shipped: its steeper single calibration under-predicts 2+ points for low-projection defencemen (independent
+        check, z 2.7). Calibrating forwards and defence separately comes first; see accuracy_review.md.)"""
         x = df[df.season == ss]
         b, a = np.polyfit(x.raw.values, x.shots.values, 1)
         mu = np.maximum(a + b * x.raw.values, .02)

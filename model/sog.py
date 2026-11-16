@@ -83,7 +83,8 @@ class SogParams:
         return cls(**{k: tuple(v) if isinstance(v, list) else v for k, v in engine.load_fields(cls, path).items()})
 
 
-DEBUT_DEC = 0.98          # per debut: the debut ice time follows about the last 35 debuts at a position
+DEBUT_DEC = 0.98          # per debut: the debut ice time follows about the last 35 debuts
+DEBUT_POS = ("F",)        # positions that start from debut ice time (see State.debut_toi)
 
 
 class D:
@@ -167,10 +168,11 @@ class State:
         self.hist = defaultdict(lambda: deque(maxlen=10))
         self.pos_rate = {"F": D(), "D": D()}
         self.pos_toi = {"F": D(), "D": D()}
-        # Ice time in a player's first NHL game, when he has no history yet. Debuts play far less than the position
-        # average (2024-25 to 2026-27: forwards 10.5-11.4 min against 15.2, defence 13-15 against 19.3), so a
-        # call-up projected on the average was about 0.5-0.9 shots too high. Learned walk-forward from the debuts seen
-        # so far (DEBUT_DEC per debut), skipping the data's first season, where every player looks new.
+        # Ice time in a forward's first NHL game, when he has no history yet. Debut forwards play far less than the
+        # position average (2024-25 to 2026-27: 10.5-11.4 min against 15.2), so a call-up projected on the average
+        # was about 0.5-0.9 shots too high. Learned walk-forward from the debuts seen so far (DEBUT_DEC per debut),
+        # skipping the data's first season, where every player looks new. Forwards only (DEBUT_POS): debut defence
+        # also play less (13-15 min against 19.3) but shoot more per minute, and the change was mixed for them.
         self.debut_toi = {"F": D(), "D": D()}
         self.first_season = None
         self.team_sa = defaultdict(D)  # stat allowed per game (shots or points against)
@@ -214,8 +216,10 @@ class State:
         k = self.p.k_toi
 
         def one(d):
-            if d is None:                 # no NHL game yet: what debuts play at his position
+            if d is None and pos in DEBUT_POS:     # no NHL game yet: what debut forwards play
                 return self.debut_toi[pos].s / self.debut_toi[pos].w
+            if d is None:
+                return base
             return base if d.w + k <= 0 else (d.s + base * k) / (d.w + k)
         t = one(self.toi.get(pid))
         if self.p.toi_hl2 > 0 and self.p.toi_lam < 1:
@@ -291,7 +295,7 @@ def run(s: pd.DataFrame, p: SogParams, record_from=None, stat: str = "shots_on_g
                              float(np.mean(h)) if h and len(h) >= 10 else np.nan, int(val[i])))
         # updates
         for r, v in zip(day.itertuples(index=False), val):
-            if r.player_id not in st.toi and st.season != st.first_season:
+            if r.player_id not in st.toi and st.season != st.first_season and r.pos in DEBUT_POS:
                 st.debut_toi[r.pos].add(r.toi_min, DEBUT_DEC)
             st.shots[r.player_id].add(v, st.rdec, r.toi_min)
             st.toi[r.player_id].add(r.toi_min, st.tdec)

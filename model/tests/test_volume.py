@@ -25,8 +25,8 @@ class DebutIceTime(unittest.TestCase):
         st = sog.State(self.P)
         st.new_season(2026)
         self.assertAlmostEqual(st.exp_toi(1, "F"), 11.0)                 # the prior before any debut is seen
-        self.assertAlmostEqual(st.exp_toi(1, "D"), 15.0)
         self.assertGreater(st.pos_toi["F"].s / st.pos_toi["F"].w, 15)    # far above it: the average forward's minutes
+        self.assertAlmostEqual(st.exp_toi(1, "D"), st.pos_toi["D"].s / st.pos_toi["D"].w)   # defence: the position average
 
     def test_learned_walk_forward_and_never_from_the_first_season(self):
         rows = [game("2024-10-10", 2025, 1, "F", 18.0)]                      # first season of the data: everyone is new
@@ -39,6 +39,9 @@ class DebutIceTime(unittest.TestCase):
         self.assertGreater(t, 9.0)
         _, st0 = sog.run(sk[sk.season == 2025], self.P)
         self.assertAlmostEqual(st0.exp_toi(999, "F"), 11.0)                 # the first season's games taught it nothing
+        sk_d = pd.DataFrame([game(f"2025-10-{d:02d}", 2026, 300 + d, "D", 9.0) for d in range(10, 30)])
+        _, std = sog.run(pd.concat([sk[sk.season == 2025], sk_d]), self.P)
+        self.assertAlmostEqual(std.debut_toi["D"].s / std.debut_toi["D"].w, 15.0)   # defence debuts are not learned
 
     def test_a_player_with_history_is_unchanged(self):
         sk = pd.DataFrame([game("2025-10-10", 2026, 7, "F", 19.0), game("2025-10-12", 2026, 7, "F", 19.0)])
