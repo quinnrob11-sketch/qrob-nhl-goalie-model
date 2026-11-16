@@ -711,14 +711,58 @@ if __name__ == "__main__":
 LEGS = os.path.join(HERE, "data", "legs.csv")
 LEG_FIELDS = ["date", "game", "built", "player_id", "name", "team", "opp", "market", "line", "source", "mo", "mu",
               "side", "mult", "p_model", "p_mkt", "p_blend", "p", "verdict", "tier", "reason", "role_change", "result", "actual",
-              "price_over", "price_under", "be", "ev", "mkt_src", "lean"]
+              "price_over", "price_under", "be", "ev", "mkt_src", "lean",
+              # the strongest call the page EVER showed for this leg, frozen when first shown (never erased by a
+              # later snapshot): "play" / "lean", when, which side, its chance and multiplier then; and the promo used
+              "shown", "shown_at", "shown_side", "shown_p", "shown_mult", "promo"]
+SHOWN_FIELDS = ("shown", "shown_at", "shown_side", "shown_p", "shown_mult")
+SHOWN_RANK = {"": 0, "lean": 1, "play": 2}
+BACKFILL = os.path.join(HERE, "data", "legs_shown.json")    # calls shown before the log kept them (rebuilt from history)
 
 
 def _read_legs():
     if not os.path.exists(LEGS):
         return []
     with open(LEGS, newline="") as f:
-        return list(csv.DictReader(f))
+        rows = list(csv.DictReader(f))
+    return _fill_shown(rows)
+
+
+def _backfill_map() -> dict:
+    try:
+        with open(BACKFILL) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def _fill_shown(rows):
+    """Rows logged before the log kept "shown": take the call from the history file (every build's flags, rebuilt
+    from the repository's history), else from the row's own last snapshot. Rows that already carry it are untouched."""
+    bf = None
+    for r in rows:
+        if r.get("shown") is not None and r.get("shown") != "":
+            continue
+        if r.get("shown_at"):               # looked at already: nothing was ever shown for it
+            continue
+        if bf is None:
+            bf = _backfill_map()
+        b = bf.get("|".join(str(x) for x in _leg_key(r)))
+        if b:
+            r.update({k: b.get(k, "") for k in SHOWN_FIELDS})
+            continue
+        call = _call_of(r)
+        if call:
+            r.update(shown=call, shown_at=r.get("built") or "", shown_side=r.get("side") or "", shown_p=r.get("p") or "",
+                     shown_mult=r.get("mult") or "")
+    return rows
+
+
+def _call_of(r) -> str:
+    """The call one logged snapshot carries: "play" (a TAKE), "lean" (the player's lean), or ""."""
+    if str(r.get("verdict") or "").startswith("TAKE"):
+        return "play"
+    return "lean" if _is_lean(r) else ""
 
 
 def _write_legs(rows):
@@ -739,7 +783,9 @@ def _r4(x):
 
 def log_legs(board_rows, built: str):
     """Store every board leg shown this build (games not started yet). The latest pre-game snapshot of a
-    leg replaces earlier ones; graded legs are never touched."""
+    leg replaces earlier ones; graded legs are never touched. The strongest call ever shown for a leg (play over
+    lean) is kept with the numbers it had when first shown: a later snapshot never erases it, so the records count
+    every call the page made, not only the ones that survived to the last board."""
     cur = _read_legs()
     idx = {_leg_key(r): i for i, r in enumerate(cur)}
     n = 0
@@ -756,11 +802,24 @@ def log_legs(board_rows, built: str):
              "price_over": b.get("dk_over"), "price_under": b.get("dk_under"), "be": _r4(b.get("be")), "ev": _r4(b.get("ev")),
              "mkt_src": b.get("mkt_src") or "",
              # the player's pick when it is a lean (props_board.picks): not a TAKE, graded as its own record
-             "lean": 1 if b.get("lean") else ""}
+             "lean": 1 if b.get("lean") else "",
+             "promo": b.get("pick_promo") or ""}
         k = _leg_key(r)
-        if k in idx:
-            if cur[idx[k]].get("result"):
-                continue
+        prev = cur[idx[k]] if k in idx else None
+        if prev is not None and prev.get("result"):
+            continue
+        # the call shown now, on the side it was shown for; kept unless an earlier build showed one at least as strong
+        call = _call_of(r)
+        if prev is not None and SHOWN_RANK.get(prev.get("shown") or "", 0) >= SHOWN_RANK[call]:
+            r.update({f: prev.get(f, "") for f in SHOWN_FIELDS})
+        elif call:
+            side = b.get("pick_side") if call == "lean" and b.get("pick_side") else b["side"]
+            p_side = b.get("pick_p") if call == "lean" and b.get("pick_p") is not None else b.get("p")
+            m = b.get("mo") if side == "OVER" else b.get("mu")
+            r.update(shown=call, shown_at=built, shown_side=side, shown_p=_r4(p_side), shown_mult="" if m is None else m)
+        if not r.get("shown_at"):
+            r["shown_at"] = "-"              # seen by the new log, nothing shown yet (so the backfill is not asked again)
+        if prev is not None:
             cur[idx[k]] = r
         else:
             idx[k] = len(cur); cur.append(r)
@@ -860,6 +919,7 @@ def _leg_return(r) -> float | None:
 
 
 RULES_FROM = "2026-11-08"   # the first slate decided by the current shots probability and play rule (accuracy_review.md)
+RULES_LIVE_AT = "2026-11-08T14:47:23+00:00"   # the first build that ran them (calls shown earlier that day used the old rule)
 
 
 def _is_lean(r) -> bool:
@@ -894,6 +954,53 @@ def playable_legs(rows):
     return list(best.values())
 
 
+def shown_legs(rows, kind: str, since_at: str | None = None) -> list[dict]:
+    """Every leg the page ever showed as `kind` ("play" / "lean"), once each, graded on the side and at the chance
+    and multiplier it was shown with: HIT / MISS (a push or a void is no bet and is left out). One per date / player
+    / market / line / side (the same bet named on two apps counts once: the earlier showing). since_at keeps calls
+    first shown at or after that build time."""
+    best = {}
+    for r in rows:
+        if (r.get("shown") or "") != kind or r.get("result") not in ("HIT", "MISS", "PUSH") \
+                or (since_at and str(r.get("shown_at") or "") < since_at):
+            continue
+        a, side = _num(r.get("actual")), r.get("shown_side") or r.get("side")
+        if a is None or side not in ("OVER", "UNDER"):
+            continue
+        res = _result(side, a, float(r["line"]))
+        if res not in ("HIT", "MISS"):
+            continue
+        x = {**r, "side": side, "result": res, "p": r.get("shown_p") or r.get("p"), "mult": r.get("shown_mult") or r.get("mult")}
+        k = (r["date"], str(r["player_id"]), r["market"], float(r["line"]), side)
+        if k not in best or str(r.get("shown_at") or "") < str(best[k].get("shown_at") or ""):
+            best[k] = x
+    return list(best.values())
+
+
+def shown_split(rows, legs) -> dict:
+    """What became of the calls from shown_legs by the game's last pre-game board. For each bet (date, player,
+    market, line, side), over the apps that showed it:
+      "last"    still a call (a lean or a play) on the game's latest build;
+      "gone"    its line left the board while it was still a call (the app took the line down or moved it: a leg
+                whose last snapshot is older than the game's latest build, as in playable_legs);
+      "erased"  a later snapshot of the same line carried no call (the market or our own number moved against it).
+    Someone who bet a call when it was shown holds it in all three cases."""
+    last = {}
+    for r in rows:
+        last[r.get("game")] = max(last.get(r.get("game"), ""), str(r.get("built") or ""))
+    key = lambda x: (x["date"], str(x["player_id"]), x["market"], float(x["line"]), x.get("side"))
+    state = {}
+    for r in rows:
+        if _call_of(r):
+            k = key(r)
+            on_last = str(r.get("built") or "") == last.get(r.get("game"))
+            state[k] = "last" if on_last or state.get(k) == "last" else "gone"
+    out = {"last": [], "gone": [], "erased": []}
+    for x in legs:
+        out[state.get(key(x), "erased")].append(x)
+    return out
+
+
 def legs_summary(rows=None) -> dict:
     """Records a person could have bet (playable_legs): reliability of the shown probability and records by
     side, line, price and TAKE legs, with units and ROI at the price offered. Unplayable sides (not offered,
@@ -910,6 +1017,7 @@ def legs_summary(rows=None) -> dict:
                 "units": round(sum(rets), 2) if rets else None, "roi": round(sum(rets) / len(rets), 4) if rets else None}
     out = {"n": len(rows), "graded": len(graded), "excluded": len(graded) - len(rows),
            "basis": "playable legs: offered at >= 1x or at a sportsbook price, on the last pre-game board, once each",
+           "shown_basis": "every play and lean the page showed at any time before the game, once each, at the numbers first shown",
            "rules_from": RULES_FROM,
            "by_market": {}}
     for mk in ("sog", "points", "saves"):
@@ -935,6 +1043,15 @@ def legs_summary(rows=None) -> dict:
             "takes_now": rec([r for r in x if str(r.get("verdict", "")).startswith("TAKE") and str(r["date"]) >= RULES_FROM]),
             "leans": rec([r for r in x if _is_lean(r)]),
             "leans_by_side": {s: rec([r for r in x if _is_lean(r) and r["side"] == s]) for s in ("OVER", "UNDER")},
+            # every call the page ever showed, once each, at the numbers it had when first shown (shown_legs): the
+            # honest record. The two above count only calls still standing on the game's last board.
+            "plays_shown": rec(shown_legs([r for r in allrows if r["market"] == mk], "play", RULES_LIVE_AT)),
+            "leans_shown": rec(shown_legs([r for r in allrows if r["market"] == mk], "lean")),
+            "plays_shown_by_side": {s: rec([r for r in shown_legs([r for r in allrows if r["market"] == mk], "play", RULES_LIVE_AT) if r["side"] == s]) for s in ("OVER", "UNDER")},
+            "leans_shown_by_side": {s: rec([r for r in shown_legs([r for r in allrows if r["market"] == mk], "lean") if r["side"] == s]) for s in ("OVER", "UNDER")},
+            # ... and what became of each lean by the game's last pre-game board (shown_split)
+            **{f"leans_shown_{k}": rec(v) for k, v in shown_split([r for r in allrows if r["market"] == mk],
+                                                                  shown_legs([r for r in allrows if r["market"] == mk], "lean")).items()},
             "takes_by_side": {s: rec([r for r in x if str(r.get("verdict", "")).startswith("TAKE") and r["side"] == s]) for s in ("OVER", "UNDER")},
             "model_vs_market": _disagree([r for r in x if r.get("p_mkt") not in (None, "") and r.get("p_model") not in (None, "")
                                           and (float(r["p_model"]) >= .5) != (float(r["p_mkt"]) >= .5)]),

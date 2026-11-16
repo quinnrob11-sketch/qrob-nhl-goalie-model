@@ -70,6 +70,12 @@ POINTS_UNDER_MAX = 1.0      # points unders only on lines below this: 1.5+ under
 # read off these same lines.
 LEAN_P = 0.55               # blended p of the side at least this ...
 LEAN_MKT_MIN = 0.52         # ... and the market's own probability for the side at least this
+# A Pick6 promo card (a Power Up: both sides of the main line at a boosted multiplier) is judged on what the side is
+# WORTH, chance x multiplier, because the boost is the whole point of it: the likelier side of a coin flip at 1.3x is
+# worth 0.65 of a 1x leg's 0.577 break-even. It is a lean when the side is the likelier one and both our chance and
+# the market's own, times the multiplier, clear PROMO_VALUE. Promo sides only: on ordinary lines Pick6's multipliers
+# already price the chance in (11-08..11-14: 365 sides paying over 1x hit 37.8% against a stated 41.2%; none had value).
+PROMO_VALUE = 0.58
 
 
 def config() -> dict:
@@ -84,7 +90,7 @@ def config() -> dict:
             "sog_take_p": SOG_TAKE_P, "sog_lock_p": SOG_LOCK_P, "sog_mean_w": SOG_MEAN_W,
             "sog_model_agree": SOG_MODEL_AGREE, "priced_takes": PRICED_TAKES,
             "saves_take_overs": SAVES_TAKE_OVERS, "points_under_max": POINTS_UNDER_MAX,
-            "lean_p": LEAN_P, "lean_mkt_min": LEAN_MKT_MIN}
+            "lean_p": LEAN_P, "lean_mkt_min": LEAN_MKT_MIN, "promo_value": PROMO_VALUE}
 
 
 def take_p(market: str) -> float:
@@ -296,6 +302,16 @@ def lean(market: str, side: str, p: float, p_mkt_side, line) -> bool:
     if p_mkt_side is None or p_mkt_side != p_mkt_side or float(p_mkt_side) < LEAN_MKT_MIN - 1e-9:
         return False
     return not (market == "points" and side == "UNDER" and float(line) >= POINTS_UNDER_MAX - 1e-9)
+
+
+def promo_lean(market: str, p: float, p_mkt_side, mult) -> bool:
+    """A boosted promo side worth taking (see PROMO_VALUE): shots or points, the likelier side, paying more than 1x,
+    and chance x multiplier at least PROMO_VALUE on our number and on the market's own."""
+    if market not in ("sog", "points") or p is None or mult in (None, "") or float(mult) <= 1.0 + 1e-9 or p < 0.5 - 1e-9:
+        return False
+    if p_mkt_side is None or p_mkt_side != p_mkt_side:
+        return False
+    return p * float(mult) >= PROMO_VALUE - 1e-9 and float(p_mkt_side) * float(mult) >= PROMO_VALUE - 1e-9
 
 
 def best_line(cands: list[dict]) -> int | None:

@@ -35,6 +35,7 @@ import prices as dkp
 import props_board
 import sources
 import slate as slate_mod
+import slips
 import tracker
 import winners
 
@@ -349,6 +350,15 @@ def saves_bias_now(df: pd.DataFrame, season: int, today) -> float:
                                today, pricing.SAVES_BIAS_HL)
 
 
+def _slip_settings(skater_df, st_df, season, p6_stats) -> dict:
+    try:
+        measured = slips.measure_rho(skater_df, st_df, season)
+    except Exception as e:      # the slip builder then runs on its default correlations
+        print(f"  [slips] correlation measurement failed: {e}")
+        measured = {}
+    return slips.settings(measured, (p6_stats or {}).get("payouts"))
+
+
 def live_legs(day_games, live) -> list[dict]:
     """Legs logged before puck drop for the slate day's started games, with the stat so far and HIT / MISS."""
     started = {str(g["id"]): g for g in day_games if g.get("state") in slate_mod.FINAL | slate_mod.LIVE}
@@ -405,6 +415,10 @@ def main():
     teams = ({g[k] for g in slate for k in ("home", "away")} or set(state.off)) - DEFUNCT
     box_rosters = players.from_box(skater_df[skater_df.season == latest], st_df[st_df.season == latest])
     R = players.fetch(teams, box_rosters)
+    # ... plus anyone who dressed in the last 10 days and is on no live roster (the roster feed lags call-ups / trades)
+    since = str(today - dt.timedelta(days=10))
+    players.add_recent(R, players.from_box(skater_df[(skater_df.season == latest) & (skater_df.game_date.astype(str) >= since)],
+                                           st_df[(st_df.season == latest) & (st_df.game_date.astype(str) >= since)]))
     rosters = fetch_rosters(R)
     lg_share = round(state.lg_share.s / state.lg_share.w, 4)
     # Current rosters fix offseason moves; goalies with no NHL starts get a
@@ -423,7 +437,8 @@ def main():
     pp = prizepicks.fetch(goalies)
     p6_rows, p6_stats = pick6.fetch(slate, R)
     # PrizePicks: its own API if it lets the build through, else its lines on The Odds API, else the last good board
-    pp_props = prizepicks.props(slate, R, odds_rows=odds.pp_rows, odds_status=odds.status, odds_at=odds.fetched_at)
+    pp_props = prizepicks.props(slate, R, odds_rows=odds.pp_rows, odds_status=odds.status, odds_at=odds.fetched_at,
+                                odds_idle=odds.idle)
     if not pp:   # goalie saves feed (starters, saves table) from the same PrizePicks lines
         pp = [{"name": r["name"], "team": r["team"], "line": r["line"], "date": r["date"], "opp": None, "url": None,
                "goalie_id": r["player_id"], "source": "The Odds API"} for r in pp_props if r["market"] == "saves" and not r.get("alt")]
@@ -509,6 +524,9 @@ def main():
         "ml": odds.ml_rows,
         "dist": DIST,
         "pricing": pricing.config(),
+        # slips (entries of 2-6 legs): the payout tables, the apps' same-game cuts and how legs move together, with
+        # this season's correlations measured from the box scores just loaded and Pick6's own payout table
+        "slips": _slip_settings(skater_df, st_df, latest, p6_stats),
         "dk_error": odds.last_error,
         "odds_remaining": odds.remaining, "odds_costs": odds.last_costs[:20],
         "depth": depth_charts(st_df[st_df.season == display_season], rosters,

@@ -302,9 +302,16 @@ def pick_cards(tree) -> tuple[list[dict], dict]:
         return [], {}
     ents, comps = pc.get("entityInfoByDkId") or {}, pc.get("competitionById") or {}
     teams, mkts = pc.get("displayTeamById") or {}, pc.get("pickSixMarketById") or {}
+    promos = {str(k): v for k, v in (pc.get("promotionalPickConfigurationsByPromotionTypeId") or {}).items() if isinstance(v, dict)}
+    req = pc.get("userLineupRequirements") or {}
     rows, info = [], {"category": pc.get("pickCategoryId"), "paused": 0,
                       "categories": {str(k): [x for x in (v.get("filterKey"), v.get("categoryName"), str(k)) if x]
-                                     for k, v in (pc.get("pickCategoryById") or {}).items()}}
+                                     for k, v in (pc.get("pickCategoryById") or {}).items()},
+                      # the app's own lineup rules, as the page states them (the slip builder reads these)
+                      "promos": {v.get("promotionalPickType") or f"Promo {k}": {"max": v.get("maxNumberOfPromotionalPicks"),
+                                                                              "min_picks": v.get("minimumRequiredNumOfPicks")}
+                                 for k, v in promos.items()},
+                      "lineup": {"min_teams": req.get("minimumDistinctTeamCount"), "max_per_player": req.get("maximumPicksPerDkIdCount")}}
     for card in (pc.get("pickCardByPickableId") or {}).values():
         es = card.get("entities") or []
         if len(es) != 1:          # multi-player cards (matchups) are not single-player props
@@ -321,34 +328,94 @@ def pick_cards(tree) -> tuple[list[dict], dict]:
             sel = {s.get("statLinePropositionId"): _num(s.get("standingsMultiplier")) for s in m.get("activeSelections") or []}
             if not sel or m.get("targetValue") is None:
                 continue
-            rows.append({"name": ent.get("fullName") or ent.get("name"), "market": mk, "line": float(m["targetValue"]),
-                         "mo": sel.get(MORE_ID, 0.0), "mu": sel.get(LESS_ID, 0.0), "team": players.team_code(team) if team else None,
-                         "pos": ec.get("position"), "game_ref": comp.get("compId"), "start": comp.get("startTime"),
-                         "pick6_market": m.get("pickSixMarketId"), "live": bool(m.get("isLive"))})
+            row = {"name": ent.get("fullName") or ent.get("name"), "market": mk, "line": float(m["targetValue"]),
+                   "mo": sel.get(MORE_ID, 0.0), "mu": sel.get(LESS_ID, 0.0), "team": players.team_code(team) if team else None,
+                   "pos": ec.get("position"), "game_ref": comp.get("compId"), "start": comp.get("startTime"),
+                   "pick6_market": m.get("pickSixMarketId"), "live": bool(m.get("isLive"))}
+            ptype = m.get("promoPickTypeId")
+            if ptype not in (None, 0, 1):       # 1 = an ordinary pick; 2 Gimme, 3 Stat Slice, 4 Power Up (promos)
+                otv = _num(m.get("originalTargetValue"))
+                row.update(promo=(promos.get(str(ptype)) or {}).get("promotionalPickType") or "Promo",
+                           promo_from=otv if otv is not None and otv != row["line"] else None, limit=_num(m.get("marketLimit")))
+            rows.append(row)
     return rows, info
 
 
+def payout_table(tree) -> dict:
+    """Pick6's own payout table as the page states it (entryDetails.payoutPackages): {"3": {"all": 6, "cap": 60}, ...,
+    "5": {"all": 12, "cap": 150, "miss1": 1, "cap1": 6}}. `all` = every pick correct; `miss1` = all but one (the 5- and
+    6-pick levels); the caps are the most the multiplied payout can reach. {} when the page has no such block."""
+    out = {}
+    for pk in (_find_key(tree, "entryDetails") or {}).get("payoutPackages") or []:
+        if not isinstance(pk, dict) or not isinstance(pk.get("pickSetSize"), int):
+            continue
+        n = pk["pickSetSize"]
+        tiers = {t.get("numberOfPicksCorrect"): t for t in pk.get("payoutTiers") or [] if isinstance(t, dict)}
+        top = _num((tiers.get(n) or {}).get("guaranteedMultiplier"))
+        if not top:
+            continue
+        lvl = {"all": top, "cap": _num(tiers[n].get("guaranteedMultiplierLimit"))}
+        if n - 1 in tiers and _num(tiers[n - 1].get("guaranteedMultiplier")):
+            lvl.update(miss1=_num(tiers[n - 1]["guaranteedMultiplier"]), cap1=_num(tiers[n - 1].get("guaranteedMultiplierLimit")))
+        out[str(n)] = lvl
+    return out
+
+
+PROMO_FIELDS = ("promo", "promo_sides", "promo_from", "limit", "mo_reg", "mu_reg")
+
+
+def merge_promo(reg: dict | None, p: dict) -> dict:
+    """A promo card folded into the player's row at that line. Pick6 serves promos as their own cards: a Stat Slice
+    (the line cut, e.g. 3.5 -> 2.5, More only at 1x, where the ordinary 2.5 rung pays 0.7x) or a Power Up (both
+    sides of the main line at a boosted multiplier). Each side takes the promo's multiplier where it pays more;
+    `promo_sides` ("O", "U" or "OU") names those sides, and mo_reg / mu_reg keep what the ordinary card pays there
+    (None when it has no such line). A promo that pays no more than the ordinary card on any side changes nothing."""
+    out, sides = dict(reg or p), ""
+    for f, s in (("mo", "O"), ("mu", "U")):
+        a, b = (reg or {}).get(f) or 0.0, p.get(f) or 0.0
+        if b > a:
+            out[f] = b
+            sides += s
+    if not sides:
+        return dict(reg or p)
+    out.update(promo=p.get("promo") or "Promo", promo_sides=sides, promo_from=p.get("promo_from"), limit=p.get("limit"),
+               mo_reg=(reg or {}).get("mo"), mu_reg=(reg or {}).get("mu"))
+    return out
+
+
 last_info: dict = {}
+understood: bool = False        # the last page held Pick6's card data (even with no cards in it)
 
 
 def extract(page: str) -> list[dict]:
-    global last_info
+    global last_info, understood
     raw = []
+    understood, last_info = False, {}       # what THIS page said: never an earlier page's category or rules
     for tree in loader_data(page):
         rows, info = pick_cards(tree)
+        understood = understood or bool(info)
+        if info:                            # the card data is there (even with no cards): its rules and payouts hold
+            last_info = {**info, "payouts": payout_table(tree)}
         if rows:
             raw += rows
-            last_info = info
             continue
         _walk(tree, raw, set())
-    # one row per player + market + line (the same prop can appear in several lists on the page)
-    best = {}
+    # one row per player + market + line (the same prop can appear in several lists on the page). A promo card is
+    # a second card on a line the ordinary ladder may also hold: it is merged onto that line (merge_promo), never
+    # dropped as a duplicate and never allowed to replace the ordinary card unseen.
+    best, promo = {}, {}
     for r in raw:
         k = (players.fold(r["name"]), r["team"], r["market"], r["line"])
+        if r.get("promo"):
+            promo[k] = merge_promo(promo.get(k), r) if k in promo else r
+            continue
         score = sum(r.get(f) is not None for f in ("mo", "mu", "team", "game_ref", "start"))
         if k not in best or score > best[k][0]:
             best[k] = (score, r)
-    return [r for _, r in best.values()]
+    rows = {k: r for k, (_, r) in best.items()}
+    for k, p in promo.items():
+        rows[k] = merge_promo(rows.get(k), p)
+    return list(rows.values())
 
 
 def _game_for(r, slate):
@@ -374,6 +441,7 @@ def build_rows(page: str, slate: list[dict], R: players.Rosters, fetched_at: str
                "game": g["id"] if g else None, "date": g["date"] if g else None, "market": r["market"],
                "line": r["line"], "mo": r["mo"], "mu": r["mu"], "source": SOURCE, "fetched_at": fetched_at,
                "pos": m.get("pos") or r.get("pos")}
+        row.update({f: r[f] for f in PROMO_FIELDS if r.get(f) is not None})
         missing = [f for f in REQUIRED if row.get(f) in (None, "")]
         if m["status"] != "MATCHED":
             why = "unmatched player"
@@ -440,9 +508,14 @@ def _pull(slate: list[dict], R: players.Rosters, timeout: int = 30):
             stats["dropped"][k] = stats["dropped"].get(k, 0) + v
     stats["kept"] = len(rows)
     stats["category"] = last_info.get("category")
+    stats["promos"] = sum(1 for r in rows if r.get("promo"))
+    stats["promo_rules"], stats["lineup"] = last_info.get("promos") or {}, last_info.get("lineup") or {}
+    stats["payouts"] = last_info.get("payouts") or {}
     stats["bytes"] = len(page)
-    status = "ok" if rows else ("parse failed: 0 rows" if not stats["raw"] else "0 usable rows")
-    if not stats["raw"]:
+    # no rows at all: the page's card data was there but empty (nothing posted: not a parser problem), or the
+    # format changed (keep the page so the parser can be fixed against it)
+    status = "ok" if rows else ("0 usable rows" if stats["raw"] else ("no lines posted" if understood else "parse failed: 0 rows"))
+    if not stats["raw"] and not understood:
         save_failed(page)
     if rows and os.path.exists(FAILED):
         os.remove(FAILED)
@@ -494,13 +567,17 @@ def merge_day(rows: list[dict], info: dict, slate: list[dict], now: dt.datetime 
     except (OSError, ValueError, KeyError, TypeError):
         old = []
     full = full_markets(rows, info)
-    have = {(r["player_id"], r["market"]) for r in rows}
+    # a player's card replaces his earlier lines in that stat; a promo card on its own (the featured page can
+    # show it without his ordinary card) replaces only the line it sits on
+    own = lambda r: not r.get("promo") or r.get("mo_reg") is not None or r.get("mu_reg") is not None
+    have = {(r["player_id"], r["market"]) for r in rows if own(r)}
+    have_line = {(r["player_id"], r["market"], float(r["line"])) for r in rows}
     games = {g["id"]: g for g in slate}
     keep = []
     for r in old:
         g = games.get(r.get("game"))
         if r.get("market") not in KEEP_MARKETS or r["market"] in full or (r.get("player_id"), r["market"]) in have \
-                or g is None or slate_mod.started(g, now):
+                or (r.get("player_id"), r["market"], float(r.get("line") or 0)) in have_line or g is None or slate_mod.started(g, now):
             continue
         try:
             age_h = (now - dt.datetime.fromisoformat(r["fetched_at"])).total_seconds() / 3600
@@ -516,6 +593,29 @@ def merge_day(rows: list[dict], info: dict, slate: list[dict], now: dt.datetime 
     return rows + [{**r, "reused": True} for r in keep], {"category_name": category_name(info), "full": sorted(full), "reused": len(keep)}
 
 
+OPEN_WITHIN_H = 12.0      # a 0-row pull is "nothing to pull" only when no game starts within this many hours
+
+
+def nothing_open(slate: list[dict], st: dict, now: dt.datetime) -> bool:
+    """A pull that came back with no usable row and no reason to expect one: every row it had was for a started
+    game, or no game on the slate starts within OPEN_WITHIN_H (the apps post lines through the morning)."""
+    import slate as slate_mod
+    drops = set((st or {}).get("dropped") or {})
+    if (st or {}).get("raw") and drops and drops <= {"game started"}:
+        return True
+    soon = now + dt.timedelta(hours=OPEN_WITHIN_H)
+    for g in slate:
+        if slate_mod.started(g, now):
+            continue
+        try:
+            start = dt.datetime.fromisoformat(str(g.get("start")).replace("Z", "+00:00"))
+        except ValueError:
+            return False                 # a game with no start time: cannot rule a line out
+        if start <= soon:
+            return False
+    return True
+
+
 CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "pick6_cache.json")
 fetch_status = "not run"     # "fresh" | "fallback" (last good board reused because this pull failed) | "error"
 fetched_at: str | None = None  # when the rows in use were really pulled
@@ -525,8 +625,17 @@ def fetch(slate: list[dict], R: players.Rosters, timeout: int = 30, now: dt.date
     """Every build pulls the board fresh (_pull). If the pull fails (blocked, unreachable, 0 usable rows), the
     last good board in model/data/pick6_cache.json is reused with its ORIGINAL fetched_at and fetch_status
     "fallback" (started games are dropped downstream). `status` keeps the existing failure text for the banner."""
-    global fetch_status, fetched_at
+    global fetch_status, fetched_at, status
+    import slate as slate_mod
     rows, st = _pull(slate, R, timeout)
+    now_ = now or dt.datetime.now(dt.timezone.utc)
+    if not rows and "raw" in (st or {}) and nothing_open(slate, st, now_):
+        # the page came back (a request that failed carries no counts and is still a failure) and every line it
+        # had was for a game already under way, or no game starts soon: an empty board is the true answer, not a
+        # failed pull (late at night this used to read "fallback" and raise the stale banner)
+        fetch_status, fetched_at, status = "fresh", now_.isoformat(timespec="seconds"), "ok"
+        print("  [pick6] nothing open to pull (games under way or none soon)")
+        return [], {**st, "idle": True}
     if rows:
         fetch_status, fetched_at = "fresh", rows[0]["fetched_at"]
         try:

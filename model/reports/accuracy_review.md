@@ -167,6 +167,109 @@ A shots lean on a player whose line changed is labelled **Check** until his spot
   better or priced, and one row per leg across sources. It settles each leg at its real price, so it no longer
   counts sides a board didn't offer.
 
+## Full audit (2026-11-16)
+
+Every part of the pipeline was re-checked: the data, the three models, the lines from each app, the board's rules,
+the page's copy of those rules, the grading and the records. Numbers are through the 11-14 slate.
+
+**What held up**
+
+* The board's numbers re-derive from the raw inputs to 13 decimals, and the page's picks match the Python on
+  every line (104 of 104 on the 11-15 board).
+* The shots model has no look-ahead: cutting the data off at any date, or scrambling later games, leaves every
+  earlier projection unchanged.
+* The 50/50 blend is still the best of the three on graded lines (log loss 0.68393, against 0.68541 for the
+  model alone and 0.68545 for the market alone, n=5,115).
+* The play bars hold in walk-forward weeks they were not read from: chance 62%+ with the market at 55%+ hit
+  69.3% ± 4.3 (n=114).
+* Whole-number lines are calibrated, pushes included (a 2.0 line lands exactly on 2 about 24% of the time).
+* Pick6's ordinary multipliers price the chance in. 365 sides paying over 1x hit 37.8% against a stated 41.2%,
+  and 2,116 alternate rungs returned -36%. There is no hidden value on its ordinary ladder.
+
+**What was wrong, and is fixed**
+
+* **The records counted only the calls still on the last board.** The leg log kept each leg's last pre-game
+  snapshot, so a lean that was dropped, or whose line was taken down, was never graded as a lean. The page read
+  leans 23-13 and plays "none yet". Counting every call shown, once each, at the numbers it had when first shown:
+
+  | calls shown, 11-08..11-14 | record | hit |
+  |---|---|---|
+  | plays (current rules) | 2-3 | 40% |
+  | leans, all | 56-40 | 58.3% |
+  | leans still a lean on the game's last board | 22-13 | 63% |
+  | leans whose line was taken down while still a lean | 27-7 | 79% |
+  | leans the page later dropped (the market or our number moved against them) | 7-20 | 26% |
+  | shots leans, MORE / LESS | 12-18 / 41-21 | 40% / 66% |
+
+  The log now keeps the strongest call ever shown for a leg and never erases it (`tracker.log_legs`,
+  `shown_legs`, `shown_split`); earlier calls were rebuilt from the repository's history
+  (`model/backfill_shown.py`). All three groups are small. Two readings are safe: a lean is about a 58%
+  proposition, which is near break-even for a 2-pick (57.7%) and above it for a 3-pick Power (55.0%); and a lean
+  that disappears because the market moved is no longer a lean. The MORE / LESS gap is the same direction as the
+  overs bias under Known gaps, on 30 and 62 legs.
+* **One missed pull wiped the calls.** When PrizePicks' lines were missing from a single build, every lean went
+  with them until the next build. A line pulled within the last 20 minutes now keeps its call
+  (`props_board.recent_enough`).
+* **Late-night false alarms.** With every game under way and the next slate most of a day off, an empty answer
+  from an app read as "fallback" or "parse failed" and raised the stale-data banner for hours. Nothing to pull is
+  now "fresh" with no lines (`pick6.nothing_open`, `odds.idle`); a pull that fails, or comes back empty with a
+  game close, is still a failure.
+* **Call-ups and trades went unmatched.** The NHL roster feed lags: P. Tomasino played three games for Ottawa
+  while on no roster, and every line of his was dropped. Players who dressed in the last 10 days are now matched
+  on that team (`players.add_recent`).
+* **The role-change adjustment was too big.** When a player's line assignment changed, his expected ice time
+  moved by up to 15%. About 30% of the stated change shows up in the next game, so the cap is now 5%
+  (`linecombos.TOI_CAP`).
+* **The saves model was on its fallback.** MoneyPuck's shot-attempt logs had not refreshed since 11-03 (a fresh
+  CI checkout made every cached file look new), so from about 11-06 they covered under 90% of the season and the
+  model used its own attempt counts. The two modes project within 0.3 saves of each other on average and their
+  errors are the same to two decimals in every season, so no call was affected. The refresh now runs about once a
+  day and keeps only the numbers the model needs (`moneypuck_teams.refresh`).
+
+**What is new**
+
+* **Pick6 promo cards.** Pick6 serves a Stat Slice (the line cut, MORE only, at 1x where the ordinary card pays
+  0.7x) and a Power Up (both sides at 1.3x) as separate cards. They were being dropped as duplicates. They are now
+  read, shown with their name, and judged for what they pay: a Stat Slice is an ordinary side at its multiplier; a
+  boosted side is a lean when it is the likelier side and chance x multiplier is at least 0.58 on our number and
+  on the market's (`pricing.promo_lean`). Pick6 allows one promo pick per entry.
+* **Slips** (`model/slips.py`, the Slips tab): entries of 2 to 6 legs, valued with same-game correlation, the
+  app's payout table, pushes and a stress test. The correlations come from three full seasons of box scores,
+  which agree closely:
+
+  | pair in one game | 2023-24 | 2024-25 | 2025-26 | in use |
+  |---|---|---|---|---|
+  | a shooter's shots and the opposing goalie's saves | +0.222 | +0.229 | +0.226 | +0.23 |
+  | ... for a shooter averaging 2.5+ shots | +0.308 | +0.342 | +0.317 | +0.32 |
+  | teammates' points | +0.222 | +0.249 | +0.212 | +0.23 |
+  | ... for two scorers at 0.8+ points a game | +0.323 | +0.391 | +0.317 | +0.34 |
+  | a skater's points and the opposing goalie's saves | -0.059 | -0.061 | -0.054 | -0.06 |
+  | the two goalies' saves | -0.030 | -0.130 | -0.146 | -0.10 |
+  | a skater's shots and his own goalie's saves | -0.028 | -0.044 | -0.044 | -0.04 |
+  | teammates' shots; opponents' shots or points; shots with points | within ±0.04 | | | ±0.03 |
+
+  This season alone (325 games) reads +0.18 for the first row, which is within its noise: pairs in one game share
+  that game's pace, so the games behind a number say how firm it is, not the pairs. The table in use moves toward
+  the current season by games played (about a fifth of the way after six weeks).
+
+  What that is worth, for two 58% legs (unrelated: both hit 33.6%):
+
+  | pair, both legs the same way | both hit | PrizePicks 2-pick | Pick6 after its cut |
+  |---|---|---|---|
+  | shooter's shots + opposing goalie's saves | 37.2% | +11.6% | -8.5% (cut 0.82) |
+  | ... a high-volume shooter | 38.6% | +15.9% | -4.9% |
+  | teammates' points | 37.2% | +11.6% | +0.4% (cut 0.90) |
+  | ... two high scorers | 39.0% | +16.9% | +5.2% |
+  | teammates' shots | 34.1% | +2.3% | -2.8% (cut 0.95) |
+  | a skater's shots + a teammate's points | 34.0% | +1.8% | -10.4% (cut 0.88) |
+
+  Pick6's cut is bigger than the correlation it charges for on every pair except two high-scoring teammates'
+  points. PrizePicks applies no cut. One leg MORE and the other LESS flips the sign: a shooter's MORE with the
+  opposing goalie's LESS hits together 30.1%, 10% less often than unrelated legs.
+* **The research note's best slip could not be entered.** It combined three 1x MORE cards at 2.5; those are Stat
+  Slice promos, and Pick6 takes one promo pick per entry. Its correlation table is confirmed by the three seasons
+  above; its 0.18 for shooter and goalie is this season's sample.
+
 ## Known gaps
 
 * **Saves calibration:** saves are calibrated on a probability without the rolling bias correction, while the page
@@ -174,8 +277,18 @@ A shots lean on a player whose line changed is labelled **Check** until his spot
 * **One line per player and date:** the tracker log keeps one DK line per player and date: the line in the last
   pre-game call. When DK moved a line during the day, the earlier one is not in the record. The full set of quotes
   gives the same record within one standard error (table above).
-* **Name joins:** a few names join on initials and last name (e.g. two "E. Pettersson" on Vancouver resolve by row
-  order), and some spellings miss (Yegor / Egor Chinakhov, "J.Kulich"): 17 of 4,358 quotes.
+* **Name joins:** a few names join on initials and last name, and some spellings miss (Yegor / Egor Chinakhov,
+  "J.Kulich"): 17 of 4,358 quotes. Vancouver has two players named Elias Pettersson (a forward and a defenseman);
+  a line that does not say which is left unmatched instead of guessed.
+* **One-build price blips.** A play needs the market's side at 55%+. A single odd DraftKings quote can put a line
+  over that bar for one build and back under it on the next. The call is graded like any other once shown; it is
+  rare, and it is one reason the record counts every call shown.
+* **Saves on the page for a game with no moneyline.** For a game with no moneyline posted, the page's saves
+  projection can differ from the build's by a fraction of a save. The audit found the difference and no saves
+  call it changes; it has not been run down.
+* **Slips are estimates.** The chances are the board's, the correlations are averages over many pairs, and the
+  payout tables are the apps' published ones. A partial payout on Pick6's 5- and 6-pick entries is taken with
+  every leg's multiplier; the app may count only the legs that hit. The entry screen is the authority.
 * **Shots overs at 1.5:** the blend says 55.6% and they hit 52.2% (n=1,134). It inherits part of DraftKings' own lean
   toward overs, and no correction fitted on earlier weeks helped later weeks. R1's MORE picks did worse than its LESS
   picks (61.8% vs 68.1% at 1x; -4.8% ± 9.2 vs +5.5% ± 4.5 at DK prices).
@@ -197,5 +310,7 @@ A shots lean on a player whose line changed is labelled **Check** until his spot
 * Tap a row for the reason in one sentence, the numbers behind it, his last 10 games and his other lines on
   both apps.
 * The app filter (Both / PrizePicks / Pick6) picks each player's best line on that app only.
+* **Slips** combines the night's plays and leans into entries on one app, with how often they all hit, what the
+  app pays and what that is worth. The record under the picks counts every call the page showed, once each.
 * **All lines** keeps the saves, points and winners tables, the starters table and the paste box.
 * The Backtest tab's rule record replays the play rule and the lean rule on graded DK lines.

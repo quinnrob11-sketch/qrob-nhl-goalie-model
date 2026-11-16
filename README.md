@@ -19,6 +19,16 @@ Lines with no edge and DraftKings-only lines are folded away under the list. The
 Pick6) picks each player's best line on that app. The rule is `props_board.picks`, mirrored by `pickFor` in
 `model/template.html`; the reasoning and the backtest are in `model/reports/accuracy_review.md`.
 
+A Pick6 **promo card** carries its name beside the app: a *Stat Slice* (the line cut, MORE only, at 1x where the
+ordinary card pays less) or a *Power Up* (both sides boosted). Pick6 allows one promo pick per entry.
+
+Under the list, **the record** counts every play and lean the page showed at any time before the game, once
+each, at the numbers it had when first shown (see Results tracking).
+
+**Slips** combines tonight's plays and leans into entries of 2 to 6 legs on one app: how often every leg hits
+together, what the app pays, what that is worth per $1, and the same with every chance trimmed 3 points. It has
+a build-your-own list and editable payout tables. It is a calculator: it places nothing (see Slips below).
+
 **All lines** keeps the saves, points and winners tables, the starters table and the paste box.
 
 ## The model
@@ -85,7 +95,8 @@ Fully automatic once it's merged:
    each game's win probability, plus any DraftKings or PrizePicks line the build saw with its price
    and moneyline, and the price-aware decision (calibrated P, EV, tier). A game that has started is
    never changed.
-2. **After games:** every build (first one 8:30am ET) grades finished games from the box scores:
+2. **After games:** every build grades finished games from the box scores (the first ones at about 6:30 and
+   7:30 AM Central, dispatched by `ticker.yml`; GitHub drops most of `build.yml`'s own morning schedules):
    - every real line, appended to `real_line_log.csv` with HIT/MISS at the pick-time line and price;
      units and ROI by market, tier, side and book; game-winner picks in units at the DraftKings
      moneyline; DFS (Pick6 / PrizePicks) lines as a market-basis record against per-leg break-even;
@@ -94,6 +105,17 @@ Fully automatic once it's merged:
      or a big TOI change.
 3. **Pick6 boards:** send the screenshots or a screen recording and they get logged in the CSV.
    The grader fills in the results the next morning.
+
+**The leg log** (`model/data/legs.csv`) stores every board leg on every build, and keeps the strongest call
+the page ever showed for it (`shown`: a play outranks a lean) with the time, side, chance and multiplier it had
+when first shown. A later snapshot never erases that call. The records on the page (`plays_shown`,
+`leans_shown` in `tracker.legs_summary`) count every call shown, once each. Until 2026-11-16 the log kept only
+each leg's last pre-game snapshot, and the page counted only the leans still on the game's last board: it read
+23-13 when every lean shown was 56-40 (through 11-14). Of those 96, the ones still a lean on the last board
+went 22-13, the ones whose line was taken down while still a lean went 27-7, and the ones the page itself
+dropped later (the market or our number moved against them) went 7-20 (`tracker.shown_split`; the Results tab
+shows the split). Calls from before the change are rebuilt from the repository's history
+(`python model/backfill_shown.py`, a full clone only; it writes `model/data/legs_shown.json`).
 
 A **play** from 10/23 on is price-aware (see Bet rules); earlier rows keep the rule they were
 picked under (saves 1.5+ edge, SOG 55%+, never a side under 1x). Every table uses one de-duplicated
@@ -189,6 +211,34 @@ fitted for over-dispersion; whole-number lines treat X == line as a push.
 Lines come from your entry, then DraftKings (`player_shots_on_goal`, same Odds API request as
 saves), then the PrizePicks board pulled live in the browser.
 
+## Slips (`model/slips.py`, **Slips** tab)
+
+The board grades one leg at a time; the apps pay on the whole entry. For a set of legs on one app the slip
+builder works out:
+
+- **the chance they all hit.** Legs in different games are independent. Legs in one game move together by a
+  correlation that depends on the pair (a shooter's shots with the opposing goalie's saves: +0.23, and +0.32
+  for a high-volume shooter; teammates' points: +0.23, +0.34 for two scorers; most other pairs are near zero).
+  A MORE with a LESS flips the sign. The joint chance is a Gaussian copula computed exactly (no sampling), so
+  the page and the Python agree to eight decimals.
+- **what the entry pays:** the level's multiple x each leg's multiplier x Pick6's own same-game cut, capped.
+  Pick6's table is read from its page on every build (2-pick 3x, 3-pick 6x, 4-pick 10x, 5-pick 12x with 4 of 5
+  at 1x, 6-pick 25x with 5 of 6 at 1.5x). PrizePicks' is its published table (Power 3 / 6 / 10 / 20 / 37.5; Flex
+  pays part on one or two misses). Both can differ by state: the tables are editable on the page.
+- **pushes.** A whole-number line can land exactly on the number; that leg is void and the entry pays one level
+  down (a 2-pick is refunded). Each leg carries its push chance.
+- **what it is worth:** expected return per $1, and again with every leg's chance trimmed 3 points (the stress
+  test). Entries are ranked by the stressed value.
+
+`best_slips` values every combination of 2 to 6 of an app's best legs that the app would accept (one pick per
+player, at least two teams, one promo pick). The correlations start from the average of three full seasons of
+box scores, which agree closely, and move toward the current season as its games add up (`measure_rho`,
+`blend_rho`). `template.html` mirrors the module, and `tests/test_slips.py` runs the page's own code against
+the Python on every push.
+
+Nothing here places, submits or automates an entry. The app's entry screen is the authority on what an entry
+pays.
+
 ## Backtest
 
 **Real lines (the one that counts).** Every DraftKings saves and SOG line since 10/1 is stored
@@ -252,6 +302,13 @@ model/build_site.py      render index.html from template.html
 model/odds.py            starting goalies + DraftKings saves/SOG lines and moneylines (The Odds API)
 model/saves_dist.py      saves distribution: game script, spread, P(over)
 model/pricing.py         break-even, EV, calibration, tiers, DFS legs (mirrored in template.html)
+model/props_board.py     the board: every line scored, one pick per player, the legs for slips
+model/slips.py           entries of 2-6 legs: joint chance, payout, value, stress test, search
+model/pick6.py           Pick6 board: lines, promo cards, its payout table and lineup rules
+model/players.py         (name, team, game) -> NHL player id; rosters, call-ups from recent box scores
+model/backfill_shown.py  rebuilds "every call ever shown" from the repository's history (run by hand)
+model/moneypuck_teams.py MoneyPuck shot attempts for the saves model: full logs as of 11-03 plus a small daily
+                         refresh (model/data/moneypuck/attempts_recent.csv)
 model/calibrate.py       per-market calibration + real-line backtest, refit every build
 model/tracker.py         freezes each night's calls and grades them at pick-time line and price
 model/winners.py         game-winner model + backtest
@@ -260,5 +317,7 @@ model/data/              real-line log, DraftKings price history, nightly calls,
 model/prizepicks.py      starting goalies + saves lines from the PrizePicks board
 model/template.html      dashboard template
 model/output/            params.json, saves_dist.json, calibration.json, tracking.json, backtests
-.github/workflows/build.yml   rebuild 11am, 2pm, 4pm, 6pm, 7pm ET
+.github/workflows/build.yml   rebuild, grade and publish (dispatched by ticker.yml: every 15 minutes 9 AM-1:45 AM CT,
+                              and at about 6:30 and 7:30 AM to grade last night's games)
+.github/workflows/tests.yml   unit tests and the model-settings freeze, on every push
 ```

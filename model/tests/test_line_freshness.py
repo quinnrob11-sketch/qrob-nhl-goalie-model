@@ -143,8 +143,10 @@ class Board(unittest.TestCase):
             # DraftKings prices Marner's 2.5 (no-vig over 65%), so his Pick6 2.5 MORE has the market's support
             mk = [{**DK_ROW, "over": -200, "under": 160}]
             a = self.board(ISO(NOW), ISO(NOW), extra_dk=mk)
-            for src in ({"dk": {"status": "fallback"}}, {"pick6": {"status": "fallback"}}, {"dk": {"status": "error"}}):
-                b = self.board(ISO(NOW), ISO(NOW), src, extra_dk=mk)
+            old_at = ISO(NOW - dt.timedelta(minutes=45))      # the last good pull: older than the stale window
+            for src in ({"dk": {"status": "fallback", "fetched_at": old_at}}, {"pick6": {"status": "fallback"}},
+                        {"dk": {"status": "error"}}):
+                b = self.board(old_at, old_at, src, extra_dk=mk)
                 ra = {(r["name"], r["line"], r["source"]): r for r in a["rows"]}
                 for r in b["rows"]:
                     x = ra[(r["name"], r["line"], r["source"])]
@@ -166,6 +168,26 @@ class Board(unittest.TestCase):
         finally:
             pricing.SOG_TAKE_P = old_bar
 
+    def test_one_missed_pull_keeps_the_calls(self):
+        # the pull failed this build, but the last good one is 15 minutes old (inside the stale window): its lines are
+        # as current as anything on a page rebuilt every 15 minutes, so the calls stand. Past the window they do not.
+        import pricing
+        old_bar = pricing.SOG_TAKE_P
+        try:
+            pricing.SOG_TAKE_P = 0.0
+            mk = [{**DK_ROW, "over": -200, "under": 160}]
+            a = self.board(ISO(NOW), ISO(NOW), extra_dk=mk)
+            takes = lambda b: sorted((r["name"], r["line"], r["verdict"]) for r in b["rows"] if str(r.get("verdict", "")).startswith("TAKE"))
+            self.assertTrue(takes(a))
+            for mins, kept in ((15, True), (20, True), (21, False), (45, False)):
+                at = ISO(NOW - dt.timedelta(minutes=mins))
+                for src in ({"pick6": {"status": "fallback", "fetched_at": at}}, {"dk": {"status": "fallback", "fetched_at": at}}):
+                    b = self.board(at, at, src, extra_dk=mk)
+                    self.assertEqual(takes(b) == takes(a), kept, (mins, src))
+                    self.assertEqual(any(r.get("cached") for r in b["rows"]), not kept, (mins, src))
+        finally:
+            pricing.SOG_TAKE_P = old_bar
+
     def test_reused_board_is_not_a_near_miss(self):
         # the same line, with the bar just above its chance: a near miss when fresh, a plain cached pass when reused
         import pricing
@@ -176,7 +198,8 @@ class Board(unittest.TestCase):
             pricing.SOG_TAKE_P = r0["p"] + 0.01                          # p is within NEAR_BAND of the bar
             a = next(r for r in self.board(ISO(NOW), ISO(NOW), extra_dk=mk)["rows"] if r["source"] == "Pick6" and r["line"] == 2.5)
             self.assertEqual(a["tier"], "Near miss")
-            b = self.board(ISO(NOW), ISO(NOW), {"pick6": {"status": "fallback"}}, extra_dk=mk)
+            old_at = ISO(NOW - dt.timedelta(minutes=45))
+            b = self.board(old_at, ISO(NOW), {"pick6": {"status": "fallback"}}, extra_dk=mk)
             r = next(x for x in b["rows"] if x["source"] == "Pick6" and x["line"] == 2.5)
             self.assertEqual((r["verdict"], r["tier"], r["cached"]), ("PASS", "", True))
             self.assertIn("cached", r["reason"])

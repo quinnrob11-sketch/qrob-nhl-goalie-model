@@ -40,7 +40,9 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - run: pip install -r requirements.txt
-      # MoneyPuck cache (data checks): its own step, hard-capped so a slow download never holds up the build
+      # MoneyPuck shot attempts for the saves model: its own step, hard-capped so a slow download never holds up
+      # the build. Each team's log is pulled about once a day (the time of its last good pull is in the committed
+      # model/data/moneypuck/status.json); only this season's attempt counts are kept (attempts_recent.csv).
       - name: MoneyPuck data
         run: timeout 300 python -u model/moneypuck_teams.py || echo "moneypuck step timed out or failed"
       - name: Build dashboard
