@@ -1,5 +1,5 @@
 {
- "at": "2026-11-16T23:29:57+00:00",
+ "at": "2026-11-16T23:39:30+00:00",
  "files": {
   "team_games_ANA": "fresh",
   "team_games_BOS": "fresh",
@@ -26,13 +26,13 @@
   "team_games_SJS": "fresh",
   "team_games_SEA": "fresh",
   "team_games_STL": "fresh",
-  "team_games_UTA": "ok (493 KB, 21 games)",
-  "team_games_TBL": "ok (1144 KB, 20 games)",
-  "team_games_VAN": "ok (3773 KB, 22 games)",
-  "team_games_TOR": "ok (3783 KB, 22 games)",
-  "team_games_VGK": "ok (1916 KB, 22 games)",
-  "team_games_WSH": "ok (3771 KB, 18 games)",
-  "team_games_WPG": "ok (3131 KB, 21 games)"
+  "team_games_TBL": "fresh",
+  "team_games_TOR": "fresh",
+  "team_games_UTA": "fresh",
+  "team_games_VAN": "fresh",
+  "team_games_VGK": "fresh",
+  "team_games_WSH": "fresh",
+  "team_games_WPG": "fresh"
  },
  "teams_at": {
   "BUF": "2026-11-16T20:54:05+00:00",
