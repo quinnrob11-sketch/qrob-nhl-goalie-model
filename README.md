@@ -95,7 +95,8 @@ Fully automatic once it's merged:
    each game's win probability, plus any DraftKings or PrizePicks line the build saw with its price
    and moneyline, and the price-aware decision (calibrated P, EV, tier). A game that has started is
    never changed.
-2. **After games:** every build (first one 8:30am ET) grades finished games from the box scores:
+2. **After games:** every build grades finished games from the box scores (the first ones at about 6:30 and
+   7:30 AM Central, dispatched by `ticker.yml`; GitHub drops most of `build.yml`'s own morning schedules):
    - every real line, appended to `real_line_log.csv` with HIT/MISS at the pick-time line and price;
      units and ROI by market, tier, side and book; game-winner picks in units at the DraftKings
      moneyline; DFS (Pick6 / PrizePicks) lines as a market-basis record against per-leg break-even;
@@ -316,6 +317,7 @@ model/data/              real-line log, DraftKings price history, nightly calls,
 model/prizepicks.py      starting goalies + saves lines from the PrizePicks board
 model/template.html      dashboard template
 model/output/            params.json, saves_dist.json, calibration.json, tracking.json, backtests
-.github/workflows/build.yml   rebuild, grade and publish (dispatched every 15 minutes by ticker.yml, 9 AM-1:45 AM CT)
+.github/workflows/build.yml   rebuild, grade and publish (dispatched by ticker.yml: every 15 minutes 9 AM-1:45 AM CT,
+                              and at about 6:30 and 7:30 AM to grade last night's games)
 .github/workflows/tests.yml   unit tests and the model-settings freeze, on every push
 ```
