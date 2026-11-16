@@ -104,10 +104,34 @@ class Refresh(unittest.TestCase):
     def test_a_dead_source_is_given_up_on(self):
         mt.TEAMS = [f"T{i:02d}" for i in range(12)]
         self.down = set(mt.TEAMS)
-        st = self.run_()
+        keep, mt.MAX_PER_RUN = mt.MAX_PER_RUN, 100                           # every team due in one build
+        try:
+            st = self.run_()
+        finally:
+            mt.MAX_PER_RUN = keep
         self.assertLessEqual(len(self.asked), mt.MAX_FAILS + 4)              # a few in flight, then it stops asking
         self.assertTrue(any(v.startswith("skipped") for v in st.values()))
         self.assertIsNone(mt.read_recent())
+
+    def test_at_most_a_few_logs_per_build_longest_waiting_first(self):
+        mt.TEAMS = [f"T{i:02d}" for i in range(20)]
+        keep, mt.MAX_PER_RUN = mt.MAX_PER_RUN, 8
+        try:
+            st = self.run_()
+            self.assertEqual(sorted(self.asked), mt.TEAMS[:8])                    # never pulled: in list order, 8 of them
+            self.assertEqual(sum(str(v).startswith("due") for v in st.values()), 12)
+            self.run_(NOW + dt.timedelta(minutes=15))
+            self.assertEqual(sorted(self.asked), mt.TEAMS[8:16])                  # the next build takes the next 8
+            self.run_(NOW + dt.timedelta(minutes=30))
+            self.assertEqual(sorted(self.asked), mt.TEAMS[16:])
+            self.run_(NOW + dt.timedelta(minutes=45))
+            self.assertEqual(self.asked, [])                                      # all fresh now
+            self.run_(NOW + dt.timedelta(hours=mt.MAX_AGE_H, minutes=1))          # the first 8 are due again first
+            self.assertEqual(sorted(self.asked), mt.TEAMS[:8])
+            self.run_(NOW + dt.timedelta(hours=mt.MAX_AGE_H, minutes=2), force=True)   # --force pulls every team
+            self.assertEqual(len(self.asked), 20)
+        finally:
+            mt.MAX_PER_RUN = keep
 
     def test_force_and_unreadable_state(self):
         self.run_()

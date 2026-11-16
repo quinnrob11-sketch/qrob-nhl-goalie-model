@@ -46,6 +46,8 @@ COLS = ["game_id", "team_abbrev", "mp_ff", "mp_fa"]
 FF, FA = "scoreAdjustedUnblockedShotAttemptsFor", "scoreAdjustedUnblockedShotAttemptsAgainst"
 MAX_FAILS = 6          # stop after this many failures in a row (blocked or down): the build must not stall
 GENTLE_S = 0.5         # pause after each download
+MAX_PER_RUN = 8        # team logs pulled per build, longest-waiting first: MoneyPuck answered HTTP 429 after 25 in a
+                       # row (2026-11-16), and with builds every 15 minutes all 32 still refresh within the hour
 
 status: dict = {}
 _lock = threading.Lock()
@@ -142,9 +144,6 @@ def refresh(today: dt.date | None = None, force: bool = False, now: dt.datetime 
 
     def one(team):
         name = f"team_games_{team}"
-        if not force and not due(teams_at, team, now):
-            status[name] = "fresh"
-            return
         if box["fails"] >= MAX_FAILS:
             status[name] = "skipped (source failing)"
             return
@@ -173,12 +172,20 @@ def refresh(today: dt.date | None = None, force: bool = False, now: dt.datetime 
         print(f"  [moneypuck] {name}: {status[name]}", flush=True)
         time.sleep(GENTLE_S)
 
+    # the teams that are due, longest-waiting first (never pulled before all others), at most MAX_PER_RUN per build
+    want = [t for t in TEAMS if force or due(teams_at, t, now)]
+    if not force:
+        want = sorted(want, key=lambda t: (t in teams_at, str(teams_at.get(t) or "")))[:MAX_PER_RUN]
+    for t in TEAMS:
+        if t not in want:
+            status[f"team_games_{t}"] = "fresh" if not due(teams_at, t, now) else "due (a later build)"
     # the logs are about 3.7 MB each and arrive slowly: 4 at a time
     with ThreadPoolExecutor(4) as ex:
-        list(ex.map(one, TEAMS))
+        list(ex.map(one, want))
     _write_status(teams_at, len(box["cur"]))
     ok = sum(str(v).startswith(("ok", "fresh")) for v in status.values())
-    print(f"  [moneypuck] {ok}/{len(status)} team logs fresh ({box['pulled']} pulled now); {len(box['cur'])} team-games this season")
+    print(f"  [moneypuck] {ok}/{len(status)} team logs fresh ({box['pulled']} pulled now, "
+          f"{sum(str(v).startswith('due') for v in status.values())} waiting); {len(box['cur'])} team-games this season")
     return status
 
 
