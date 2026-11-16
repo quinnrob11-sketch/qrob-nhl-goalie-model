@@ -244,6 +244,51 @@ def main():
         json.dump(D0, open(os.path.join(OUT, "saves_dist.json"), "w"), indent=1)
 
 
+def fit_gs_mp(dry_run: bool = False):
+    """gs for the engine's MoneyPuck mode (engine.mp_mode == "mp"), written as gs_mp in saves_dist.json; the gs above
+    stays the Corsi-mode value. The same fit as step 2 of main() on the current params, with MoneyPuck's attempts
+    merged in as build_site does. In MoneyPuck mode the Fenwick terms already carry most of the strength gap that
+    the game script corrects for in Corsi mode (independent check, 2026-11-16: gs 0.025 over-adjusted favourites
+    and underdogs in every season once the engine was back in MoneyPuck mode)."""
+    import moneypuck_teams
+    tg, st = data.load_all([2024, 2025, 2026, 2027], refresh=False)
+    P0 = engine.Params.load(os.path.join(OUT, "params.json"))
+    D0 = json.load(open(os.path.join(OUT, "saves_dist.json")))
+    cap = D0.get("gs_cap", saves_dist.DEFAULTS["gs_cap"])
+    df, state = engine.run(moneypuck_teams.with_attempts(tg), st, P0, record_from_season=FROM)
+    if state.mode != "mp":
+        raise SystemExit("MoneyPuck does not cover the latest season: the engine runs in Corsi mode, nothing to fit")
+    d = with_pwin(df).sort_values(["date", "game_id", "team"]).reset_index(drop=True)
+    wk = weeks(d)
+    gs_err = {g: ((d.exp_sa * gs_mult(d.lo, g, cap) - d.actual_team_sa) ** 2).values for g in GS_GRID}
+    gpick, gpicks, gkeys = walk_forward(gs_err, wk)
+    gs_mp = float(min(gkeys, key=lambda g: gs_err[g].mean()))
+    lines = ["# Game script in MoneyPuck mode (`python model/fit_sa.py --gs-mp`)", "",
+             f"Shots-against squared error on every start from {FROM - 1}-{str(FROM)[2:]}, engine in MoneyPuck mode "
+             f"(Corsi-mode gs {D0['gs']:.3f}).", "",
+             "| gs | " + " | ".join(f"{s_ - 1}-{str(s_)[2:]}" for s_ in sorted(d.season.unique())) + " | all |",
+             "|---|" + "---|" * (d.season.nunique() + 1)]
+    for g in sorted({0.0, gs_mp, float(D0["gs"]), 0.01, 0.04}):
+        e = gs_err[min(GS_GRID, key=lambda x: abs(x - g))]
+        lines.append(f"| {g:.3f} | " + " | ".join(f"{e[(d.season == s_).values].mean():.3f}" for s_ in sorted(d.season.unique()))
+                     + f" | {e.mean():.3f} |")
+    lines += ["", "Walk-forward gs by week: " + ", ".join(f"{w}: {g:.3f}" for w, g in gpicks[-8:]), "",
+              f"Fitted on all of it: **gs_mp = {gs_mp:.3f}**. Used whenever the engine runs in MoneyPuck mode "
+              "(saves_dist.for_mode); the Corsi-mode gs is unchanged.", ""]
+    print("\n".join(lines))
+    if not dry_run:
+        D0["gs_mp"] = round(gs_mp, 3)
+        fit = D0.get("fit", "")
+        if "gs_mp" not in fit:
+            D0["fit"] = fit + " | gs_mp: the same gs fit with the engine in MoneyPuck mode (fit_sa.py --gs-mp)"
+        json.dump(D0, open(os.path.join(OUT, "saves_dist.json"), "w"), indent=1)
+        os.makedirs(REPORTS, exist_ok=True)
+        open(os.path.join(REPORTS, "game_script_mp.md"), "w").write("\n".join(lines) + "\n")
+
+
+if __name__ == "__main__" and "--gs-mp" in __import__("sys").argv:
+    fit_gs_mp(dry_run="--dry-run" in __import__("sys").argv)
+    raise SystemExit
 if __name__ == "__main__" and "--corsi" in __import__("sys").argv:
     import moneypuck_teams as moneypuck
     tg, st = data.load_all([2024, 2025, 2026, 2027], refresh=False)

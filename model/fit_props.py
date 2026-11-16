@@ -6,7 +6,7 @@
 
 Everything used for the current season is fitted on earlier seasons only:
   * recency / shrinkage (rate_hl, toi_hl, k_min, carry, c_opp, c_team): coordinate search on the
-    previous season's negative-binomial log-likelihood;
+    previous season's negative-binomial log-likelihood, each candidate at its best linear calibration;
   * back-to-back and opponent back-to-back: projected-vs-actual ratios pooled over earlier seasons;
   * linear mean recalibration (cal_a, cal_b): actual ~ raw on the previous season;
   * dispersion (disp_k, size = disp_k x mean): max likelihood on the previous season, then per
@@ -29,7 +29,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "output")
 REPORTS = os.path.join(HERE, "reports")
 FILES = {"shots_on_goal": "sog_params.json", "points": "points_params.json"}
-GRID = {"rate_hl": [30, 60, 120], "toi_hl": [4, 8, 16], "k_min": [25, 50, 100, 200], "carry": [0.5, 0.7, 0.9],
+GRID = {"rate_hl": [30, 60, 120, 240, 480], "toi_hl": [4, 8, 16], "k_min": [25, 50, 100, 200, 400, 800], "carry": [0.5, 0.7, 0.9],
         "c_opp": [0.5, 1.0], "c_team": [0.0, 0.5, 1.0]}
 # SOG only: shot-attempt rate and the two-scale TOI (walk-forward tested in the sog-projection workflow)
 GRID_SOG = {"w_att": [0.5, 0.75, 1.0], "att_hl": [20, 30, 45, 60], "k_att": [25, 50, 100, 200],
@@ -134,11 +134,12 @@ def fit_stat(stat, sk, season, log):
 
     def ll(df, p, ss):
         """NB log-lik on season ss after refitting proj = a + b x raw there (size = disp_k x mean): the search
-        then compares candidates at their best calibration, which is how they are used."""
+        then compares candidates at their best calibration, which is how they are used. (Until 2026-11-16 points
+        were compared on the raw projection, which penalised a stronger prior for the scale change the calibration
+        then removes. Points refit with this, 2026-11-16: k_min 400, carry 0.9, better out of sample overall, NOT
+        shipped: its steeper single calibration under-predicts 2+ points for low-projection defencemen (independent
+        check, z 2.7). Calibrating forwards and defence separately comes first; see accuracy_review.md.)"""
         x = df[df.season == ss]
-        if stat != "shots_on_goal":      # points: unchanged objective (raw projection)
-            mu = np.maximum(x.proj.values, .02)
-            return float(nb_logpmf(x.shots.values, mu, sizes(mu, p)).mean())
         b, a = np.polyfit(x.raw.values, x.shots.values, 1)
         mu = np.maximum(a + b * x.raw.values, .02)
         return float(nb_logpmf(x.shots.values, mu, sizes(mu, p)).mean())

@@ -2,6 +2,7 @@
  "nb_k": 30.0,
  "gs": 0.025,
  "sd_floor": 5.5,
- "fit": "nb_k: max likelihood on 2024-25 starts | gs, half_life, lg_half_life: walk-forward shots-against squared error on 2025-26 + 2026-27 (fit_sa.py); gs_cap: max game-script move; sd_floor: walk-forward max likelihood",
- "gs_cap": 0.12
+ "fit": "nb_k: max likelihood on 2024-25 starts | gs, half_life, lg_half_life: walk-forward shots-against squared error on 2025-26 + 2026-27 (fit_sa.py); gs_cap: max game-script move; sd_floor: walk-forward max likelihood | gs_mp: the same gs fit with the engine in MoneyPuck mode (fit_sa.py --gs-mp)",
+ "gs_cap": 0.12,
+ "gs_mp": 0.005
 }

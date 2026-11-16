@@ -46,6 +46,17 @@ def spread(mu: float, sv: float, k: float, floor: float) -> float:
     return max(math.sqrt(sv * sv * (mu + mu * mu / k) + mu * sv * (1 - sv)), floor)
 
 
+def for_mode(dist: dict, mode: str | None) -> dict:
+    """The settings for the engine's shots-against mode (engine.mp_mode). In MoneyPuck mode ("mp") the game script
+    is gs_mp when it is fitted (fit_sa.py --gs-mp): MoneyPuck's Fenwick terms already carry most of the strength gap
+    the game script corrects for in Corsi mode. gs_mode records which applies (the page shows it)."""
+    out = dict(dist)
+    if mode == "mp" and dist.get("gs_mp") is not None:
+        out["gs"] = dist["gs_mp"]
+    out["gs_mode"] = "mp" if mode == "mp" else "corsi"
+    return out
+
+
 def project(exp_sa: float, share: float, sv: float, p_win: float | None, prm: dict) -> dict:
     """Projected saves, its spread, and the shots behind it."""
     k, gs, cap, floor = (prm.get(x, DEFAULTS[x]) for x in ("nb_k", "gs", "gs_cap", "sd_floor"))

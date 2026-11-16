@@ -83,6 +83,10 @@ class SogParams:
         return cls(**{k: tuple(v) if isinstance(v, list) else v for k, v in engine.load_fields(cls, path).items()})
 
 
+DEBUT_DEC = 0.98          # per debut: the debut ice time follows about the last 35 debuts
+DEBUT_POS = ("F",)        # positions that start from debut ice time (see State.debut_toi)
+
+
 class D:
     __slots__ = ("s", "w")
 
@@ -164,19 +168,29 @@ class State:
         self.hist = defaultdict(lambda: deque(maxlen=10))
         self.pos_rate = {"F": D(), "D": D()}
         self.pos_toi = {"F": D(), "D": D()}
+        # Ice time in a forward's first NHL game, when he has no history yet. Debut forwards play far less than the
+        # position average (2024-25 to 2026-27: 10.5-11.4 min against 15.2), so a call-up projected on the average
+        # was about 0.5-0.9 shots too high. Learned walk-forward from the debuts seen so far (DEBUT_DEC per debut),
+        # skipping the data's first season, where every player looks new. Forwards only (DEBUT_POS): debut defence
+        # also play less (13-15 min against 19.3) but shoot more per minute, and the change was mixed for them.
+        self.debut_toi = {"F": D(), "D": D()}
+        self.first_season = None
         self.team_sa = defaultdict(D)  # stat allowed per game (shots or points against)
         self.team_for = defaultdict(D)  # stat for per game
         self.lg_sa = D()
         self.last_played = {}
         r0, lg0 = (dict(F=1.9, D=1.0), 6.9) if stat == "points" else (dict(F=7.0, D=4.5), 28.5)
-        for pos, r, t in (("F", r0["F"], 15.5), ("D", r0["D"], 20.5)):
+        for pos, r, t, td in (("F", r0["F"], 15.5, 11.0), ("D", r0["D"], 20.5, 15.0)):
             self.pos_rate[pos].add(r / 60 * 1000, 1, 1000)
             self.pos_toi[pos].add(t * 20, 1, 20)
+            self.debut_toi[pos].add(td * 10, 1, 10)
         self.lg_sa.add(lg0 * 20, 1, 20)
         self.season = None
         self.name, self.team, self.posn = {}, {}, {}
 
     def new_season(self, season):
+        if self.first_season is None:
+            self.first_season = season
         if self.season is not None and season != self.season:
             for tbl in (self.shots, self.toi, self.toi2, self.att, self.conv, self.team_sa, self.team_for):
                 for v in tbl.values():
@@ -202,7 +216,11 @@ class State:
         k = self.p.k_toi
 
         def one(d):
-            return base if d is None or d.w + k <= 0 else (d.s + base * k) / (d.w + k)
+            if d is None and pos in DEBUT_POS:     # no NHL game yet: what debut forwards play
+                return self.debut_toi[pos].s / self.debut_toi[pos].w
+            if d is None:
+                return base
+            return base if d.w + k <= 0 else (d.s + base * k) / (d.w + k)
         t = one(self.toi.get(pid))
         if self.p.toi_hl2 > 0 and self.p.toi_lam < 1:
             t = self.p.toi_lam * t + (1 - self.p.toi_lam) * one(self.toi2.get(pid))
@@ -277,6 +295,8 @@ def run(s: pd.DataFrame, p: SogParams, record_from=None, stat: str = "shots_on_g
                              float(np.mean(h)) if h and len(h) >= 10 else np.nan, int(val[i])))
         # updates
         for r, v in zip(day.itertuples(index=False), val):
+            if r.player_id not in st.toi and st.season != st.first_season and r.pos in DEBUT_POS:
+                st.debut_toi[r.pos].add(r.toi_min, DEBUT_DEC)
             st.shots[r.player_id].add(v, st.rdec, r.toi_min)
             st.toi[r.player_id].add(r.toi_min, st.tdec)
             if st.t2dec:

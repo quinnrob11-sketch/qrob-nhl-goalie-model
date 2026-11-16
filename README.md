@@ -52,7 +52,7 @@ Play            = calibrated P(side) > break-even of the price + 2%
 | save% | Goalie SV% shrunk toward .900 |
 | home / playoff / b2b | Multipliers measured from 2024-25 shot volume |
 | opp_b2b | The opponent played last night: tired teams generate about 3% fewer shots (0.968, fit on 2024-25; holds in every season since) |
-| game script | Win probability from the no-vig DraftKings moneyline (or the game-winner model when none is posted). Heavier underdogs face more shots. `gs` = 0.015, fitted on 2024-25 and 2025-26 (`model/saves_dist.py`, `output/saves_dist.json`) |
+| game script | Win probability from the no-vig DraftKings moneyline (or the game-winner model when none is posted). Heavier underdogs face more shots. `gs` = 0.025 when the model runs on its own Corsi counts, 0.005 when MoneyPuck's attempts drive it (`gs_mp`, `python model/fit_sa.py --gs-mp`): the Fenwick terms already carry most of the strength gap (`model/saves_dist.py`, `output/saves_dist.json`) |
 | spread | Shots against vary like a negative binomial (K = 30, max likelihood on 2024-25) and each shot is saved with probability sv. Heavy underdogs get a spread near 8 saves, heavy favourites near 5.6; the old fixed 6.9 was too tight for underdogs and too loose for favourites. Better log-likelihood than the fixed spread on 2025-26 and 2026-27 |
 
 Every projection uses only games played **before** that date (walk-forward), so the
