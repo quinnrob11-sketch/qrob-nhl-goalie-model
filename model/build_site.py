@@ -27,6 +27,7 @@ import saves_dist
 import sog
 import starters
 import linecombos
+import linemoves
 import moneypuck
 import moneypuck_teams
 import pick6
@@ -320,6 +321,28 @@ def save_prices(dk_saves, dk_sog, dk_points=None):
         dkp.append(BOOK_PRICES, brows, key=dkp.KEY + ["book"])
 
 
+def record_lines(pp_props, p6_rows, p6_stats, slate, now=None) -> dict:
+    """Opening lines and line movement (linemoves) from this build's own pulls (odds.pulled: what The Odds API
+    returned THIS build, even when DraftKings had nothing and the board fell back to the last good pull; PrizePicks'
+    own feed when it let the build in; Pick6 when its pull was fresh). A cached pull, or a Pick6 line kept from an
+    earlier pull, is never logged again. Returns the movement of every prop on the slate's days for the page."""
+    now = now or dt.datetime.now(dt.timezone.utc)
+    got = odds.pulled or {}
+    own_pp = prizepicks.last_js is not None and prizepicks.props_status == "fresh"
+    obs = linemoves.observations(
+        slate, got.get("at"), dk_saves=got.get("saves"), dk_sog=got.get("sog"), dk_points=got.get("points"),
+        books=[r for r in got.get("books") or [] if r.get("match") == "MATCHED"],
+        pp=pp_props if own_pp else [r for r in got.get("pp") or [] if r.get("match") == "MATCHED"],
+        pick6=p6_rows if pick6.fetch_status == "fresh" else None)
+    days = sorted({g["date"] for g in slate})
+    rebuilt = linemoves.ensure(days, before=got.get("at"), now=now)
+    n = linemoves.record(obs, linemoves.covered(obs, (p6_stats or {}).get("full") or ()), now)
+    moves = linemoves.for_page(days)
+    print(f"  [lines] {len(obs)} props seen, {n} moves written{f', rebuilt {rebuilt}' if rebuilt else ''}; "
+          f"{len(moves)} props with movement on the page")
+    return moves
+
+
 def saves_rows(df: pd.DataFrame, season: int) -> pd.DataFrame:
     """This season's walk-forward starts with the goalie's team win probability (game-winner model)."""
     x = df[df.season == season]
@@ -545,6 +568,11 @@ def main():
         "bt_games": json.loads(bt.to_json(orient="records")),
     }
     save_prices(dk, odds.sog_rows, odds.points_rows)
+    try:
+        payload["moves"] = record_lines(pp_props, p6_rows, p6_stats, slate, now)
+    except Exception:  # the line log must never break the dashboard
+        import traceback; traceback.print_exc()
+        payload["moves"] = {}
     # grade finished games, refit calibration on everything graded, then freeze tonight's calls
     try:
         payload["tracking"] = tracker.grade([cur], today)
