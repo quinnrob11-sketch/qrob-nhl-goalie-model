@@ -202,5 +202,27 @@ class Shown(unittest.TestCase):
         self.assertIn("every play and lean", s["shown_basis"])
 
 
+class ShownOpen(unittest.TestCase):
+    """tracker.shown_open: the calls the page showed for games not started yet, for its "Dropped since earlier" list."""
+    setUp, tearDown, leg = Shown.setUp, Shown.tearDown, Shown.leg
+
+    def test_open_calls_once_each_as_first_shown(self):
+        lean = dict(lean=True, pick_side="UNDER", pick_p=.59)
+        # 10:00 a lean on P1's 2.5 and P2's 1.5; 11:00 P1's line is no longer a call (dropped), P3 shown on another game
+        tracker.log_legs([self.leg(**lean), self.leg(2, line=1.5, **lean)], "2026-11-16T15:00:00+00:00")
+        tracker.log_legs([self.leg(), self.leg(2, line=1.5, **lean), self.leg(3, game=2026020301, **lean)], "2026-11-16T16:00:00+00:00")
+        got = tracker.shown_open([2026020300])
+        self.assertEqual([(x["player_id"], x["line"], x["side"], x["call"], x["p"], x["at"]) for x in got],
+                         [(1, 2.5, "UNDER", "lean", 0.59, "2026-11-16T15:00:00+00:00"),
+                          (2, 1.5, "UNDER", "lean", 0.59, "2026-11-16T15:00:00+00:00")])
+        self.assertEqual({x["game"] for x in tracker.shown_open([2026020300, "2026020301"])}, {2026020300, 2026020301})
+        # graded legs are no longer open; a line never shown as a call is not listed
+        rows = tracker._read_legs()
+        rows[0]["result"] = "HIT"
+        self.assertEqual([x["player_id"] for x in tracker.shown_open([2026020300], rows)], [2])
+        tracker.log_legs([self.leg(4)], "2026-11-16T16:00:00+00:00")
+        self.assertNotIn(4, [x["player_id"] for x in tracker.shown_open([2026020300])])
+
+
 if __name__ == "__main__":
     unittest.main()

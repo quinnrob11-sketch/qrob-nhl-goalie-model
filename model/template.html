@@ -326,6 +326,9 @@ details.mvg[open]>summary{margin-bottom:8px}
 .x-tools{display:flex;justify-content:flex-end;margin:0 0 var(--sp-2)}
 .x-um{margin:0;padding:var(--sp-2) var(--sp-4);list-style:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);font-size:var(--fs-s);color:var(--text-2)}
 .x-um li{padding:4px 0} .x-um b{color:var(--text)}
+.x-drop{margin:var(--sp-2) 0 0;padding:var(--sp-2) var(--sp-4);list-style:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);font-size:var(--fs-s);color:var(--text-2)}
+.x-drop li{padding:4px 0} .x-drop b{color:var(--text)}
+.x-mix{margin:0 0 var(--sp-4)}
 .x-sec .r{font-size:var(--fs-xs);color:var(--muted)}
 @media (min-width:1080px){
   .x-cols,.x-row{grid-template-columns:var(--tc,64px) minmax(150px,2fr) 112px minmax(150px,1.1fr) 44px 48px minmax(150px,1.3fr) 64px 12px;column-gap:10px}
@@ -2378,6 +2381,36 @@ function pickItems(pb, app){
   }
   return {items, books, alts, P, V};
 }
+// ---------- calls shown earlier that this board no longer makes ----------
+// D.shown (tracker.shown_open): every play and lean the page has shown for games not started yet, as first shown. One
+// whose line is still up on the same app but is no longer the call on that side is DROPPED: a lean dropped that way has
+// hit far below the chance it was shown with (D.legs: leans_shown_erased). One whose line was taken down while it was
+// still a call is not flagged: it stands for whoever bet it.
+function droppedCalls(pb, items, P, V){
+  const t = Date.now(), games = new Map((D.slate || []).map(g => [String(g.id), g])), key = (pid, mk, g) => `${pid}|${mk}|${g}`;
+  const cur = new Map(items.map(r => [key(r.player_id, r.market, r.game), r]));
+  const out = [];
+  for (const s of D.shown || []){
+    const g = games.get(String(s.game));
+    if (!g || (g.start && Date.parse(g.start) <= t)) continue;                  // started: nothing left to place
+    const row = pb.find(r => r.player_id === s.player_id && r.market === s.market && String(r.game) === String(s.game)
+      && +r.line === +s.line && appOf(r) === bookKey(s.source));
+    if (!row) continue;                                                        // its line was taken down: it stands
+    const it = cur.get(key(s.player_id, s.market, s.game)), pk = it && P.get(it), v = it && V.get(it);
+    const still = pk && ["play", "lean", "check"].includes(pk.tier) && v && v.side === s.side && +it.line === +s.line
+      && pk.apps.some(a => a.key === bookKey(s.source));
+    if (still) continue;
+    const pNow = hasVal(row.p_blend) ? (s.side === "OVER" ? +row.p_blend : 1 - row.p_blend) : null;
+    out.push({s, g, pNow});
+  }
+  return out;
+}
+// the page's record for dropped leans, every market: {hit, n} (tracker.shown_split "erased")
+function droppedRecord(){
+  let hit = 0, n = 0;
+  for (const m of Object.values((D.legs || {}).by_market || {})){ const x = m && m.leans_shown_erased; if (x && x.n){ hit += x.hit; n += x.n; } }
+  return {hit, n};
+}
 // the pick in one plain sentence (the first line of a Picks row's panel)
 function pickWhy(r, v, pk){
   const lab = MK_LAB[r.market] || r.label || "", m = t => ` <span class="muted">· ${t}</span>`;
@@ -2442,6 +2475,19 @@ function renderPicks(pb){
   const rest = shown.filter(r => !tier(r)).sort(cmp);
   const bk = books.filter(keep).sort((a, b) => (b.p ?? -1) - (a.p ?? -1) || nm(a).localeCompare(nm(b)));
   const um = unmatchedRows(sel).filter(r => inMk(r) && matchQ(r.name, r.team, ""));
+  // calls shown earlier today that this board dropped while their line stayed up (droppedCalls)
+  const drops = droppedCalls(pb, items, P, V).filter(d => (!day || d.s.date === day) && inMk(d.s) && (!game || String(d.s.game) === game)
+    && (!app || bookKey(d.s.source) === app) && matchQ(d.s.name, d.s.team, ""));
+  // most calls on one side: say whether the books' own prices lean the same way (shots lines with a market price)
+  const calls = plays.concat(leans.filter(r => tier(r) === "lean")), nU = calls.filter(r => (V.get(r) || {}).side === "UNDER").length;
+  const mkt = shown.filter(r => r.market === "sog" && hasVal(r.p_mkt)), mU = mkt.filter(r => +r.p_mkt < 0.5).length;
+  const lop = calls.length >= 6 && mkt.length >= 20 && (nU / calls.length >= 0.65 || nU / calls.length <= 0.35) ? (nU * 2 > calls.length ? "UNDER" : "OVER") : null;
+  const whose = !day || day === TODAY_CT ? "tonight's" : "this day's";
+  const mixNote = !lop ? "" : `<p class="x-note x-mix">Most of ${whose} calls are ${lop === "UNDER" ? "unders" : "overs"} (${lop === "UNDER" ? nU : calls.length - nU} of ${calls.length}). Each one needs the sportsbooks' own price to favour its side as well; ${whose} books make the ${lop === "UNDER" ? "under" : "over"} the likelier side on ${pc0((lop === "UNDER" ? mU : mkt.length - mU) / mkt.length)} of shots lines${lop === "UNDER" ? ", and shot counts run low on most nights (a player's typical night is below his average)" : ""}.</p>`;
+  const dRec = droppedRecord();
+  const dropRow = d => { const s = d.s, now = d.pNow == null ? "no longer a call" : d.pNow < 0.5 ? `now ${sideWord(s.side === "OVER" ? "UNDER" : "OVER")} is the likelier side` : `now ${pc0(d.pNow)}: no edge`;
+    return `<li><b>${esc(s.name)}</b> <span class="muted">${esc(s.team)}</span> · ${sideWord(s.side)} ${lineTx(s.line)} ${MK_LAB[s.market] || esc(s.market)} on ${esc(bookName(s.source))} <span class="muted">· a ${s.call === "play" ? "play" : "lean"} at ${pc0(s.p)}, ${lineTm(s.at)}</span> → <b>${now}</b></li>`; };
+  const dropBody = `<p class="x-note">Shown earlier today, no longer a call on the same line: the market or the model moved against it. Skip it if you have not placed it${dRec.n >= 10 ? `: leans dropped like this have hit ${dRec.hit} of ${dRec.n} (${pc0(dRec.hit / dRec.n)})` : ""}. A call whose line was taken down is not listed: it stands for whoever bet it.</p><ul class="x-drop">${drops.map(dropRow).join("")}</ul>`;
   const N = 15, cutN = (xs, on) => on ? xs : xs.filter((r, i) => i < N || XR.open.has(xKey(r, "pk")));
   const opt = {alts, P, V};
   const sec = (title, n, body, right = "") => `<div class="x-sec"><h3>${title} <span class="n">${n}</span>${right ? `<span class="r">${right}</span>` : ""}</h3>${body}</div>`;
@@ -2473,9 +2519,10 @@ function renderPicks(pb){
     const none = !items.length ? `${appNames} ${apps0.length === 1 ? "has" : "have"} not posted a line the model prices yet.`
       : leans.length ? "None right now. Most nights have none; the leans below are the next best."
       : `None right now, and no leans either${here ? ` (${here})` : ""}: every line is close to a coin flip or pays too little.`;
-    body = (plays.length ? sec("Plays", plays.length, xList(plays, "pk", opt), `${bar} · the strongest`)
+    body = mixNote + (plays.length ? sec("Plays", plays.length, xList(plays, "pk", opt), `${bar} · the strongest`)
         : qOn ? "" : sec("Plays", 0, `<p class="x-none">${none}</p>`, items.length ? `${bar} · the strongest` : "")) +
       (leans.length ? sec("Leans", leans.length, xList(leans, "pk", opt), `${pc0(RULE.lean_p)}+ · the likelier side, not a play`) : "") +
+      (drops.length ? fold("pkDrop", "Dropped since earlier", drops.length, dropBody, "skip if not placed", true) : "") +
       (fOn || qOn ? "" : slipTeaser(pb)) +
       (rest.length ? fold("pkRest", "No edge", rest.length, `<div class="x-tools">${sortSel}</div>` + xList(cutN(rest, PKX.all), "pk", {...opt, nt: true}, more(rest, "all")),
         "coin flips and short payouts", qOn || !!game || mk === "saves") : "") +
@@ -3393,6 +3440,7 @@ function renderLogic(){
     `<b>Play</b> (green): a chance of <b>${one ? tp("sog") + "+" : `${tp("sog")}+ (shots), ${tp("points")}+ (points), ${tp("saves")}+ (saves)`}</b> that also beats the payout's break-even (${pc1(dfsBE(1))} at 1x on your ${DFS.legs}-pick ${DFS.payout}x entry); the market's own probability for the side at <b>${pc0(RULE.mkt_min)}+</b>${mw > 0 ? " (its no-vig price on that line; for shots on a line no book posts, the market's expected shots from his other lines, priced at this one)" : " on the same line"}; the side paying <b>${RULE.min_mult}x or better</b> on an app (or a line you type); the player matched to his NHL id; ${RULE.sog_model_agree ? "the model alone leaning the same way" : "for points and saves, the model alone leaning the same way"}; and a line and price from this build's own pulls. Plays are rare: most nights have none.`,
     `<b>Lean</b> (light green): not a play, but the likelier side. A chance of <b>${pc0(RULE.lean_p)}+</b>, the market leaning the same way (<b>${pc0(RULE.lean_mkt_min)}+</b>), paying ${RULE.min_mult}x or better, shots and points only.${leanTx ? ` On this season's graded DraftKings lines the sides this rule leans to hit ${leanTx}.` : ""} That is about break-even on a pick'em entry (${pc1(dfsBE(1))} needed per leg on your entry), so a lean tells you which way to go and where, not that the bet has an edge.`,
     `<b>Check</b> (amber): a lean or better where his line changed (for example “↑ line 1 (was 3)”: he moved up, and the projection still leans on his old minutes) or the app lists him with another team. Confirm his spot first.`,
+    `<b>Dropped since earlier</b>: a play or lean shown earlier today whose line is still up but is no longer the call (the market or the model moved against it). Skip it if you have not placed it: leans dropped this way have hit far below the chance they were shown with. One whose line the app took down is not listed: it stands for whoever bet it.`,
     `<b>No edge</b> (folded away): close to a coin flip, the market not agreeing, or the likelier side paying under ${RULE.min_mult}x. The row still shows which way he leans and what the app pays. <b>Sportsbook only</b>: DraftKings prices for players neither app lists, for reference; they are never picks.`,
     `<b>Chance</b>${mw > 0 ? ` for shots on goal = the model's projection and the market's expected shots (read from DraftKings' line nearest 50/50, else the other books) averaged ${Math.round(100 * (1 - mw))}/${Math.round(100 * mw)}, then priced at the line; for points and saves it is` : " ="} the calibrated model blended with the market's no-vig price on the same line, by a weight fitted on graded lines (Calibration tab)${mktOnly.length ? `; this build gives the market all of the weight for ${mktOnly.join(" and ")}, so there Chance is the market's no-vig price` : ""}. On a whole-number line (2, 3) landing exactly on it is a push, and the chance is for the bets that do not push. <b>Proj</b> is the model's projection and the number in brackets is projection − line (red when it points against the side).`,
     `<b>Pick6 promo cards</b> carry their name next to the app: a <b>Stat Slice</b> (his line cut, MORE only, at 1x where the ordinary card pays less) or a <b>Power Up</b> (both sides of his line at a boosted multiplier). Pick6 allows one promo pick per entry. A boosted side is judged on what it is worth: it is a lean when it is the likelier side and chance × multiplier is at least ${RULE.promo_value} on our number and on the market's own (a 1x leg breaks even at ${dfsBE(1).toFixed(3)}).`,

@@ -31,6 +31,13 @@ a build-your-own list and editable payout tables. It is a calculator: it places 
 
 **All lines** keeps the saves, points and winners tables, the starters table and the paste box.
 
+**Dropped since earlier.** A play or lean the page showed earlier today whose line is still up but is no longer the
+call (the market or the model moved against it) is listed under the leans with "skip if not placed": leans dropped
+that way hit 9 of 33 (27%) to Nov 16, against about 56% shown (`tracker.shown_open`, `D.shown`). A call whose line the
+app took down is not listed; it stands for whoever bet it. When most of the night's calls fall on one side, a note
+says how often the sportsbooks' own prices make that side the likelier one on the night's shots lines (the board
+leans UNDER mainly because the lines do: shot counts skew low, so a player's typical night is below his average).
+
 **Line moves.** Every prop keeps its **opening line** (the first line a build saw) and every move after it, per book
 and app (`model/linemoves.py`, logged in `model/data/lines/<game day>.csv`):
 

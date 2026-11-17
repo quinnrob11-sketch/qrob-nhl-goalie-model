@@ -608,6 +608,12 @@ def main():
     except Exception:  # a logging failure must not blank the board
         import traceback; traceback.print_exc()
     payload["legs"] = tracker.legs_summary()
+    # the calls shown for games still to start: the page marks one a later build dropped while its line stayed up
+    try:
+        payload["shown"] = tracker.shown_open([g["id"] for g in slate if g.get("state") not in slate_mod.FINAL | slate_mod.LIVE])
+    except Exception as e:  # never let this break the dashboard
+        print(f"  [tracker] shown calls unavailable: {e}")
+        payload["shown"] = []
     # started games on the slate day: live / final stats and HIT / MISS for the legs logged before puck drop
     day_games = [g for g in slate if g["date"] == slate_day]
     live = slate_mod.fetch_live(day_games)

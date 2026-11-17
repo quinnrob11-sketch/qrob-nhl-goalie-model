@@ -1001,6 +1001,29 @@ def shown_split(rows, legs) -> dict:
     return out
 
 
+def shown_open(game_ids, rows=None) -> list[dict]:
+    """Every call (play or lean) the page has shown for the games in `game_ids` (not started yet, so not graded), once
+    per line and side, as first shown. The page compares them with its board: a call a later build dropped while its
+    line stayed up (shown_split's "erased") is marked, because those have hit far below the chance they were shown
+    with (leans: 9 of 33 to 11-16), while a call whose line was taken down still holds for whoever bet it."""
+    keep = {str(g) for g in game_ids}
+    out = {}
+    for r in (rows if rows is not None else _read_legs()):
+        call = r.get("shown") or ""
+        side = r.get("shown_side") or r.get("side")
+        if str(r.get("game")) not in keep or call not in ("play", "lean") or r.get("result") or side not in ("OVER", "UNDER"):
+            continue
+        k = (r["date"], str(r["player_id"]), r["market"], float(r["line"]), r["source"], side)
+        if k in out and SHOWN_RANK[out[k]["call"]] >= SHOWN_RANK[call]:
+            continue
+        pid = _num(r.get("player_id"))
+        out[k] = {"date": r["date"], "game": int(float(r["game"])), "player_id": None if pid is None else int(pid),
+                  "name": r.get("name") or "", "team": r.get("team") or "", "market": r["market"], "line": float(r["line"]),
+                  "source": r["source"], "side": side, "call": call, "p": _num(r.get("shown_p")),
+                  "mult": _num(r.get("shown_mult")), "at": r.get("shown_at") or ""}
+    return sorted(out.values(), key=lambda x: (x["date"], x["game"], x["name"], x["market"], x["line"]))
+
+
 def legs_summary(rows=None) -> dict:
     """Records a person could have bet (playable_legs): reliability of the shown probability and records by
     side, line, price and TAKE legs, with units and ROI at the price offered. Unplayable sides (not offered,
