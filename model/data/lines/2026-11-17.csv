@@ -2619,3 +2619,6 @@ snap,market,source,player_id,name,team,teams,line,over,under,mo,mu
 2026-11-17T21:10:02+00:00,sog,DraftKings,8482124,Quinton Byfield,LAK,LAK/BOS,2.5,-105,-125,,
 2026-11-17T21:10:02+00:00,sog,DraftKings,8479675,Trevor Moore,LAK,LAK/BOS,1.5,-160,120,,
 2026-11-17T21:10:02+00:00,sog,ESPN BET,8483482,Tristan Luneau,ANA,ANA/STL,1.5,105,-135,,
+2026-11-17T21:11:55+00:00,points,DraftKings,8482733,Logan Mailloux,STL,ANA/STL,0.5,180,-245,,
+2026-11-17T21:11:55+00:00,points,ESPN BET,8483524,Shane Wright,NSH,NSH/MIN,0.5,170,-230,,
+2026-11-17T21:11:55+00:00,saves,ESPN BET,8476412,Jordan Binnington,STL,ANA/STL,24.5,-110,-120,,
