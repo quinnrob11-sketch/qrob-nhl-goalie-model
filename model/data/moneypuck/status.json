@@ -1,5 +1,5 @@
 {
- "at": "2026-11-17T19:26:16+00:00",
+ "at": "2026-11-17T19:41:56+00:00",
  "files": {
   "team_games_ANA": "fresh",
   "team_games_BOS": "fresh",
@@ -26,13 +26,13 @@
   "team_games_SJS": "fresh",
   "team_games_SEA": "fresh",
   "team_games_STL": "fresh",
-  "team_games_TBL": "fresh",
-  "team_games_TOR": "fresh",
-  "team_games_UTA": "fresh",
-  "team_games_VAN": "fresh",
-  "team_games_VGK": "fresh",
-  "team_games_WSH": "fresh",
-  "team_games_WPG": "fresh"
+  "team_games_UTA": "ok (495 KB, 22 games)",
+  "team_games_VAN": "ok (3776 KB, 23 games)",
+  "team_games_VGK": "ok (1916 KB, 22 games)",
+  "team_games_TOR": "ok (3783 KB, 22 games)",
+  "team_games_WSH": "ok (3771 KB, 18 games)",
+  "team_games_WPG": "ok (3131 KB, 21 games)",
+  "team_games_TBL": "failed: The read operation timed out"
  },
  "teams_at": {
   "BUF": "2026-11-17T16:55:58+00:00",
@@ -60,13 +60,13 @@
   "SEA": "2026-11-17T17:25:54+00:00",
   "SJS": "2026-11-17T17:25:54+00:00",
   "STL": "2026-11-17T17:41:04+00:00",
-  "UTA": "2026-11-16T23:29:55+00:00",
+  "UTA": "2026-11-17T19:41:31+00:00",
   "TBL": "2026-11-16T23:29:55+00:00",
-  "VAN": "2026-11-16T23:29:55+00:00",
-  "TOR": "2026-11-16T23:29:55+00:00",
-  "VGK": "2026-11-16T23:29:55+00:00",
-  "WSH": "2026-11-16T23:29:55+00:00",
-  "WPG": "2026-11-16T23:29:55+00:00"
+  "VAN": "2026-11-17T19:41:31+00:00",
+  "TOR": "2026-11-17T19:41:31+00:00",
+  "VGK": "2026-11-17T19:41:31+00:00",
+  "WSH": "2026-11-17T19:41:31+00:00",
+  "WPG": "2026-11-17T19:41:31+00:00"
  },
- "recent_rows": 662
+ "recent_rows": 664
 }
