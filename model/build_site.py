@@ -329,13 +329,19 @@ def record_lines(pp_props, p6_rows, p6_stats, slate, now=None) -> dict:
     now = now or dt.datetime.now(dt.timezone.utc)
     got = odds.pulled or {}
     own_pp = prizepicks.last_js is not None and prizepicks.props_status == "fresh"
+    via_odds = [r for r in got.get("pp") or [] if r.get("match") == "MATCHED"]
+    # PrizePicks' own feed (pp_props) carries shots and points only: its goalies' saves lines still come from The Odds API
+    pp_obs = pp_props + [r for r in via_odds if r.get("market") == "saves"] if own_pp else via_odds
     obs = linemoves.observations(
         slate, got.get("at"), dk_saves=got.get("saves"), dk_sog=got.get("sog"), dk_points=got.get("points"),
-        books=[r for r in got.get("books") or [] if r.get("match") == "MATCHED"],
-        pp=pp_props if own_pp else [r for r in got.get("pp") or [] if r.get("match") == "MATCHED"],
+        books=[r for r in got.get("books") or [] if r.get("match") == "MATCHED"], pp=pp_obs,
         pick6=p6_rows if pick6.fetch_status == "fresh" else None)
     days = sorted({g["date"] for g in slate})
-    rebuilt = linemoves.ensure(days, before=got.get("at"), now=now)
+    try:   # only a day this pull has lines for can need its earlier pulls; a failure here must not stop the log
+        rebuilt = linemoves.ensure(sorted({o["day"] for o in obs}), before=got.get("at"), now=now)
+    except Exception as e:
+        print(f"  [lines] rebuilding a day from the price history failed: {e}")
+        rebuilt = {}
     n = linemoves.record(obs, linemoves.covered(obs, (p6_stats or {}).get("full") or ()), now)
     moves = linemoves.for_page(days)
     print(f"  [lines] {len(obs)} props seen, {n} moves written{f', rebuilt {rebuilt}' if rebuilt else ''}; "

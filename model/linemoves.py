@@ -16,10 +16,15 @@ OPENING line (the first line a build saw), and its last row before puck drop is 
   source's lines for the same game and market (a failed request for one game is never read as every line in it
   coming down), and, for Pick6, only for a market its page listed in full.
 
+* A sportsbook moves a skater's main line a rung whenever its price drifts past a threshold, and often straight back
+  (ESPN BET: 0.5 at -250, then 1.5 at +180, then 0.5 at -260 for the same player within half an hour; 260 of
+  DraftKings' 506 skater line changes from 11-03 to 11-17 were undone at the next change). The count those prices
+  imply barely moves (2-12% a change), so the page shows a skater's sportsbook line as moved only when the count at
+  its latest line is RUNG_TOL away from the open's, or it is off the board (rung_only). The log keeps every row.
+
 dk_prices.csv / book_prices.csv (prices.py) keep every price of every line for grading; this log keeps the story of
-each prop for the page. Days before this log were rebuilt from those two files (`python model/linemoves.py
---backfill`): DraftKings in every market and the other books' saves lines, which post one line per player at a time;
-those days carry no off-the-board rows, and a line that went back to an earlier line at the same price is missing.
+each prop for the page. The days before it went live were rebuilt from the pulls in git history
+(model/backfill_lines.py), and the earliest days, before the caches, from those two price files.
 """
 from __future__ import annotations
 
@@ -34,6 +39,7 @@ COLS = ["snap", "market", "source", "player_id", "name", "team", "teams", "line"
 APPS = ("PrizePicks", "Pick6")          # pick'em apps: multipliers (mo / mu), not American odds
 FLICKER_MIN = 20                       # an off-the-board spell this short that comes back unchanged is a feed blip
 PRICED = ("saves",)                    # markets whose every price move is a move; elsewhere only the line is
+RUNG_TOL = 0.10                        # a skater's sportsbook line whose implied count moved less since the open has not moved
 
 
 def path(day: str, base: str | None = None) -> str:
@@ -49,6 +55,17 @@ def _num(x):
     except (TypeError, ValueError):
         return None
     return None if math.isnan(v) else v
+
+
+def _epoch(snap) -> float:
+    """A snap as seconds since 1970 (UTC); unreadable -> -inf. Snaps are compared as instants, never as text."""
+    try:
+        t = dt.datetime.fromisoformat(str(snap).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return float("-inf")
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=dt.timezone.utc)
+    return t.timestamp()
 
 
 def _pid(x):
@@ -183,7 +200,7 @@ def read(day: str, base: str | None = None) -> list[dict]:
 def last_states(rows: list[dict]) -> dict:
     """Each prop's latest row (by snap, then file order)."""
     out = {}
-    for r in sorted(rows, key=lambda r: (r.get("snap") or "", r.get("_i", 0))):
+    for r in sorted(rows, key=lambda r: (_epoch(r.get("snap")), r.get("_i", 0))):
         out[key_of(r)] = r
     return out
 
@@ -199,10 +216,11 @@ def record(obs: list[dict], cover: set | None = None, now: dt.datetime | None = 
     and each prop that came off the board (see the module notes). Returns the rows written."""
     now = now or dt.datetime.now(dt.timezone.utc)
     cover = cover or set()
+    snap_now = now.isoformat(timespec="seconds")
+    obs = [o if o.get("snap") else {**o, "snap": snap_now} for o in obs]
     by_day: dict = {}
     for o in obs:
         by_day.setdefault(o["day"], {}).setdefault(key_of(o), []).append(o)
-    snap_now = now.isoformat(timespec="seconds")
     snap_of = {}
     for o in obs:
         snap_of.setdefault((o["day"], o["source"], o["market"], o["teams"]), o["snap"] or snap_now)
@@ -215,7 +233,7 @@ def record(obs: list[dict], cover: set | None = None, now: dt.datetime | None = 
         for k, rows in seen.items():
             o = main_line(rows)
             prev = last.get(k)
-            if prev is not None and (prev.get("snap") or "") >= (o["snap"] or ""):
+            if prev is not None and _epoch(prev.get("snap")) >= _epoch(o["snap"]):
                 continue                 # not newer than what is stored (a pull read twice)
             if prev is None or state_of(prev) != state_of(o):
                 new.append({c: o.get(c) for c in COLS})
@@ -235,10 +253,36 @@ def record(obs: list[dict], cover: set | None = None, now: dt.datetime | None = 
             w = csv.writer(f)
             if fresh:
                 w.writerow(COLS)
-            for r in sorted(new, key=lambda r: (str(r["snap"]), r["market"], str(r["source"]), str(r["name"]))):
+            for r in sorted(new, key=lambda r: (_epoch(r["snap"]), r["market"], str(r["source"]), str(r["name"]))):
                 w.writerow([_fmt(r.get(c)) for c in COLS])
         written += len(new)
     return written
+
+
+def merge(*logs) -> list[dict]:
+    """Several logs of one day as one (backfill_lines: the pulls replayed from git history with the log the builds
+    wrote): every row in time order, kept only when it changes its prop's state, so a pull both saw is one row and a
+    pull only one saw keeps its row. A prop never opens off the board."""
+    rows = sorted((r for log in logs for r in log), key=lambda r: _epoch(r.get("snap")))   # stable: ties keep log order
+    last, out = {}, []
+    for r in rows:
+        k, st = key_of(r), state_of(r)
+        if last.get(k) == st or (k not in last and st[0] is None):
+            continue
+        last[k] = st
+        out.append({c: r.get(c) for c in COLS})
+    return out
+
+
+def write(day: str, rows: list[dict], base: str | None = None) -> None:
+    """Replace `day`'s log with `rows` (in their order)."""
+    p = path(day, base)
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(COLS)
+        for r in rows:
+            w.writerow([_fmt(r.get(c)) for c in COLS])
 
 
 # ---------- for the page ----------
@@ -254,7 +298,7 @@ def history(day: str, base: str | None = None) -> dict:
     """{prop key: [row, ...]} in time order, with an off-the-board blip (shorter than FLICKER_MIN, back on the very
     same line and price) and any repeated state removed."""
     by = {}
-    for r in sorted(read(day, base), key=lambda r: (r.get("snap") or "", r.get("_i", 0))):
+    for r in sorted(read(day, base), key=lambda r: (_epoch(r.get("snap")), r.get("_i", 0))):
         by.setdefault(key_of(r), []).append(r)
     out = {}
     for k, rs in by.items():
@@ -272,17 +316,50 @@ def history(day: str, base: str | None = None) -> dict:
     return out
 
 
+def implied_mean(line, over, under):
+    """The average count a sportsbook's two prices at `line` imply (Poisson): a market's level whatever rung it is
+    posted at. None without both prices."""
+    p, line = _novig_over(over, under), _num(line)
+    if p is None or line is None or not 0 < p < 1:
+        return None
+    k = math.floor(line) + 1                     # the over wins at k or more
+    lo, hi = 0.0, 60.0
+    for _ in range(60):
+        m = (lo + hi) / 2
+        term, cdf = math.exp(-m), 0.0
+        for i in range(k):
+            cdf += term
+            term *= m / (i + 1)
+        lo, hi = (m, hi) if 1 - cdf < p else (lo, m)
+    return (lo + hi) / 2
+
+
+def rung_only(seq: list[dict]) -> bool:
+    """A skater's prop at a sportsbook, on the board now, whose market has not really moved since it opened: back at
+    its opening line, or at another rung whose prices put the count within RUNG_TOL of the open's. Not a move for
+    the page (the log keeps every row). Off the board now, or prices unknown: False."""
+    if not seq or _num(seq[-1].get("line")) is None:
+        return False
+    a, b = seq[0], seq[-1]
+    if _num(a.get("line")) == _num(b.get("line")):
+        return True
+    ma, mb = (implied_mean(r.get("line"), r.get("over"), r.get("under")) for r in (a, b))
+    return ma is not None and mb is not None and abs(mb - ma) < RUNG_TOL * max(ma, mb)
+
+
 def for_page(days, base: str | None = None, all_markets=("saves",)) -> dict:
     """The page's line movement: {"<day>|<market>|<player id or n:name>": {"<source>": [[minute, line, a, b], ...]}}
     with minute = minutes since 1970 (UTC), line None = off the board, a / b = over / under American odds at a
     sportsbook, More / Less multipliers on an app. Every prop of `all_markets` (the goalies' saves lines, every
     price); another prop only when its LINE moved or it came off the board: skater prices move on nearly every pull
     (436 of 481 DraftKings props on 2026-11-14, against 33 line moves), which would add hundreds of KB to a page
-    every phone reloads, so price-only moves stay in the log."""
+    every phone reloads, so price-only moves stay in the log. Nor is a skater's sportsbook line that only moved
+between rungs of the same market (rung_only)."""
     out = {}
     for day in days:
         for (market, source, who), seq in history(day, base).items():
-            if market not in all_markets and len({_num(r.get("line")) for r in seq}) < 2:
+            if market not in all_markets and (len({_num(r.get("line")) for r in seq}) < 2
+                                              or (source not in APPS and rung_only(seq))):
                 continue
             app = source in APPS
             pts = []
@@ -363,7 +440,7 @@ def backfill_day(day: str, al, base: str | None = None) -> int:
     with open(p, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(COLS)
-        for r in sorted(out, key=lambda r: (str(r["snap"]), r["market"], r["source"], str(r["name"]))):
+        for r in sorted(out, key=lambda r: (_epoch(r["snap"]), r["market"], r["source"], str(r["name"]))):
             w.writerow([_fmt(r.get(c)) for c in COLS])
     return len(out)
 
@@ -380,21 +457,11 @@ def ensure(days, before: str | None = None, now: dt.datetime | None = None, base
     al = _price_history(todo)
     if al is None or not len(al):
         return {}
-    cut = before or (now - dt.timedelta(minutes=1)).isoformat(timespec="seconds")
+    cut = _epoch(before) if before else (now - dt.timedelta(minutes=1)).timestamp()
     out = {}
     for d in todo:
         x = al[al.date == d]
-        if len(x) and str(x.snap.min()) < cut:
+        if len(x) and min(_epoch(t) for t in x.snap) < cut:
             out[d] = backfill_day(d, x, base)
     return out
 
-
-if __name__ == "__main__":
-    import sys
-    if "--backfill" in sys.argv:
-        # every day before today (Central) that has no log yet; today and later are left to the next build (ensure)
-        import zoneinfo
-        today = dt.datetime.now(zoneinfo.ZoneInfo("America/Chicago")).date().isoformat()
-        al = _price_history()
-        n = {d: backfill_day(d, al) for d in sorted(set(al.date)) if d < today}
-        print(f"backfilled {sum(1 for v in n.values() if v)} days, {sum(n.values())} rows into {DIR}")

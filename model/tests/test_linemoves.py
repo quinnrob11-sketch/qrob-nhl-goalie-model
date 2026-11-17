@@ -213,9 +213,6 @@ class Backfill(unittest.TestCase):
         self.assertEqual(lm.record(obs, lm.covered(obs), now=T0 + dt.timedelta(minutes=45), base=self.base), 0)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 MV_HARNESS = r"""
 const fs = require("fs");
@@ -229,6 +226,8 @@ const out = {
   fair: cases.fair.map(([p, sd]) => mvFair(p, sd)),
   cons: cases.cons.map(([b, sd]) => mvConsensus(b, sd)),
   events: cases.events.map(b => mvEvents(b).map(e => [e.t, e.src, e.kind])),
+  top: cases.top.map(([b, skip]) => { const x = mvTop(b, skip); return x && [x.src, x.s.d]; }),
+  at: cases.at.map(([line, seq]) => mvAt(line, mvSum(seq))),
 };
 process.stdout.write(JSON.stringify(out));
 """
@@ -267,11 +266,27 @@ class PageMirror(unittest.TestCase):
                 [[100, 3.5, -115, -105], [115, None, None, None], [200, 4.5, 120, -150]]]
         books = {"DraftKings": [[100, 22.5, 100, -135], [115, 21.5, -135, 100]], "FanDuel": [[105, 22.5, -110, -110]],
                  "ESPN BET": [[110, 23.5, -110, -120], [140, 22.5, -115, -115]], "PrizePicks": [[100, 22.5, 1.0, 1.0], [150, 21.5, 1.0, 1.0]]}
+        ev = lambda t, line: [t, line, -110, -110] if line is not None else [t, None, None, None]   # even money: fair = line
+        linked = [
+            # ESPN BET alone at 27.5 drops to 24.5 in the very pull DraftKings and FanDuel open at 24.5: a 3-save move
+            {"ESPN BET": [ev(0, 27.5), ev(10, 24.5)], "DraftKings": [ev(10, 24.5)], "FanDuel": [ev(10, 24.5)]},
+            # FanDuel alone moves 25.5 -> 27.5, then three books open at 27.5 (A. Stolarz, 11-08): still the full 2
+            {"FanDuel": [ev(0, 25.5), ev(20, 27.5)], "DraftKings": [ev(30, 27.5)], "ESPN BET": [ev(40, 27.5)], "Pinnacle": [ev(50, 27.5)]},
+            # every book off, then back at a new line: a move
+            {"DraftKings": [ev(0, 25.5), ev(10, None), ev(20, 27.5)], "FanDuel": [ev(0, 25.5), ev(10, None), ev(20, 27.5)]},
+            # a spike that ends through off and back where it started: no move
+            {"DraftKings": [ev(0, 25.5), ev(10, 27.5), ev(20, None), ev(30, 25.5)]},
+            # a book off for good leaves the average
+            {"DraftKings": [ev(0, 25.5), ev(10, None)], "FanDuel": [ev(0, 25.5), ev(20, 26.5)]},
+        ]
         cases = {"names": names, "keys": [["2026-11-17", "saves", 8475683, "x"], ["2026-11-17", "sog", None, "J.T. Miller"]],
                  "seqs": seqs, "inv": [1e-6, 0.01, 0.02425, 0.3, 0.5, 0.5345, 0.97, 0.999999],
                  "fair": [[[0, 22.5, 100, -135], 6.5], [[0, 21.5, -135, 100], 6.5], [[0, 25.5, -110, -110], 6.5],
                           [[0, 25.5, None, -110], 6.5], [[0, None, None, None], 6.5]],
-                 "cons": [[books, 6.5], [{"PrizePicks": books["PrizePicks"]}, 6.5]], "events": [books]}
+                 "cons": [[books, 6.5], [{"PrizePicks": books["PrizePicks"]}, 6.5]] + [[b, 6.5] for b in linked], "events": [books],
+                 "top": [[books, None], [books, "PrizePicks"], [{"DraftKings": [ev(0, 25.5), ev(10, None)]}, None]],
+                 "at": [[21.5, books["DraftKings"]], [22.5, books["DraftKings"]], [None, books["DraftKings"]],
+                        [25.5, [ev(0, 25.5), ev(10, None)]], [21.5, books["PrizePicks"]]]}
         out = self.run_page(cases)
         self.assertEqual(out["names"], [lm.norm_name(n) for n in names])                       # the log's name key
         self.assertEqual(out["keys"], ["2026-11-17|saves|8475683", "2026-11-17|sog|n:" + lm.norm_name("J.T. Miller")])
@@ -302,6 +317,12 @@ class PageMirror(unittest.TestCase):
         self.assertAlmostEqual(c["d"], sum(b - a for a, b in zip(opens, nows)) / 3, places=7)   # their average move
         self.assertEqual(c["n"], 3)
         self.assertIsNone(out["cons"][1])                                                     # an app alone has no prices
+        got = [(round(x["open"], 9), round(x["now"], 9), round(x["d"], 9), x["n"]) for x in out["cons"][2:]]
+        self.assertEqual(got, [(27.5, 24.5, -3, 3), (25.5, 27.5, 2, 4), (25.5, 27.5, 2, 2), (25.5, 25.5, 0, 1), (25.5, 26.5, 1, 1)])
+        # the biggest line move on the board now (named), skipping the row's own source; off the board is not a move here
+        self.assertEqual(out["top"], [["DraftKings", -1], ["DraftKings", -1], None])
+        # a row's line is the source's latest posted line (not its open, not a line it has taken down)
+        self.assertEqual(out["at"], [True, False, False, False, True])
         self.assertEqual(out["events"][0], [[100, "DraftKings", "open"], [100, "PrizePicks", "open"], [105, "FanDuel", "open"],
                                             [110, "ESPN BET", "open"], [115, "DraftKings", "line"], [140, "ESPN BET", "line"],
                                             [150, "PrizePicks", "line"]])
@@ -365,3 +386,192 @@ class OddsPulled(unittest.TestCase):
         o.fetch([], self.now, self.R)
         self.assertEqual(o.status, "fallback")
         self.assertEqual({k: v for k, v in o.pulled.items() if k != "at"}, {k: [] for k in ("saves", "sog", "points", "pp", "books")})
+
+
+class Robust(unittest.TestCase):
+    """Pull times are compared as instants, never as text."""
+    def setUp(self):
+        self.d = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.d)
+
+    def test_times_in_another_offset_still_order_right(self):
+        s = dk("Sergei Bobrovsky", 8475683, 25.5, -110, -110, 0)
+        lm.record(lm.observations(SLATE, at(0), dk_saves=[s]), now=T0, base=self.d)
+        # 9:30 Central is 15:30 UTC: later, though "09:30" sorts before "15:00" as text
+        later = dict(s, line=24.5, fetched_at="2026-11-17T09:30:00-06:00")
+        self.assertEqual(lm.record(lm.observations(SLATE, None, dk_saves=[later]), now=T0 + dt.timedelta(minutes=30), base=self.d), 1)
+        earlier = dict(s, line=26.5, fetched_at="2026-11-17T08:45:00-06:00")            # 14:45 UTC: older than the open
+        self.assertEqual(lm.record(lm.observations(SLATE, None, dk_saves=[earlier]), now=T0 + dt.timedelta(minutes=45), base=self.d), 0)
+        h = lm.for_page(["2026-11-17"], base=self.d)["2026-11-17|saves|8475683"]["DraftKings"]
+        self.assertEqual([(p[0] - h[0][0], p[1]) for p in h], [(0, 25.5), (30, 24.5)])
+
+    def test_a_row_without_a_pull_time_takes_the_builds(self):
+        s = {k: v for k, v in dk("Sergei Bobrovsky", 8475683, 25.5, -110, -110, 0).items() if k != "fetched_at"}
+        lm.record(lm.observations(SLATE, None, dk_saves=[s]), now=T0 + dt.timedelta(minutes=5), base=self.d)
+        self.assertEqual([r["snap"] for r in lm.read("2026-11-17", self.d)], [at(5)])
+
+
+class Rungs(unittest.TestCase):
+    """A sportsbook moving a skater's main line between rungs of an all but unchanged market is not a line move."""
+    def setUp(self):
+        self.d = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.d)
+
+    def test_implied_count(self):
+        import math
+        self.assertAlmostEqual(lm.implied_mean(0.5, -110, -110), math.log(2), places=6)    # P(X >= 1) = 1/2
+        self.assertIsNone(lm.implied_mean(0.5, None, -110))
+        # ESPN BET's two rungs of one points market: about the same count (1.10 and 1.19)
+        a, b = lm.implied_mean(0.5, -250, 180), lm.implied_mean(1.5, 180, -250)
+        self.assertLess(abs(a - b) / max(a, b), lm.RUNG_TOL)
+
+    def test_page_leaves_out_a_book_that_only_changed_rungs(self):
+        def pull(t, line, over, under, book_="ESPN BET", pid=8477404, market="points"):
+            obs = lm.observations(SLATE, at(t), books=[book("Nick Paul", pid, line, over, under, t, book_=book_, market=market)])
+            lm.record(obs, lm.covered(obs), now=T0 + dt.timedelta(minutes=t), base=self.d)
+        # ESPN BET flipping rungs: 0.5 at -250, 1.5 at +180, 0.5 at -260, 1.5 at +175
+        for t, line, o, u in ((0, 0.5, -250, 180), (15, 1.5, 180, -250), (30, 0.5, -260, 190), (45, 1.5, 175, -240)):
+            pull(t, line, o, u)
+        # DraftKings' threshold move: 1.5 at -185 to 2.5 at +145 (the count goes 2.04 -> 2.22)
+        pull(0, 1.5, -185, 135, book_="DraftKings", pid=8478402, market="sog")
+        pull(15, 2.5, 145, -195, book_="DraftKings", pid=8478402, market="sog")
+        # a real move: 2.5 even to 1.5 even (2.67 -> 1.68)
+        pull(0, 2.5, -110, -110, book_="FanDuel", pid=8478403, market="sog")
+        pull(15, 1.5, -110, -110, book_="FanDuel", pid=8478403, market="sog")
+        # taken down: always news
+        pull(0, 3.5, -110, -110, book_="BetMGM", pid=8478404, market="sog")
+        obs = lm.observations(SLATE, at(30), books=[book("Other Player", 8478405, 1.5, -110, -110, 30, book_="BetMGM", market="sog")])
+        lm.record(obs, lm.covered(obs), now=T0 + dt.timedelta(minutes=30), base=self.d)
+        h = lm.for_page(["2026-11-17"], base=self.d)
+        self.assertEqual(sorted((k, sorted(v)) for k, v in h.items()),
+                         [("2026-11-17|sog|8478403", ["FanDuel"]), ("2026-11-17|sog|8478404", ["BetMGM"])])
+        self.assertEqual(len([r for r in lm.read("2026-11-17", self.d) if r["source"] == "ESPN BET"]), 4)   # the log keeps them all
+
+
+class Merge(unittest.TestCase):
+    """backfill_lines: the replayed pulls folded into a day the builds already logged."""
+    def test_merge_keeps_each_change_once(self):
+        row = lambda t, line, src="DraftKings", over=-110: {"snap": at(t), "market": "saves", "source": src, "player_id": "8475683",
+                                                            "name": "Sergei Bobrovsky", "team": "FLA", "teams": "TOR/FLA",
+                                                            "line": "" if line is None else str(line), "over": "" if line is None else str(over),
+                                                            "under": "" if line is None else "-110", "mo": "", "mu": ""}
+        replay = [row(0, 25.5), row(30, 24.5), row(45, 25.5)]               # the pulls in git history, from the open
+        live = [row(45, 25.5, over=-110), row(60, 25.5, over=-120)]          # the first build after go-live started at 45
+        out = lm.merge(live, replay)
+        self.assertEqual([(r["snap"], r["line"], r["over"]) for r in out],
+                         [(at(0), "25.5", "-110"), (at(30), "24.5", "-110"), (at(45), "25.5", "-110"), (at(60), "25.5", "-120")])
+        self.assertEqual(lm.merge([row(0, None)], [row(5, 25.5)])[0]["snap"], at(5))   # never opens off the board
+        d = tempfile.mkdtemp()
+        try:
+            lm.write("2026-11-17", out, base=d)
+            self.assertEqual([(r["snap"], r["line"]) for r in lm.read("2026-11-17", d)], [(r["snap"], r["line"]) for r in out])
+            self.assertEqual(lm.merge(lm.read("2026-11-17", d), replay), lm.merge(out))   # merging again changes nothing
+        finally:
+            shutil.rmtree(d)
+
+
+class BackfillLines(unittest.TestCase):
+    def test_pick6_full_markets_from_the_built_page(self):
+        import backfill_lines as bl
+        page = 'const D = {"x":1,"pick6_stats":{"raw":9,"dropped":{},"full":["sog"],"category_name":"Shots On Goal"},"y":[1]};'
+        self.assertEqual(bl.pick6_full_of(page), ["sog"])
+        self.assertEqual(bl.pick6_full_of('const D = {"pick6_stats":{"raw":9}};'), [])
+        self.assertEqual(bl.pick6_full_of("<html></html>"), [])
+
+    def test_replay_takes_pick6_off_only_after_a_full_page(self):
+        import backfill_lines as bl
+        d = tempfile.mkdtemp()
+        try:
+            odds_ = {"saves": [], "sog": [{"name": "Auston Matthews", "player_id": 8479318, "team": "TOR", "teams": ["TOR", "FLA"],
+                                          "date": "2026-11-17", "line": 3.5, "over": -115, "under": -105, "match": "MATCHED"}]}
+            p6 = lambda *names: {"rows": [{"name": n, "player_id": pid, "team": "TOR", "date": "2026-11-17", "market": "sog",
+                                          "line": 2.5, "mo": 1.0, "mu": 0.9} for n, pid in names]}
+            mm, am = ("Mitch Marner", 8478483), ("Auston Matthews", 8479318)
+            items = [(at(0), "odds", odds_), (at(1), "pick6", p6(mm, am), ["sog"]),
+                     (at(15), "pick6", p6(am), []),             # featured picks only: proves nothing
+                     (at(30), "pick6", p6(am), ["sog"])]        # the full shots page without Marner: off
+            bl.replay(items, d)
+            off = [(r["name"], r["snap"]) for r in lm.read("2026-11-17", d) if r["source"] == "Pick6" and r["line"] == ""]
+            self.assertEqual(off, [("Mitch Marner", at(30))])
+        finally:
+            shutil.rmtree(d)
+
+    @unittest.skipUnless(shutil.which("git"), "git is not installed")
+    def test_a_shallow_clone_is_refused(self):
+        import subprocess
+        import backfill_lines as bl
+        d = tempfile.mkdtemp()
+        g = lambda cwd, *a: subprocess.run(["git", "-c", "user.email=t@example.com", "-c", "user.name=t", *a], cwd=cwd,
+                                           check=True, capture_output=True, text=True)
+        try:
+            src = os.path.join(d, "src")
+            os.makedirs(os.path.join(src, "model", "data"))
+            g(src, "init", "-q")
+            for i in range(3):
+                with open(os.path.join(src, "model", "data", "odds_cache.json"), "w") as f:
+                    f.write('{"at": "%s"}' % at(15 * i))
+                g(src, "add", "-A")
+                g(src, "commit", "-q", "-m", f"pull {i}")
+            g(d, "clone", "-q", "--depth", "1", "file://" + src, "shallow")
+            g(d, "clone", "-q", "file://" + src, "full")
+            keep = bl.ROOT
+            try:
+                bl.ROOT = os.path.join(d, "shallow")
+                self.assertIsNotNone(bl._cut("HEAD"))
+                bl.ROOT = os.path.join(d, "full")
+                self.assertIsNone(bl._cut("HEAD"))
+                self.assertEqual([x[0] for x in bl.pulls("HEAD")], [at(0), at(15), at(30)])
+            finally:
+                bl.ROOT = keep
+        finally:
+            shutil.rmtree(d)
+
+
+class RecordLines(unittest.TestCase):
+    """The build's step (build_site.record_lines): what it logs from this build's pulls."""
+    def setUp(self):
+        import build_site, odds, pick6, prizepicks
+        self.bs, self.odds, self.pick6, self.pp = build_site, odds, pick6, prizepicks
+        self.d = tempfile.mkdtemp()
+        self.keep = (lm.DIR, odds.pulled, prizepicks.last_js, prizepicks.props_status, pick6.fetch_status, lm.ensure,
+                     lm.PRICES, lm.BOOK_PRICES, lm.LEGS)
+        lm.DIR = self.d
+        lm.PRICES, lm.BOOK_PRICES, lm.LEGS = (os.path.join(self.d, "none", f) for f in ("dk.csv", "bk.csv", "legs.csv"))
+        pp_saves = {"name": "Joseph Woll", "player_id": 8479361, "team": "TOR", "teams": ["TOR", "FLA"], "date": "2026-11-17",
+                    "market": "saves", "line": 26.5, "over": -137, "under": -137, "match": "MATCHED", "fetched_at": at(0)}
+        odds.pulled = {"at": at(0), "saves": [dk("Joseph Woll", 8479361, 26.5, -110, -110, 0, team="TOR")], "sog": [], "points": [],
+                       "pp": [pp_saves], "books": []}
+        pick6.fetch_status = "error"
+
+    def tearDown(self):
+        (lm.DIR, self.odds.pulled, self.pp.last_js, self.pp.props_status, self.pick6.fetch_status, lm.ensure,
+         lm.PRICES, lm.BOOK_PRICES, lm.LEGS) = self.keep
+        shutil.rmtree(self.d)
+
+    def test_prizepicks_saves_are_logged_when_its_own_feed_answers(self):
+        self.pp.last_js, self.pp.props_status = {"data": []}, "fresh"       # PrizePicks let the build in: shots and points only
+        own = [{"name": "Auston Matthews", "player_id": 8479318, "team": "TOR", "game": 2026020340, "date": "2026-11-17",
+                "market": "sog", "line": 3.5, "mo": 1.0, "mu": 1.0, "fetched_at": at(0)}]
+        self.bs.record_lines(own, [], {}, SLATE, now=T0)
+        got = sorted((r["source"], r["market"], r["line"]) for r in lm.read("2026-11-17"))
+        self.assertEqual(got, [("DraftKings", "saves", "26.5"), ("PrizePicks", "saves", "26.5"), ("PrizePicks", "sog", "3.5")])
+
+    def test_a_failed_rebuild_never_stops_the_log(self):
+        self.pp.last_js, self.pp.props_status = None, "fresh"
+        seen = []
+        def boom(days, **kw):
+            seen.append(list(days))
+            raise ValueError("bad price log")
+        lm.ensure = boom
+        moves = self.bs.record_lines([], [], {}, SLATE, now=T0)
+        self.assertEqual(seen, [["2026-11-17"]])                              # only the days this pull has lines for
+        self.assertEqual(len(lm.read("2026-11-17")), 2)
+        self.assertIn("2026-11-17|saves|8479361", moves)
+
+
+if __name__ == "__main__":
+    unittest.main()
