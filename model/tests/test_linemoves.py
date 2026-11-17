@@ -139,13 +139,13 @@ class Log(unittest.TestCase):
                               {**book("Mitch Marner", 8478483, 2.5, -120, 100, 0), "team": "TOR"}],
                   pp=[app("Joseph Woll", 8479361, 26.5, 1.0, 1.0, 0, market="saves")],
                   dk_saves=[dk("Joseph Woll", 8479361, 26.5, -110, -110, 0, team="TOR")])
-        self.pull(15, dk_sog=[{**book("Auston Matthews", 8479318, 4.5, 120, -150, 15), "team": "TOR"},
+        self.pull(15, dk_sog=[{**book("Auston Matthews", 8479318, 4.5, -110, -110, 15), "team": "TOR"},
                                {**book("Mitch Marner", 8478483, 2.5, -135, 110, 15), "team": "TOR"}],   # Marner: price only
                   pp=[app("Joseph Woll", 8479361, 26.5, 1.0, 1.0, 15, market="saves")],
                   dk_saves=[dk("Joseph Woll", 8479361, 26.5, -125, 105, 15, team="TOR")])          # saves: price only
         h = lm.for_page(["2026-11-17"], base=self.d)
         self.assertEqual(sorted(h), ["2026-11-17|saves|8479361", "2026-11-17|sog|8479318"])
-        self.assertEqual(h["2026-11-17|sog|8479318"]["DraftKings"][1][1:], [4.5, 120, -150])
+        self.assertEqual(h["2026-11-17|sog|8479318"]["DraftKings"][1][1:], [4.5, -110, -110])
         self.assertEqual(h["2026-11-17|saves|8479361"]["PrizePicks"][0][1:], [26.5, 1.0, 1.0])   # an app: multipliers
         self.assertEqual([p[2] for p in h["2026-11-17|saves|8479361"]["DraftKings"]], [-110, -125])   # every saves price
         self.assertEqual(len([r for r in self.rows() if r["name"] == "Mitch Marner"]), 1)      # a skater's price move: not a move
@@ -284,7 +284,8 @@ class PageMirror(unittest.TestCase):
                  "fair": [[[0, 22.5, 100, -135], 6.5], [[0, 21.5, -135, 100], 6.5], [[0, 25.5, -110, -110], 6.5],
                           [[0, 25.5, None, -110], 6.5], [[0, None, None, None], 6.5]],
                  "cons": [[books, 6.5], [{"PrizePicks": books["PrizePicks"]}, 6.5]] + [[b, 6.5] for b in linked], "events": [books],
-                 "top": [[books, None], [books, "PrizePicks"], [{"DraftKings": [ev(0, 25.5), ev(10, None)]}, None]],
+                 "top": [[books, None], [books, "PrizePicks"], [{"DraftKings": [ev(0, 25.5), ev(10, None)]}, None],
+                         [books, ["DraftKings", None, "ESPN BET"]]],
                  "at": [[21.5, books["DraftKings"]], [22.5, books["DraftKings"]], [None, books["DraftKings"]],
                         [25.5, [ev(0, 25.5), ev(10, None)]], [21.5, books["PrizePicks"]]]}
         out = self.run_page(cases)
@@ -320,7 +321,7 @@ class PageMirror(unittest.TestCase):
         got = [(round(x["open"], 9), round(x["now"], 9), round(x["d"], 9), x["n"]) for x in out["cons"][2:]]
         self.assertEqual(got, [(27.5, 24.5, -3, 3), (25.5, 27.5, 2, 4), (25.5, 27.5, 2, 2), (25.5, 25.5, 0, 1), (25.5, 26.5, 1, 1)])
         # the biggest line move on the board now (named), skipping the row's own source; off the board is not a move here
-        self.assertEqual(out["top"], [["DraftKings", -1], ["DraftKings", -1], None])
+        self.assertEqual(out["top"], [["DraftKings", -1], ["DraftKings", -1], None, ["PrizePicks", -1]])
         # a row's line is the source's latest posted line (not its open, not a line it has taken down)
         self.assertEqual(out["at"], [True, False, False, False, True])
         self.assertEqual(out["events"][0], [[100, "DraftKings", "open"], [100, "PrizePicks", "open"], [105, "FanDuel", "open"],
@@ -430,8 +431,8 @@ class Rungs(unittest.TestCase):
         self.assertLess(abs(a - b) / max(a, b), lm.RUNG_TOL)
 
     def test_page_leaves_out_a_book_that_only_changed_rungs(self):
-        def pull(t, line, over, under, book_="ESPN BET", pid=8477404, market="points"):
-            obs = lm.observations(SLATE, at(t), books=[book("Nick Paul", pid, line, over, under, t, book_=book_, market=market)])
+        def pull(t, line, over, under, book_="ESPN BET", pid=8477404, market="points", teams=("TOR", "FLA")):
+            obs = lm.observations(SLATE, at(t), books=[book("Nick Paul", pid, line, over, under, t, book_=book_, market=market, teams=teams)])
             lm.record(obs, lm.covered(obs), now=T0 + dt.timedelta(minutes=t), base=self.d)
         # ESPN BET flipping rungs: 0.5 at -250, 1.5 at +180, 0.5 at -260, 1.5 at +175
         for t, line, o, u in ((0, 0.5, -250, 180), (15, 1.5, 180, -250), (30, 0.5, -260, 190), (45, 1.5, 175, -240)):
@@ -446,10 +447,23 @@ class Rungs(unittest.TestCase):
         pull(0, 3.5, -110, -110, book_="BetMGM", pid=8478404, market="sog")
         obs = lm.observations(SLATE, at(30), books=[book("Other Player", 8478405, 1.5, -110, -110, 30, book_="BetMGM", market="sog")])
         lm.record(obs, lm.covered(obs), now=T0 + dt.timedelta(minutes=30), base=self.d)
+        # the other game: DraftKings flip-flopping around a price threshold all evening (G. Vilardi, 11-05), the count
+        # 2.37 / 2.07 (12.5%)
+        bl_ = ("BOS", "LAK")
+        for t, line, o, u in ((0, 2.5, 120, -165), (60, 1.5, -195, 145), (120, 2.5, 145, -195), (150, 1.5, -195, 140)):
+            pull(t, line, o, u, book_="DraftKings", pid=8480014, market="sog", teams=bl_)
+        # ... and taken down for 30 minutes, back at the same line (A. Wennberg, 11-09): news, even back where it opened
+        pull(0, 1.5, -155, 120, book_="ESPN BET", pid=8477505, market="sog", teams=bl_)
+        obs = lm.observations(SLATE, at(15), books=[book("Other Player", 8478406, 1.5, -110, -110, 15, book_="ESPN BET", market="sog", teams=bl_)])
+        lm.record(obs, lm.covered(obs), now=T0 + dt.timedelta(minutes=15), base=self.d)
+        obs = lm.observations(SLATE, at(45), books=[book("Nick Paul", 8477505, 1.5, 140, -190, 45, book_="ESPN BET", market="sog", teams=bl_),
+                                                    book("Other Player", 8478406, 1.5, -110, -110, 45, book_="ESPN BET", market="sog", teams=bl_)])
+        lm.record(obs, lm.covered(obs), now=T0 + dt.timedelta(minutes=45), base=self.d)
         h = lm.for_page(["2026-11-17"], base=self.d)
         self.assertEqual(sorted((k, sorted(v)) for k, v in h.items()),
-                         [("2026-11-17|sog|8478403", ["FanDuel"]), ("2026-11-17|sog|8478404", ["BetMGM"])])
-        self.assertEqual(len([r for r in lm.read("2026-11-17", self.d) if r["source"] == "ESPN BET"]), 4)   # the log keeps them all
+                         [("2026-11-17|sog|8477505", ["ESPN BET"]), ("2026-11-17|sog|8478403", ["FanDuel"]),
+                          ("2026-11-17|sog|8478404", ["BetMGM"])])
+        self.assertEqual(len([r for r in lm.read("2026-11-17", self.d) if r["player_id"] == "8477404"]), 4)   # the log keeps them all
 
 
 class Merge(unittest.TestCase):
@@ -475,6 +489,22 @@ class Merge(unittest.TestCase):
 
 
 class BackfillLines(unittest.TestCase):
+    def test_combine_adds_only_what_came_before_a_props_first_logged_row(self):
+        import backfill_lines as bl
+        row = lambda t, line, src="FanDuel": {"snap": at(t), "market": "saves", "source": src, "player_id": "8479361",
+                                             "name": "Joseph Woll", "team": "TOR", "teams": "TOR/FLA", "line": str(line),
+                                             "over": "-110", "under": "-110", "mo": "", "mu": ""}
+        # the builds logged him from 22:00 (26.5): a fallback build at 22:45 saw 26.5 again, which writes no row
+        live = [row(0, 26.5)]
+        # the replay has a pull at 22:30 (25.5) that the builds failed to log, and his open at 21:00 (27.5)
+        replay = [row(-60, 27.5), row(0, 26.5), row(30, 25.5)]
+        out = bl.combine(live, replay)
+        self.assertEqual([(r["snap"], r["line"]) for r in out], [(at(-60), "27.5"), (at(0), "26.5")])   # never ends on 25.5
+        # a prop the builds never logged comes from the replay whole
+        other = [row(-60, 30.5, src="DraftKings"), row(30, 29.5, src="DraftKings")]
+        self.assertEqual(len(bl.combine(live, replay + other)), 4)
+        self.assertEqual(bl.combine(out, replay), out)                                       # run again: nothing new
+
     def test_pick6_full_markets_from_the_built_page(self):
         import backfill_lines as bl
         page = 'const D = {"x":1,"pick6_stats":{"raw":9,"dropped":{},"full":["sog"],"category_name":"Shots On Goal"},"y":[1]};'

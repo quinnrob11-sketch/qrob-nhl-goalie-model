@@ -19,8 +19,9 @@ OPENING line (the first line a build saw), and its last row before puck drop is 
 * A sportsbook moves a skater's main line a rung whenever its price drifts past a threshold, and often straight back
   (ESPN BET: 0.5 at -250, then 1.5 at +180, then 0.5 at -260 for the same player within half an hour; 260 of
   DraftKings' 506 skater line changes from 11-03 to 11-17 were undone at the next change). The count those prices
-  imply barely moves (2-12% a change), so the page shows a skater's sportsbook line as moved only when the count at
-  its latest line is RUNG_TOL away from the open's, or it is off the board (rung_only). The log keeps every row.
+  imply barely moves (2-12% a change; 17% covers 95% of the changes that were undone), so the page shows a skater's
+  sportsbook line as moved only when the count at its latest line is RUNG_TOL from the open's, or the line was taken
+  down at some point (rung_only). The log keeps every row.
 
 dk_prices.csv / book_prices.csv (prices.py) keep every price of every line for grading; this log keeps the story of
 each prop for the page. The days before it went live were rebuilt from the pulls in git history
@@ -39,7 +40,7 @@ COLS = ["snap", "market", "source", "player_id", "name", "team", "teams", "line"
 APPS = ("PrizePicks", "Pick6")          # pick'em apps: multipliers (mo / mu), not American odds
 FLICKER_MIN = 20                       # an off-the-board spell this short that comes back unchanged is a feed blip
 PRICED = ("saves",)                    # markets whose every price move is a move; elsewhere only the line is
-RUNG_TOL = 0.10                        # a skater's sportsbook line whose implied count moved less since the open has not moved
+RUNG_TOL = 0.17                        # a skater's sportsbook line whose implied count moved less since the open has not moved
 
 
 def path(day: str, base: str | None = None) -> str:
@@ -335,10 +336,11 @@ def implied_mean(line, over, under):
 
 
 def rung_only(seq: list[dict]) -> bool:
-    """A skater's prop at a sportsbook, on the board now, whose market has not really moved since it opened: back at
+    """A skater's prop at a sportsbook, never taken down, whose market has not really moved since it opened: back at
     its opening line, or at another rung whose prices put the count within RUNG_TOL of the open's. Not a move for
-    the page (the log keeps every row). Off the board now, or prices unknown: False."""
-    if not seq or _num(seq[-1].get("line")) is None:
+    the page (the log keeps every row). Taken down at any point (history() has already dropped blips shorter than
+    FLICKER_MIN), or prices unknown: False."""
+    if not seq or any(_num(r.get("line")) is None for r in seq):
         return False
     a, b = seq[0], seq[-1]
     if _num(a.get("line")) == _num(b.get("line")):

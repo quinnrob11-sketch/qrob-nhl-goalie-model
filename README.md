@@ -36,9 +36,10 @@ and app (`model/linemoves.py`, logged in `model/data/lines/<game day>.csv`):
 
 - the **Goalies** tab opens with every saves line on the slate, one card per goalie, biggest moves first and games
   already started last: every book's open → now in one line and the books' **fair line** (the saves count they make a
-  50/50 bet: each line moved by its no-vig price, so a flip between 22.5 at +100 and 21.5 at −135 is not a move; linked
-  pull by pull, so a book that opens after the move joins at the new level). Tap a card for each book's open and now
-  with prices, the time of the last change and every change in order;
+  50/50 bet: each line moved by its no-vig price, so a flip between 22.5 at +100 and 21.5 at −135 is not a move), now
+  and how far it has moved since the first line a build saw (linked pull by pull, so a book that opens after the move
+  joins at the new level). Tap a card for each book's open and now with prices, the time of the last change and
+  every change in order;
 - the **Picks** tab shows the day's biggest goalie line moves above the picks ("Saves line moves"), each a tap through
   to that goalie's card;
 - a pick whose line moved says so beside the app ("opened 2.5 ↓1"), and its panel has every book's open and now;
@@ -201,18 +202,20 @@ the open, its last row before puck drop the close.
 - **What counts as a move**: saves, any change of line or price; shots and points, a change of line (their prices move
   on almost every pull; every price is still in `dk_prices.csv` / `book_prices.csv`). A sportsbook moves a skater's
   main line a rung whenever its price drifts past a threshold, and often straight back (260 of DraftKings' 506 skater
-  line changes from Nov 3 to 17 were undone at the next change), while the count its prices imply moves 2–12%: the
-  page shows a skater's sportsbook line as moved only when that count is 10% from the open's or the line is off
-  (`linemoves.rung_only`). The log keeps every row.
+  line changes from Nov 3 to 17 were undone at the next change), while the count its prices imply moves 2–12% (17%
+  covers 95% of the changes that were undone): the page shows a skater's sportsbook line as moved only when that
+  count is 17% from the open's or the line was taken down at some point (`linemoves.rung_only`). The log keeps
+  every row.
 - **Off the board** (an empty line): written only when the same pull carries that source's lines for the same game and
   market (a failed request for one game is never read as its lines coming down), and for Pick6 only when its page
   listed the market in full. A spell off shorter than 20 minutes that comes back unchanged is hidden on the page.
 - **Days before the log** were rebuilt from the git history of the committed caches (`python model/backfill_lines.py`,
   run by hand in a full clone: every distinct pull of `odds_cache.json` and `pick6_cache.json` replayed through the same
   rules, Pick6 take-downs on the proof its page listed the market in full, as that build's `index.html` says) and,
-  before Nov 3, from `dk_prices.csv`. A day that already has a log is merged with the replay, never overwritten: the
-  same tool fills in pulls a build failed to log. A build whose pull has lines for a day with no log yet, while the
-  price logs hold earlier pulls of it, rebuilds that day from them first (`linemoves.ensure`).
+  before Nov 3, from `dk_prices.csv`. A day that already has a log keeps every row the builds wrote: the replay only
+  adds what came before each prop's first logged row (its real open, if the builds started logging it late). A
+  build whose pull has lines for a day with no log yet, while the price logs hold earlier pulls of it, rebuilds that
+  day from them first (`linemoves.ensure`).
 - **The page** gets every saves line in full and the skaters' props whose line moved (about 15–45 KB a night).
 
 #### PrizePicks

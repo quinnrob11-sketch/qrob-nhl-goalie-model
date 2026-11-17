@@ -283,7 +283,7 @@ details.x-sec[open]>summary::before{content:"▾"}
 /* line movement (D.moves): the opening line and every move since, per book / app */
 .x-mv{color:var(--text-2);white-space:nowrap}
 .mvs{display:block;font-size:11px;color:var(--muted);white-space:normal;font-weight:400;margin-top:2px}
-#gMoves{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr));gap:10px;align-items:start}
+#gMoves{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr));gap:10px;align-items:start;scroll-margin-top:56px}
 .mvg{border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--surface);min-width:0;overflow-x:auto;scroll-margin-top:56px}
 .mvg-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;margin:0;font-size:var(--fs-s)}
 details.mvg>summary{cursor:pointer;list-style:none}
@@ -293,6 +293,7 @@ details.mvg[open]>summary::before{content:"▾"}
 details.mvg[open]>summary{margin-bottom:8px}
 .mvb{flex-basis:100%;font-size:var(--fs-xs);color:var(--text-2);padding-left:14px}
 .mvt th{white-space:normal}
+@media (max-width:400px){ .mvg .mvt th,.mvg .mvt td{padding:6px 4px} .mvg .mvt td:last-child{white-space:normal} }
 .x-mvstrip{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin:0 0 var(--sp-4);font-size:var(--fs-s)}
 .x-mvstrip .lab{font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--text-2)}
 .x-mvstrip .x-link{font-variant-numeric:tabular-nums}
@@ -998,11 +999,12 @@ function mvConsensus(bySrc, sd){
   const nw = now.reduce((x, y) => x + y, 0) / now.length;
   return {open: nw - move, now: nw, d: move, n: now.length};
 }
-// the biggest line move at a source other than `skip` that is on the board now: {src, s} or null
+// the biggest line move at a source on the board now, other than `skip` (one source or a list): {src, s} or null
 function mvTop(bySrc, skip){
+  const sk = [].concat(skip || []);
   let best = null;
   for (const [src, seq] of Object.entries(bySrc || {})){
-    if (src === skip) continue;
+    if (sk.includes(src)) continue;
     const s = mvSum(seq);
     if (!s || s.off || !s.d) continue;
     if (!best || Math.abs(s.d) > Math.abs(best.s.d) || (Math.abs(s.d) === Math.abs(best.s.d) && mvRank(src) < mvRank(best.src))) best = {src, s};
@@ -1027,6 +1029,12 @@ const mvFor = (day, market, pid, name) => (pid != null && MV[mvKeyOf(day, market
 // the source a row's line comes from, as the log names it (null: your own line, which has no history)
 const mvSrc = s => { s = String(s || ""); if (/\(yours\)$|^your line/i.test(s)) return null; s = s === "DK" ? "DraftKings" : s === "PP" ? "PrizePicks" : s;
   return MV_ORDER.find(b => s === b || s.startsWith(b)) || null; };
+// the book a row's line is from even when the line is yours ("Pick6 (yours)" -> Pick6): never named as a move under it
+const mvSrcAny = s => mvSrc(String(s || "").replace(/\s*\(yours\)$/i, ""));
+// a starter row's PrizePicks line as the page holds it (the build's, or this browser's live pull); when it is not the
+// log's latest PrizePicks line, the log's PrizePicks story is out of date for him: left out of the notes and the strip
+const ppLineOf = r => r && r.pp && r.pp.goalie_id === r.gid ? r.pp.line : null;
+const mvPPStale = (bySrc, ppNow) => { const s = ppNow != null && bySrc && bySrc.PrizePicks ? mvSum(bySrc.PrizePicks) : null; return !!s && !mvAt(ppNow, s); };
 const mvAm = o => o == null ? "" : +o > 0 ? "+" + (+o) : "−" + Math.abs(+o);
 const mvLn = p => p[1] == null ? "off" : String(+p[1]);
 const mvPr = (src, p) => p[1] == null || p[2] == null && p[3] == null ? "" : MV_APPS.includes(src)
@@ -1041,15 +1049,17 @@ function mvT(m, day){
 // under a row's line: where its own book / app opened, when the line has moved and the row shows its latest line
 // ("open 26.5 ↓1"), or that it took the line down. Saves: else the biggest line move at another book or app, named
 // ("PP 24.5→22.5"). Price-only moves are in the row's details and on the Goalies tab.
-function mvSub(day, market, pid, name, source, line){
+function mvSub(day, market, pid, name, source, line, ppNow = null){
   const all = mvFor(day, market, pid, name); if (!all) return "";
   const src = mvSrc(source), s = src && mvSum(all[src]);
-  if (s && s.lineMoves && (s.off || (s.d && mvAt(line, s)))){
+  // off the board in the log, but this browser's own PrizePicks pull has the line up again: the log is the older news
+  const offOld = s && s.off && src === "PrizePicks" && ppLive.state === "ok" && line != null;
+  if (s && s.lineMoves && ((s.off && !offOld) || (s.d && mvAt(line, s)))){
     const pr = market === "saves" ? mvPr(src, s.open) : "";
     const tip = `Opened ${mvLn(s.open)}${pr ? " " + pr : ""} at ${mvT(s.open[0], day)} CT on ${src}; ${s.changes} change${s.changes === 1 ? "" : "s"} since, the last at ${mvT(s.at, day)} CT`;
     return `<span class="mvs" title="${esc(tip)}">${s.off ? `off since ${mvT(s.at, day)}` : `open ${mvLn(s.open)} ${mvDelta(s.d)}`}</span>`;
   }
-  const o = market === "saves" ? mvTop(all, src) : null;
+  const o = market === "saves" ? mvTop(all, [src, mvSrcAny(source), mvPPStale(all, ppNow) ? "PrizePicks" : null]) : null;
   if (!o) return "";
   const tip = `${o.src} opened ${mvLn(o.s.open)} at ${mvT(o.s.open[0], day)} CT and is at ${mvLn(o.s.now)} now (${o.s.lineMoves} line move${o.s.lineMoves === 1 ? "" : "s"}, the last at ${mvT(o.s.at, day)} CT)`;
   return `<span class="mvs" title="${esc(tip)}">${esc(MV_SHORT[o.src] || o.src)} ${mvLn(o.s.open)}→${mvLn(o.s.now)}</span>`;
@@ -1109,10 +1119,11 @@ function mvBriefOf(all){
   return parts.length ? esc(parts.join(" · ")) : null;
 }
 // a goalie row's line source (slateRows' lineSrc) as the log names it; your own line has no history
-const slateMvSrc = r => ({dk: "DraftKings", pp: "PrizePicks", board: r.bd && r.bd.auto ? "Pick6" : null})[r.lineSrc] || null;
-// every goalie with a saves line on the slate's days (or one day): his sources, the books' fair line as shown (rounded
-// first, so a move never reads between two equal numbers) and his biggest posted move. Games still to come first, then the
-// books' real move (their fair line), the biggest posted move, the busiest, the earliest
+const slateMvSrc = r => r.lineSrc === "board" ? (r.bd && r.bd.auto ? "Pick6" : r.bd && r.bd.book ? `${r.bd.book} (yours)` : null)
+  : ({dk: "DraftKings", pp: "PrizePicks"})[r.lineSrc] || null;
+// every goalie with a saves line on the slate's days (or one day): his sources, the books' fair line now and its move since
+// the open (rounded as shown), and his biggest posted move. Games still to come first, then the books' real move (their
+// fair line), the biggest posted move, the busiest, the earliest
 function mvGoalies(day){
   const days = new Set((D.slate || []).map(g => g.date)), t = Date.now(), r1 = x => Math.round(10 * x) / 10;
   const starters = new Map(slateRows().map(r => [`${r.g.date}|${r.gid}`, r]));
@@ -1125,8 +1136,8 @@ function mvGoalies(day){
     const g = st ? st.g : (D.slate || []).find(x => x.date === d && (x.home === team || x.away === team));
     const opp = g ? (g.home === team ? g.away : g.home) : "";
     const sums = Object.values(bySrc).map(mvSum).filter(Boolean), sd = st && st.sd > 0 ? st.sd : 6.5, fair = mvConsensus(bySrc, sd);
-    const fo = fair ? r1(fair.open) : null, fn = fair ? r1(fair.now) : null;
-    items.push({k, day: d, pid, name, team, opp, g, st, bySrc, sd, fair, fo, fn, fd: fair ? r1(fn - fo) : 0, top: mvTop(bySrc, null),
+    const fn = fair ? r1(fair.now) : null;
+    items.push({k, day: d, pid, name, team, opp, g, st, bySrc, sd, fair, fn, fd: fair ? r1(fair.d) : 0, top: mvTop(bySrc, mvPPStale(bySrc, ppLineOf(st)) ? "PrizePicks" : null),
       started: !!(g && g.start && Date.parse(g.start) <= t), big: Math.max(0, ...sums.map(s => Math.abs(s.d))),
       n: sums.reduce((a, s) => a + s.changes, 0), off: sums.length > 0 && sums.every(s => s.off)});
   }
@@ -1142,7 +1153,7 @@ function renderMoves(){
     const when = it.g ? ` ${it.g.home === it.team ? "vs" : "@"} ${esc(it.opp)} · ${ctStart(it.g)}${it.g.date !== TODAY_CT ? " · " + it.g.date : ""}` : "";
     const tag = it.started ? '<span class="muted">· started: closing lines</span>' : it.off ? '<span class="bad">line taken down</span>'
       : it.st ? "" : '<span class="muted">· not the projected starter</span>';
-    const fair = it.fair ? `<span class="mvf" title="The saves count the sportsbooks make a 50/50 bet: each book's line moved by its no-vig price (the model's spread for him, ±${it.sd.toFixed(1)}). Each pull's move is averaged over the books already posting him, so a book that opens later joins at the level the market has reached; now is the mean of the ${it.fair.n} book${it.fair.n === 1 ? "" : "s"} posting him now. A book flipping between 22.5 at +100 and 21.5 at −135 has not moved it.">fair ${it.fo.toFixed(1)} → <b>${it.fn.toFixed(1)}</b>${it.fd ? ` (${it.fd > 0 ? "+" : "−"}${Math.abs(it.fd).toFixed(1)})` : ""}</span>` : "";
+    const fair = it.fair ? `<span class="mvf" title="The saves count the sportsbooks make a 50/50 bet now: each book's line moved by its no-vig price (the model's spread for him, ±${it.sd.toFixed(1)}), the mean of the ${it.fair.n} book${it.fair.n === 1 ? "" : "s"} posting him. The arrow is how far it has moved since the first line a build saw: each pull's move averaged over the books already posting him, so a book that opens later joins at the level the market has reached. A book flipping between 22.5 at +100 and 21.5 at −135 has not moved it.">fair <b>${it.fn.toFixed(1)}</b>${it.fd ? ` ${it.fd > 0 ? "↑" : "↓"}${Math.abs(it.fd).toFixed(1)}` : ""}</span>` : "";
     const brief = mvBriefOf(it.bySrc);
     return `<summary class="mvg-h"><b>${esc(it.name)}</b><span class="muted">${esc(it.team)}${when}</span>${tag}${fair}${brief ? `<span class="mvb">${brief}</span>` : ""}</summary>`;
   };
@@ -1151,15 +1162,20 @@ function renderMoves(){
       `${mvTable(it.bySrc, cur(it), it.day, it.sd, true, it.started)}${mvTimeline(it.bySrc, it.day)}</details>`).join("")
     : `<p class="muted">No saves lines posted yet for this slate.</p>`;
 }
-// the Picks tab: the day's biggest goalie line moves in one line, each a tap through to his card on the Goalies tab
-function mvStrip(day){
+// the Picks tab: the day's biggest goalie line moves in one line, each a tap through to his card on the Goalies tab.
+// Kept until the board is rebuilt (lines, starters, date: renderBoard) or the search changes, not redone on every filter tap
+const MV_STRIP = {pb: null, key: null, html: ""};
+function mvStrip(day, pb){
+  const key = `${day}|${Q()}|${Math.floor(Date.now() / 6e4)}`;
+  if (pb && MV_STRIP.pb === pb && MV_STRIP.key === key) return MV_STRIP.html;
   const its = mvGoalies(day).filter(it => !it.started && (it.top || it.fd || it.off) && matchQ(it.name, it.team, it.opp)).slice(0, 5);
-  if (!its.length) return "";
   const what = it => it.top ? `${esc(MV_SHORT[it.top.src] || it.top.src)} ${mvLn(it.top.s.open)}→${mvLn(it.top.s.now)}`
-    : it.fd ? `fair ${it.fo.toFixed(1)}→${it.fn.toFixed(1)}` : "taken down";
-  return `<div class="x-mvstrip"><span class="lab">Saves line moves</span>${its.map(it =>
+    : it.fd ? `fair ${it.fd > 0 ? "↑" : "↓"}${Math.abs(it.fd).toFixed(1)}` : "taken down";
+  const html = !its.length ? "" : `<div class="x-mvstrip"><span class="lab">Saves line moves</span>${its.map(it =>
     `<button type="button" class="x-link js-mvgo" data-mvk="${esc(it.k)}">${esc(it.name)} <b>${what(it)}</b></button>`).join("")}` +
     `<button type="button" class="x-link js-mvgo" data-mvk="">All goalies →</button></div>`;
+  Object.assign(MV_STRIP, {pb, key, html});
+  return html;
 }
 document.addEventListener("click", e => {
   const b = e.target.closest(".js-mvgo"); if (!b) return;
@@ -1495,7 +1511,7 @@ function renderSlate(){
         ${r.lineSrc==="dk"?`<div style="font-size:11px" class="muted">DK o${amer(r.dk.over)||"–"} / u${amer(r.dk.under)||"–"}</div>`:""}
         ${r.lineSrc==="pp"?`<div style="font-size:11px"><a href="${r.pp.url}" target="_blank" rel="noopener" class="muted">PrizePicks · 1x</a></div>`:""}
         ${r.lineSrc==="board"?`<div style="font-size:11px" class="muted">${r.bd.book} · ${multTxt(r.bd.mo, r.bd.mu)}</div>`:""}
-        ${r.lineSrc==="manual"?`<div style="font-size:11px" class="muted">your line · DFS 1x</div>`:""}${mvSub(r.g.date, "saves", r.gid, (G[r.gid]||{}).name, slateMvSrc(r), r.line)}</td>
+        ${r.lineSrc==="manual"?`<div style="font-size:11px" class="muted">your line · DFS 1x</div>`:""}${mvSub(r.g.date, "saves", r.gid, (G[r.gid]||{}).name, slateMvSrc(r), r.line, ppLineOf(r))}</td>
       <td class="${d ? diffCls(r.edge, d.side) : ""}">${r.line != null ? sgnD(r.edge) : "–"}</td>
       <td class="l">${d ? sidePill(d.side) + (play ? "" : ' <span class="muted">pass</span>') : ""}</td>
       <td>${d ? pc0(d.pShow) : "–"}</td>
@@ -1541,7 +1557,7 @@ function boardRowsSaves(){
       player: name, playerEdit: `<select class="gsel" data-st="${r.g.date}|${r.team}" title="Change the starter">${goalieOptions(r.team, r.gid)}</select>` +
         `<div class="cell2">${r.team} · ${r.confirmed ? '<span class="good">confirmed</span>' : '<span class="bad">unconfirmed</span>'}</div>`,
       line: r.line, lineEdit: `<input class="lin" type="number" step="0.5" min="0" inputmode="decimal" data-line="${r.key}" value="${r.line ?? ""}" placeholder="line">`, src: lineSrcTxt(r),
-      lineSub: mvSub(r.g.date, "saves", r.gid, name, slateMvSrc(r), r.line), moves: mvBrief(r.g.date, "saves", r.gid, name),
+      lineSub: mvSub(r.g.date, "saves", r.gid, name, slateMvSrc(r), r.line, ppLineOf(r)), moves: mvBrief(r.g.date, "saves", r.gid, name),
       proj: r.proj, diff: r.line != null ? r.proj - r.line : null,
       side: r.d ? r.d.side : null, prob: r.d ? r.d.pShow : null, tier: r.d ? r.d.tier : null, capped: r.d ? r.d.capped : false,
       play: !!(r.d && r.d.play), noLine: r.line == null, unconf: !r.confirmed, q: [name, r.team, r.opp],
@@ -2479,7 +2495,7 @@ function renderPicks(pb){
       `${fOn && (shown.length || bk.length) ? `<button type="button" class="x-link js-px-clear">Clear</button>` : ""}</div>` +
       (Object.keys(byGame).length > 1 ? `<div class="x-chips" role="group" aria-label="Game">${chip("", "All games", items.filter(inMk).length)}${games.filter(g => byGame[g.id])
         .map(g => chip(String(g.id), `${g.away} @ ${g.home} ${ctStart(g).replace(" CT", "")}`, byGame[g.id])).join("")}</div>` : "") : "") + p6Note +
-    (!game && (!mk || mk === "saves") ? mvStrip(day) : "") + body +
+    (!game && (!mk || mk === "saves") ? mvStrip(day, pb) : "") + body +
     `<p class="x-foot">Every call shown${(D.legs || {}).rules_from ? ` since ${dayLabel(D.legs.rules_from).replace(/^\w+, /, "")}` : " so far"}, graded: ${recTx("plays", recOf(SHOWN_REC ? "plays_shown" : (D.legs || {}).rules_from ? "takes_now" : "takes"))} · ${recTx("leans", recOf(SHOWN_REC ? "leans_shown" : "leans"))}. Times are Central.<br>` +
     `<button type="button" class="x-link js-rules">How picks work</button> · Line not here? <button type="button" class="x-link js-paste">Add your own</button></p>`;
   // keep the game chips where they were scrolled (on first render, bring the selected one into view) and give focus back;
@@ -3307,7 +3323,7 @@ function renderStarters(){
       <td class="l">${r.team} ${r.side==="home"?"vs":"@"} ${r.opp} <span class="muted" style="font-size:11px">${r.g.date}</span></td>
       <td class="l">${r.confirmed ? '<span class="good">confirmed</span>' : '<span class="bad">unconfirmed</span>'} <span class="muted" style="font-size:11px">${{dk:"DK line",pp:"PrizePicks",manual:"you",b2b:"B2B backup",depth:"roster #1",df:"DailyFaceoff",board:"your DFS board"}[r.src] || (r.src.startsWith("df-") ? "DailyFaceoff " + r.src.slice(3) : r.src)}${r.df && r.df.at ? " · " + ctTime(r.df.at) : ""}</span></td>
       <td>${fmt(r.sa)}</td><td>${fmt(r.sv,3)}</td><td><b>${fmt(r.proj)}</b> <span class="muted" style="font-size:11px">±${fmt(r.sd)}</span></td>
-      <td>${r.line ?? "–"}${mvSub(r.g.date, "saves", r.gid, (G[r.gid]||{}).name, slateMvSrc(r), r.line)}</td><td>${d ? priceTxt(d) || "–" : "–"}</td>
+      <td>${r.line ?? "–"}${mvSub(r.g.date, "saves", r.gid, (G[r.gid]||{}).name, slateMvSrc(r), r.line, ppLineOf(r))}</td><td>${d ? priceTxt(d) || "–" : "–"}</td>
       <td class="l side">${d ? (play ? d.side : "PASS") : ""}</td><td>${d ? pct(d.p,1) : "–"}</td>
       <td class="${d && d.ev > 0 ? "good" : d ? "bad" : ""}">${evTxt(d)}</td><td class="l">${d ? `<span class="pill ${d.tier}">${d.tier}</span>` : ""}</td></tr>`; }).join("") + "</tbody>";
 }

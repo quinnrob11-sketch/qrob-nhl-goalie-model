@@ -12,10 +12,12 @@ build's page says), which the price logs (dk_prices.csv / book_prices.csv) canno
   PrizePicks first, then the names that have only ever had one id in the price and leg logs).
 * A pull that fell back (DraftKings had nothing) was never cached, so the other books' overnight lines from those
   builds are missing here; the live log keeps them (odds.pulled).
-* A day that already has a log is MERGED with the replay (linemoves.merge): in time order, a row kept only when it
-  changes its prop, so the rows only the builds saw stay and the replay adds what they missed (the pulls before the
-  log went live, or a build whose logging failed). Days before the caches start come from the price logs
-  (linemoves.backfill_day: DraftKings, every market).
+* A day that already has a log keeps every row the builds wrote; the replay adds only what came BEFORE each prop's
+  first logged row (the pulls before the log went live, or before the first build that logged that prop), through
+  linemoves.merge. Never after it: each log writes a row only when its prop changes, so interleaving two of them
+  cannot tell a log that saw no change from one that saw nothing, and could end on a line the other had already
+  replaced. Days before the caches start come from the price logs (linemoves.backfill_day: DraftKings, every
+  market).
 
 Needs the full cache history: in a shallow clone it stops (git fetch --unshallow origin first). From the repo root:
     python model/backfill_lines.py [--ref origin/main] [--until 2026-11-17] [--dry-run]
@@ -146,6 +148,16 @@ def replay(items, base: str, names: dict | None = None) -> int:
     return n
 
 
+def combine(old: list[dict], new: list[dict]) -> list[dict]:
+    """A day's log `old` (what the builds wrote) with the replayed rows `new` that come before each prop's first row
+    in it: the opens and early moves the builds never saw, never a row after (see the module notes)."""
+    first = {}
+    for r in old:
+        k, t = lm.key_of(r), lm._epoch(r.get("snap"))
+        first[k] = min(first.get(k, t), t)
+    return lm.merge(old, [r for r in new if lm._epoch(r.get("snap")) < first.get(lm.key_of(r), float("inf"))])
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ref", default="origin/main")
@@ -176,7 +188,7 @@ def main():
             new = lm.read(d, tmp)
             if os.path.exists(lm.path(d)):
                 old = lm.read(d)
-                out = lm.merge(old, new)             # the builds' own rows first: a pull both saw keeps its logged row
+                out = combine(old, new)
                 if [tuple(r.get(k) or "" for k in lm.COLS) for r in out] == [tuple(r.get(k) or "" for k in lm.COLS) for r in old]:
                     same.append(d)
                     continue
