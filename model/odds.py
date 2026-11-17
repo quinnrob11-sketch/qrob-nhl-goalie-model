@@ -173,6 +173,10 @@ status: str = "not run"       # "fresh" | "fallback" (last good pull reused beca
 idle: bool = False            # this pull had nothing to get: no game within WINDOW_H, or no line posted yet (not a failure)
 OPEN_WITHIN_H = 12.0          # an empty pull is "nothing posted yet" only when no game starts within this many hours
 fetched_at: str | None = None  # when the lines in use were really pulled (never the build time of a later build)
+# THIS build's pull as it came back, whatever `status` says: when DraftKings has nothing yet the build falls back to the
+# last good pull for the board, but the other books and PrizePicks often post the next day's lines overnight, before
+# DraftKings, and those rows are new. The line log (linemoves) records from here; it never reads a cached pull.
+pulled: dict = {"at": None, "saves": [], "sog": [], "points": [], "pp": [], "books": []}
 
 
 def _skater_ids(R):
@@ -205,10 +209,12 @@ def fetch(goalies: list[dict], now: dt.datetime | None = None, R=None) -> list[d
     time of the pull it came from. If this pull fails (no key, API error, no lines at all), the last good pull
     in model/data/odds_cache.json is reused with its ORIGINAL fetched_at and status "fallback"; games that
     have started are dropped from it."""
-    global last_error, sog_rows, points_rows, ml_rows, remaining, status, fetched_at, pp_rows, book_rows
+    global last_error, sog_rows, points_rows, ml_rows, remaining, status, fetched_at, pp_rows, book_rows, pulled
     now = now or dt.datetime.now(dt.timezone.utc)
     at = now.isoformat(timespec="seconds")
     rows = _fetch(goalies, now, R)
+    pulled = {"at": at, "saves": _stamp(list(rows), at), "sog": _stamp(list(sog_rows), at), "points": _stamp(list(points_rows), at),
+              "pp": _stamp(list(pp_rows), at), "books": _stamp(list(book_rows), at)}
     if rows or sog_rows or points_rows:
         status, fetched_at = "fresh", at
         for rs in (rows, sog_rows, points_rows, _raw_saves, pp_rows, book_rows):

@@ -31,6 +31,24 @@ a build-your-own list and editable payout tables. It is a calculator: it places 
 
 **All lines** keeps the saves, points and winners tables, the starters table and the paste box.
 
+**Line moves.** Every prop keeps its **opening line** (the first line a build saw) and every move after it, per book
+and app (`model/linemoves.py`, logged in `model/data/lines/<game day>.csv`):
+
+- the **Goalies** tab opens with every saves line on the slate, one card per goalie, biggest moves first and games
+  already started last: every book's open → now in one line and the books' **fair line** (the saves count they make a
+  50/50 bet: each line moved by its no-vig price, so a flip between 22.5 at +100 and 21.5 at −135 is not a move), now
+  and how far it has moved since the first line a build saw (linked pull by pull, so a book that opens after the move
+  joins at the new level). Tap a card for each book's open and now with prices, the time of the last change and
+  every change in order;
+- the **Picks** tab shows the day's biggest goalie line moves above the picks ("Saves line moves"), each a tap through
+  to that goalie's card;
+- a pick whose line moved says so beside the app ("opened 2.5 ↓1"), and its panel has every book's open and now;
+- the saves, points and starters tables put "open 25.5 ↓1" under a line that moved (only when the row shows that
+  source's latest line: a pasted, typed or alternate line has no story). A saves row whose own source has not moved
+  names the biggest move elsewhere ("PP 24.5→22.5").
+
+It is display only: a move never changes a call.
+
 ## The model
 
 ```
@@ -170,6 +188,36 @@ unconfirmed. On a back-to-back, the default switches to the goalie who didn't st
 before. The DraftKings pull costs one API request per game starting in the next 18
 hours.
 
+#### Line movement (`model/linemoves.py`, `model/data/lines/`)
+
+Each build writes a row for a prop (one game day, market, player and source) only when it changes: its first row is
+the open, its last row before puck drop the close.
+
+- **Sources**: DraftKings, FanDuel, ESPN BET, BetMGM and Pinnacle (The Odds API), PrizePicks, Pick6.
+- **Fresh pulls only.** A cached (fallback) pull or a Pick6 line kept from an earlier pull is never logged again. A
+  build that falls back because DraftKings has nothing yet still logs the other books' and PrizePicks' own new rows
+  (`odds.pulled`): they post the next day's lines overnight, before DraftKings.
+- **One line per prop**: the line priced nearest even at a sportsbook (ESPN BET lists two or three), the line Pick6
+  takes both ways on, PrizePicks' standard line (never a demon or goblin).
+- **What counts as a move**: saves, any change of line or price; shots and points, a change of line (their prices move
+  on almost every pull; every price is still in `dk_prices.csv` / `book_prices.csv`). A sportsbook moves a skater's
+  main line a rung whenever its price drifts past a threshold, and often straight back (260 of DraftKings' 506 skater
+  line changes from Nov 3 to 17 were undone at the next change), while the count its prices imply moves 2–12% (17%
+  covers 95% of the changes that were undone): the page shows a skater's sportsbook line as moved only when that
+  count is 17% from the open's or the line was taken down at some point (`linemoves.rung_only`). The log keeps
+  every row.
+- **Off the board** (an empty line): written only when the same pull carries that source's lines for the same game and
+  market (a failed request for one game is never read as its lines coming down), and for Pick6 only when its page
+  listed the market in full. A spell off shorter than 20 minutes that comes back unchanged is hidden on the page.
+- **Days before the log** were rebuilt from the git history of the committed caches (`python model/backfill_lines.py`,
+  run by hand in a full clone: every distinct pull of `odds_cache.json` and `pick6_cache.json` replayed through the same
+  rules, Pick6 take-downs on the proof its page listed the market in full, as that build's `index.html` says) and,
+  before Nov 3, from `dk_prices.csv`. A day that already has a log keeps every row the builds wrote: the replay only
+  adds what came before each prop's first logged row (its real open, if the builds started logging it late). A
+  build whose pull has lines for a day with no log yet, while the price logs hold earlier pulls of it, rebuilds that
+  day from them first (`linemoves.ensure`).
+- **The page** gets every saves line in full and the skaters' props whose line moved (about 15–45 KB a night).
+
 #### PrizePicks
 
 The page also tries the PrizePicks board **live from your own browser** each time it opens
@@ -307,13 +355,16 @@ model/slips.py           entries of 2-6 legs: joint chance, payout, value, stres
 model/pick6.py           Pick6 board: lines, promo cards, its payout table and lineup rules
 model/players.py         (name, team, game) -> NHL player id; rosters, call-ups from recent box scores
 model/backfill_shown.py  rebuilds "every call ever shown" from the repository's history (run by hand)
+model/linemoves.py       opening lines and line movement: the per-day line log, and the page's movement data
+model/backfill_lines.py  rebuilds the line log's earlier days from the repository's history (run by hand)
 model/moneypuck_teams.py MoneyPuck shot attempts for the saves model: full logs as of 11-03 plus a small daily
                          refresh (model/data/moneypuck/attempts_recent.csv)
 model/calibrate.py       per-market calibration + real-line backtest, refit every build
 model/tracker.py         freezes each night's calls and grades them at pick-time line and price
 model/winners.py         game-winner model + backtest
 model/sog.py             skater SOG model + backtest (stand-in and real PrizePicks lines)
-model/data/              real-line log, DraftKings price history, nightly calls, 2026 playoff PP SOG lines
+model/data/              real-line log, DraftKings price history, nightly calls, 2026 playoff PP SOG lines,
+                         lines/<game day>.csv (every prop's open and moves)
 model/prizepicks.py      starting goalies + saves lines from the PrizePicks board
 model/template.html      dashboard template
 model/output/            params.json, saves_dist.json, calibration.json, tracking.json, backtests
