@@ -12,6 +12,7 @@ module raises. It does not return an empty frame and continue.
 """
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import urllib.error
@@ -66,13 +67,19 @@ def _team(t) -> str:
 
 
 def _download(url: str, dest: str, timeout: int = 90) -> None:
+    """Fetch `url` into `dest` whole or not at all. Any failure, a connection dropped mid-file included
+    (http.client.IncompleteRead is not an OSError), is a MoneyPuckError: the caller then falls back to the cache."""
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r, open(dest + ".tmp", "wb") as f:
             f.write(r.read())
-    except (urllib.error.URLError, TimeoutError, OSError) as e:
-        raise MoneyPuckError(f"download failed: {url} ({e})") from e
+    except (urllib.error.URLError, http.client.HTTPException, TimeoutError, OSError) as e:
+        try:
+            os.remove(dest + ".tmp")
+        except OSError:
+            pass
+        raise MoneyPuckError(f"download failed: {url} ({e!r})") from e
     os.replace(dest + ".tmp", dest)
 
 

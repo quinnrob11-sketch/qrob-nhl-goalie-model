@@ -22,6 +22,47 @@ def _mp_row(game_id, player_id, ongoal, goals, toi_min, team="TOR"):
             "saves": ongoal - goals, "toi_min": toi_min, "team": team, "date": pd.Timestamp("2026-11-01")}
 
 
+class Download(unittest.TestCase):
+    """A download that dies part way (the build of 2026-11-17 21:02 UTC: IncompleteRead after 12 KB of 585 KB) falls
+    back to the cached file instead of stopping the build."""
+    def test_a_dropped_connection_falls_back_to_the_cache(self):
+        import http.client
+        import shutil
+        import tempfile
+        import urllib.request
+
+        class Dropped:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                raise http.client.IncompleteRead(b"x" * 12288, 573248)
+
+        d = tempfile.mkdtemp()
+        keep = urllib.request.urlopen, moneypuck._goalie_cache
+        try:
+            dest = os.path.join(d, "goalies_2026.zip")
+            with open(dest, "wb") as f:
+                f.write(b"the cached file")
+            urllib.request.urlopen = lambda *a, **k: Dropped()
+            with self.assertRaises(moneypuck.MoneyPuckError):
+                moneypuck._download("https://example.invalid/goalies.zip", dest)
+            with open(dest, "rb") as f:
+                self.assertEqual(f.read(), b"the cached file")                  # the cache is left whole
+            self.assertFalse(os.path.exists(dest + ".tmp"))                       # no partial file left behind
+            # load_goalie_games takes the cache (or the committed snapshot) and the build carries on
+            moneypuck._goalie_cache = lambda y: os.path.join(d, f"none_{y}.zip")
+            df, info = moneypuck.load_goalie_games([2025], refresh=True)
+            self.assertFalse(df.empty)
+            self.assertEqual(info["seasons"]["2025"], "snapshot")                 # the committed snapshot
+        finally:
+            urllib.request.urlopen, moneypuck._goalie_cache = keep
+            shutil.rmtree(d)
+
+
 class GameId(unittest.TestCase):
     def test_shot_file_id_is_the_nhl_id_without_the_season(self):
         self.assertEqual(moneypuck.nhl_game_id(2026, 20001), 2026020001)
