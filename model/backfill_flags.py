@@ -126,9 +126,8 @@ def main(ref: str = "origin/main"):
             yield text
 
     out = flags_of(legs, pages())
-    with open(OUT, "w") as f:
-        json.dump(dict(sorted(out.items())), f, indent=0, separators=(",", ":"))
-        f.write("\n")
+    with open(OUT, "w") as f:                                  # one leg per line
+        f.write("{\n" + ",\n".join(f"{json.dumps(k)}: {json.dumps(v, separators=(',', ':'))}" for k, v in sorted(out.items())) + "\n}\n")
     print(f"{len(legs)} legs without flags, {n} builds read: {sum('check' in v for v in out.values())} checks, "
           f"{sum('cached' in v for v in out.values())} cached calls -> {OUT}")
 
