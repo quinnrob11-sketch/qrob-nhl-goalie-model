@@ -640,3 +640,11 @@ snap,market,source,player_id,name,team,teams,line,over,under,mo,mu
 2026-11-18T17:29:00+00:00,sog,PrizePicks,8480074,Alexandre Texier,MTL,MTL/NJD,1.5,,,1,1
 2026-11-18T17:29:00+00:00,sog,PrizePicks,8478474,Lawson Crouse,UTA,COL/UTA,1.5,,,1,1
 2026-11-18T17:29:00+00:00,sog,PrizePicks,8479619,Michael Carcone,UTA,COL/UTA,1.5,,,1,1
+2026-11-18T17:44:13+00:00,points,DraftKings,8480039,Martin Necas,COL,COL/UTA,1.5,180,-245,,
+2026-11-18T17:44:13+00:00,saves,DraftKings,8480193,Daniil Tarasov,DET,BOS/DET,23.5,100,-135,,
+2026-11-18T17:44:13+00:00,saves,PrizePicks,8480193,Daniil Tarasov,DET,BOS/DET,,,,,
+2026-11-18T17:44:13+00:00,sog,DraftKings,8477476,Artturi Lehkonen,COL,COL/UTA,1.5,-200,145,,
+2026-11-18T17:44:13+00:00,sog,Pick6,8477476,Artturi Lehkonen,COL,COL/UTA,1.5,,,0.7,1.2
+2026-11-18T17:44:13+00:00,sog,PrizePicks,8478038,Devon Toews,COL,COL/UTA,,,,,
+2026-11-18T17:44:13+00:00,sog,PrizePicks,8475768,Jaden Schwartz,COL,COL/UTA,,,,,
+2026-11-18T17:44:13+00:00,sog,PrizePicks,8477346,MacKenzie Weegar,UTA,COL/UTA,1.5,,,1,1
