@@ -15,6 +15,14 @@ saves), built from the lines Pick6 and PrizePicks post:
 - the chance, and a label: **Play** (passes every rule; rare), **Lean** (the likelier side at 55%+ with the
   market agreeing, about break-even), or **Check** (a lean on a player whose line just changed).
 
+It opens **By game**: every game of the day in start order, the props that meet the bar (plays, leans, checks) under
+each, shots first, then points, then saves. A game where nothing meets the bar says so and names its closest prop and
+why it falls short (under 55%, the books disagreeing, or an app paying under 1x), so no game is ever silently
+missing; a line above the list counts the calls and the games they are in, and notes under it explain the bar,
+why points rarely qualify (the apps price points near even, and Pick6 pays under 1x for the likelier side) and the
+night's side mix. **Best first** is the same calls in one list, strongest first. The game chips count each game's
+calls.
+
 Lines with no edge and DraftKings-only lines are folded away under the list. The app filter (Both / PrizePicks /
 Pick6) picks each player's best line on that app. The rule is `props_board.picks`, mirrored by `pickFor` in
 `model/template.html`; the reasoning and the backtest are in `model/reports/accuracy_review.md`.
