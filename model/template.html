@@ -2560,8 +2560,10 @@ function renderPicks(pb){
     const gCalls = gid => shown.filter(r => r.game === gid && tier(r)).sort((a, b) => (ST[a.market] ?? 3) - (ST[b.market] ?? 3) || TR[tier(a)] - TR[tier(b)] || byCh(a, b));
     const gNear = (gid, m) => { const xs = shown.filter(r => r.game === gid && r.market === m && !tier(r) && (V.get(r) || {}).p >= 0.5).sort(byCh);
       return xs.find(r => (P.get(r) || {}).full) || xs[0]; };          // one paying at least 1x first
-    // every game of the day (a game with no lines yet says so); while searching, the games with a match
-    const gList = games.filter(g => (!game || String(g.id) === game) && (!qOn || shown.some(r => r.game === g.id)));
+    // every game of the day that has lines, or has not started yet (one with no lines yet says so; one that started
+    // with its lines off the board has nothing left to bet); while searching, the games with a match
+    const gStarted = g => !!g.start && Date.parse(g.start) <= t0;
+    const gList = games.filter(g => (!game || String(g.id) === game) && (qOn ? shown.some(r => r.game === g.id) : byGame[g.id] || !gStarted(g)));
     const gWith = gList.filter(g => gCalls(g.id).length).length, nCalls = gList.reduce((a, g) => a + gCalls(g.id).length, 0);
     // the closest prop that falls short, and what it falls short on (noLeanTag: the pay, an old line, the books...)
     const nearTx = r => {
@@ -2573,7 +2575,7 @@ function renderPicks(pb){
     const what = mk === "points" ? "points prop" : mk === "saves" ? "saves line" : mk === "sog" ? "shots prop" : "shots or points prop";
     const lnScope = [app, mk ? MKN[mk].toLowerCase() : ""].filter(Boolean).join(" ");
     const gRows = gList.flatMap(g => {
-      const cs = gCalls(g.id), started = g.start && Date.parse(g.start) <= t0, has = shown.some(r => r.game === g.id);
+      const cs = gCalls(g.id), started = gStarted(g), has = shown.some(r => r.game === g.id);
       const right = started ? "started" : cs.length ? `${cs.length} ${cs.length === 1 ? "call" : "calls"}` : !has ? "no lines yet" : qOn ? "no matching call" : "nothing meets the bar";
       const head = {divider: `<b>${esc(g.away)} @ ${esc(g.home)}</b> <span class="x-gt">${ctStart(g)}</span><span class="r">${right}</span>`, cls: "x-gh"};
       if (cs.length) return [head, ...cs];
