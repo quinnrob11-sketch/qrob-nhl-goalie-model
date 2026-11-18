@@ -625,3 +625,18 @@ snap,market,source,player_id,name,team,teams,line,over,under,mo,mu
 2026-11-18T17:13:58+00:00,sog,Pick6,8480002,Nico Hischier,NJD,MTL/NJD,1.5,,,0.8,1.2
 2026-11-18T17:13:58+00:00,sog,PrizePicks,8480074,Alexandre Texier,MTL,MTL/NJD,,,,,
 2026-11-18T17:13:58+00:00,sog,PrizePicks,8478542,Evan Rodrigues,NJD,MTL/NJD,1.5,,,1,1
+2026-11-18T17:29:00+00:00,saves,DraftKings,8476945,Connor Hellebuyck,NJD,MTL/NJD,21.5,-130,-105,,
+2026-11-18T17:29:00+00:00,saves,ESPN BET,8476945,Connor Hellebuyck,NJD,MTL/NJD,21.5,-115,-115,,
+2026-11-18T17:29:00+00:00,saves,ESPN BET,8480193,Daniil Tarasov,DET,BOS/DET,22.5,-130,100,,
+2026-11-18T17:29:00+00:00,saves,FanDuel,8476945,Connor Hellebuyck,NJD,MTL/NJD,22.5,-104,-128,,
+2026-11-18T17:29:00+00:00,saves,FanDuel,8484170,Jacob Fowler,MTL,MTL/NJD,26.5,-112,-118,,
+2026-11-18T17:29:00+00:00,saves,Pinnacle,8476945,Connor Hellebuyck,NJD,MTL/NJD,22.5,115,-153,,
+2026-11-18T17:29:00+00:00,saves,Pinnacle,8480193,Daniil Tarasov,DET,BOS/DET,23.5,114,-152,,
+2026-11-18T17:29:00+00:00,saves,PrizePicks,8476945,Connor Hellebuyck,NJD,MTL/NJD,21.5,,,1,1
+2026-11-18T17:29:00+00:00,sog,DraftKings,8480855,Jack McBain,UTA,COL/UTA,0.5,-240,175,,
+2026-11-18T17:29:00+00:00,sog,DraftKings,8476389,Vincent Trocheck,UTA,COL/UTA,2.5,125,-165,,
+2026-11-18T17:29:00+00:00,sog,Pick6,8480855,Jack McBain,UTA,COL/UTA,0.5,,,0.7,1.4
+2026-11-18T17:29:00+00:00,sog,Pick6,8476389,Vincent Trocheck,UTA,COL/UTA,2.5,,,1.1,0.8
+2026-11-18T17:29:00+00:00,sog,PrizePicks,8480074,Alexandre Texier,MTL,MTL/NJD,1.5,,,1,1
+2026-11-18T17:29:00+00:00,sog,PrizePicks,8478474,Lawson Crouse,UTA,COL/UTA,1.5,,,1,1
+2026-11-18T17:29:00+00:00,sog,PrizePicks,8479619,Michael Carcone,UTA,COL/UTA,1.5,,,1,1
