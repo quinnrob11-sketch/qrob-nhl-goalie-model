@@ -691,7 +691,9 @@ def slip_legs(rows, app) -> list[dict]:
         out.append(_leg(o, o["tier"], app))
     # An entry needs two picks, and at most one of them a promo card. When an app has a leg worth playing but not
     # two that can share an entry (Pick6 most nights: its only 1x-plus edges are promo cards), add the best partners
-    # it does offer, marked "fill": no edge of their own, there so the entry's real worth can be shown.
+    # it does offer, marked "fill": no edge of their own, there so the entry's real worth can be shown. (The page's
+    # slipLegs also leaves out a partner the page showed earlier as a call and has since dropped: D.shown, which the
+    # build makes after this board, so it is not here.)
     if out and sum(1 for l in out if not l["promo"]) < 2:
         have = {l["id"] for l in out}
         fill = []

@@ -714,10 +714,16 @@ LEG_FIELDS = ["date", "game", "built", "player_id", "name", "team", "opp", "mark
               "price_over", "price_under", "be", "ev", "mkt_src", "lean",
               # the strongest call the page EVER showed for this leg, frozen when first shown (never erased by a
               # later snapshot): "play" / "lean", when, which side, its chance and multiplier then; and the promo used
-              "shown", "shown_at", "shown_side", "shown_p", "shown_mult", "promo"]
+              "shown", "shown_at", "shown_side", "shown_p", "shown_mult", "promo",
+              # this snapshot's pick was a "check" (a lean held until his spot is confirmed; the page lists it with the
+              # leans), and its line or price was one this build could not refresh (cached: no call, the build could not
+              # see it). Both leave an earlier call standing (shown_split). Logged from 2026-11-18; earlier legs take
+              # them from the builds that logged them (legs_flags.json, backfill_flags.py).
+              "check", "cached"]
 SHOWN_FIELDS = ("shown", "shown_at", "shown_side", "shown_p", "shown_mult")
 SHOWN_RANK = {"": 0, "lean": 1, "play": 2}
 BACKFILL = os.path.join(HERE, "data", "legs_shown.json")    # calls shown before the log kept them (rebuilt from history)
+FLAGS = os.path.join(HERE, "data", "legs_flags.json")       # check / cached before the log kept them (backfill_flags.py)
 
 
 def _read_legs():
@@ -725,7 +731,7 @@ def _read_legs():
         return []
     with open(LEGS, newline="") as f:
         rows = list(csv.DictReader(f))
-    return _fill_shown(rows)
+    return _fill_flags(_fill_shown(rows))
 
 
 def _backfill_map() -> dict:
@@ -755,6 +761,30 @@ def _fill_shown(rows):
         if call:
             r.update(shown=call, shown_at=r.get("built") or "", shown_side=r.get("side") or "", shown_p=r.get("p") or "",
                      shown_mult=r.get("mult") or "")
+    return rows
+
+
+def _fill_flags(rows):
+    """Rows logged before the log kept "check" / "cached": take them from the history file (backfill_flags.py), for the
+    snapshot it was built from (same `built`). Rows that carry either flag already are untouched."""
+    fl = None
+    for r in rows:
+        if _flag(r.get("check")) or _flag(r.get("cached")):
+            continue
+        if fl is None:
+            try:
+                with open(FLAGS) as f:
+                    fl = json.load(f)
+            except (OSError, ValueError):
+                fl = {}
+            if not fl:
+                return rows
+        try:
+            b = fl.get("|".join(str(x) for x in _leg_key(r)))
+        except (KeyError, ValueError, TypeError):
+            continue
+        if b and str(b.get("built")) == str(r.get("built") or ""):
+            r.update(check=1 if b.get("check") else (r.get("check") or ""), cached=1 if b.get("cached") else (r.get("cached") or ""))
     return rows
 
 
@@ -803,7 +833,8 @@ def log_legs(board_rows, built: str):
              "mkt_src": b.get("mkt_src") or "",
              # the player's pick when it is a lean (props_board.picks): not a TAKE, graded as its own record
              "lean": 1 if b.get("lean") else "",
-             "promo": b.get("pick_promo") or ""}
+             "promo": b.get("pick_promo") or "",
+             "check": 1 if b.get("pick_tier") == "check" else "", "cached": 1 if b.get("cached") else ""}
         k = _leg_key(r)
         prev = cur[idx[k]] if k in idx else None
         if prev is not None and prev.get("result"):
@@ -922,9 +953,14 @@ RULES_FROM = "2026-11-08"   # the first slate decided by the current shots proba
 RULES_LIVE_AT = "2026-11-08T14:47:23+00:00"   # the first build that ran them (calls shown earlier that day used the old rule)
 
 
+def _flag(v) -> bool:
+    """A 1 / "" column of the leg log."""
+    return str(v or "").strip() in ("1", "1.0", "True", "true")
+
+
 def _is_lean(r) -> bool:
     """A leg logged as the player's lean (the CSV stores 1 / "")."""
-    return str(r.get("lean") or "").strip() in ("1", "1.0", "True", "true")
+    return _flag(r.get("lean"))
 
 
 def playable_legs(rows):
@@ -984,21 +1020,55 @@ def shown_split(rows, legs) -> dict:
       "gone"    its line left the board while it was still a call (the app took the line down or moved it: a leg
                 whose last snapshot is older than the game's latest build, as in playable_legs);
       "erased"  a later snapshot of the same line carried no call (the market or our own number moved against it).
-    Someone who bet a call when it was shown holds it in all three cases."""
+    Someone who bet a call when it was shown holds it in all three cases. The same rule as the page's "Dropped since
+    earlier" list (droppedCalls), which judges each showing on its own app's line: a "check" snapshot (the lean holds
+    once his spot is confirmed) is still a call, and a call whose every showing app ends on a line the build could not
+    refresh (cached: nothing proves it moved) is "gone" at worst. A cached line on an app that never showed the call
+    says nothing about it. Legs logged before the check / cached columns take them from the history (_fill_flags)."""
     last = {}
     for r in rows:
         last[r.get("game")] = max(last.get(r.get("game"), ""), str(r.get("built") or ""))
     key = lambda x: (x["date"], str(x["player_id"]), x["market"], float(x["line"]), x.get("side"))
-    state = {}
+    state, cached, apps = {}, set(), {}
     for r in rows:
-        if _call_of(r):
+        if _call_of(r) or _flag(r.get("check")):
             k = key(r)
             on_last = str(r.get("built") or "") == last.get(r.get("game"))
             state[k] = "last" if on_last or state.get(k) == "last" else "gone"
+        elif _flag(r.get("cached")):
+            cached.add(key(r)[:4] + (r.get("source"),))      # the line on that app, either side
+        if r.get("shown") in ("play", "lean"):          # the apps that showed this bet, on the side shown
+            apps.setdefault(key({**r, "side": r.get("shown_side") or r.get("side")}), set()).add(r.get("source"))
     out = {"last": [], "gone": [], "erased": []}
     for x in legs:
-        out[state.get(key(x), "erased")].append(x)
+        k = key(x)
+        # no call left: "gone" only when every app that showed it ends on a line the build could not refresh
+        s = state.get(k) or ("gone" if apps.get(k) and all(k[:4] + (a,) in cached for a in apps[k]) else "erased")
+        out[s].append(x)
     return out
+
+
+def shown_open(game_ids, rows=None) -> list[dict]:
+    """Every call (play or lean) the page has shown for the games in `game_ids` (not started yet, so not graded), once
+    per line and side, as first shown. The page compares them with its board: a call a later build dropped while its
+    line stayed up (shown_split's "erased") is marked, because those have hit far below the chance they were shown
+    with (leans: 7 of 27 to 11-16), while a call whose line was taken down still holds for whoever bet it."""
+    keep = {str(g) for g in game_ids}
+    out = {}
+    for r in (rows if rows is not None else _read_legs()):
+        call = r.get("shown") or ""
+        side = r.get("shown_side") or r.get("side")
+        if str(r.get("game")) not in keep or call not in ("play", "lean") or r.get("result") or side not in ("OVER", "UNDER"):
+            continue
+        k = (r["date"], str(r["player_id"]), r["market"], float(r["line"]), r["source"], side)
+        if k in out and SHOWN_RANK[out[k]["call"]] >= SHOWN_RANK[call]:
+            continue
+        pid = _num(r.get("player_id"))
+        out[k] = {"date": r["date"], "game": int(float(r["game"])), "player_id": None if pid is None else int(pid),
+                  "name": r.get("name") or "", "team": r.get("team") or "", "market": r["market"], "line": float(r["line"]),
+                  "source": r["source"], "side": side, "call": call, "p": _num(r.get("shown_p")),
+                  "mult": _num(r.get("shown_mult")), "at": r.get("shown_at") or ""}
+    return sorted(out.values(), key=lambda x: (x["date"], x["game"], x["name"], x["market"], x["line"]))
 
 
 def legs_summary(rows=None) -> dict:
