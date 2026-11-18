@@ -603,3 +603,10 @@ snap,market,source,player_id,name,team,teams,line,over,under,mo,mu
 2026-11-18T16:43:46+00:00,sog,PrizePicks,8475753,Justin Faulk,DET,BOS/DET,1.5,,,1,1
 2026-11-18T16:43:46+00:00,sog,PrizePicks,8480865,Noah Dobson,MTL,MTL/NJD,1.5,,,1,1
 2026-11-18T16:43:46+00:00,sog,PrizePicks,8478401,Pavel Zacha,BOS,BOS/DET,1.5,,,1,1
+2026-11-18T16:58:49+00:00,points,DraftKings,8482802,Carter Mazur,DET,BOS/DET,0.5,290,-425,,
+2026-11-18T16:58:49+00:00,points,DraftKings,8476854,Hampus Lindholm,BOS,BOS/DET,0.5,320,-475,,
+2026-11-18T16:58:49+00:00,points,DraftKings,8477456,J.T. Compher,DET,BOS/DET,0.5,160,-215,,
+2026-11-18T16:58:49+00:00,points,DraftKings,8477507,Nikita Zadorov,BOS,BOS/DET,0.5,275,-390,,
+2026-11-18T16:58:49+00:00,saves,DraftKings,8480280,Jeremy Swayman,BOS,BOS/DET,25.5,-120,-115,,
+2026-11-18T16:58:49+00:00,sog,DraftKings,8484471,Emmitt Finnie,DET,BOS/DET,1.5,-175,130,,
+2026-11-18T16:58:50+00:00,sog,Pick6,8484471,Emmitt Finnie,DET,BOS/DET,1.5,,,0.8,1.2
