@@ -2168,6 +2168,8 @@ const payTx = a => a.mult != null ? (+a.mult) + "x" : amerTx(a.price);
 // a chance that rounds onto a bar it did not reach is cut, not rounded, to one decimal ("61.9%", "54.9%": never a
 // "62%" that is not a play or a "55%" that is not a lean)
 const chanceTx = (p, mk) => p == null ? "–" : [RULE.lean_p, takeP(mk)].some(b => p < b - 1e-9 && pc0(p) === pc0(b)) ? (Math.floor(1000 * p + 1e-9) / 10).toFixed(1) + "%" : pc0(p);
+// the sportsbooks' chance for a side, the same way against its own bar (a lean needs the books at 52%+): 51.8%, never 52%
+const mktTx = x => x == null ? "–" : x < RULE.lean_mkt_min - 1e-9 && pc0(x) === pc0(RULE.lean_mkt_min) ? (Math.floor(1000 * x + 1e-9) / 10).toFixed(1) + "%" : pc0(x);
 // two words on why a line at the lean bar or better is still not a lean (shown under its chance)
 function noLeanTag(r, v, pk){
   if (!pk.full) return "pays " + payTx(pk.apps[0]);
@@ -2175,7 +2177,7 @@ function noLeanTag(r, v, pk){
   if (r.cached) return "old line";
   const pkm = hasVal(r.p_mkt) ? (v.side === "OVER" ? +r.p_mkt : 1 - r.p_mkt) : null;
   if (pkm == null) return "no market";
-  if (pkm < RULE.lean_mkt_min - 1e-9) return "market " + pc0(pkm);
+  if (pkm < RULE.lean_mkt_min - 1e-9) return "market " + mktTx(pkm);
   if (r.market === "points" && v.side === "UNDER" && +r.line >= RULE.points_under_max - 1e-9) return "unders off";
   return "";
 }
@@ -2444,7 +2446,7 @@ function pickWhy(r, v, pk){
   if (r.market === "saves" || r.cached) return whyText(r, v);
   if (v.p < RULE.lean_p - 1e-9) return `No edge${m(`${chanceTx(v.p, r.market)} is close to a coin flip (a lean needs ${pc0(RULE.lean_p)}+)`)}`;
   if (pkm == null) return `No edge${m("no sportsbook prices him, and model-only picks have not won")}`;
-  if (pkm < RULE.lean_mkt_min - 1e-9) return `No edge${m(`the model leans ${sideCap(v.side)} (${pc0(v.p)}) but the market does not (${pc0(pkm)})`)}`;
+  if (pkm < RULE.lean_mkt_min - 1e-9) return `No edge${m(`the model leans ${sideCap(v.side)} (${pc0(v.p)}) but the market does not (${mktTx(pkm)})`)}`;
   return whyText(r, v);
 }
 // ---------- Picks: the one list ----------
@@ -2470,7 +2472,8 @@ function renderPicks(pb){
   const first = !box.querySelector(".x-chips"), fe = document.activeElement, back = fe && fe !== document.body && box.contains(fe) && !fe.closest(".x-det") ? focusKey(fe) : null;
   xBegin("pk");
   SHOWN.board = pb.slice();
-  const apps0 = PICK_APPS.filter(a => pb.some(r => isApp(r) && appOf(r) === a)), app = apps0.includes(PKX.app) ? PKX.app : "";
+  // the apps with lines the model prices (an app whose only lines are, say, goals props is not offered as a filter)
+  const apps0 = PICK_APPS.filter(a => pb.some(r => isApp(r) && appOf(r) === a && hasVal(r.p_blend))), app = apps0.includes(PKX.app) ? PKX.app : "";
   const {items, books, alts, P, V} = pickItems(pb, app);
   const mks = ["sog", "points", "saves"].filter(k => items.some(r => r.market === k)), mk = mks.includes(PKX.mk) ? PKX.mk : "";
   const inMk = r => !mk || r.market === mk;
@@ -2516,7 +2519,7 @@ function renderPicks(pb){
     const o = sideOffer(r, s.side), pkm = hasVal(r.p_mkt) ? (s.side === "OVER" ? +r.p_mkt : 1 - r.p_mkt) : null;
     if (!o) return `now ${esc(bookName(s.source))} no longer offers ${sideWord(s.side)}`;
     const why = d.pNow < RULE.lean_p - 1e-9 || s.market === "saves" ? "" : !o.full ? `, but it pays ${payTx(o)}`
-      : pkm == null ? ", no sportsbook price" : pkm < RULE.lean_mkt_min - 1e-9 ? `, the books ${pc0(pkm)}` : "";
+      : pkm == null ? ", no sportsbook price" : pkm < RULE.lean_mkt_min - 1e-9 ? `, the books ${mktTx(pkm)}` : "";
     return `now ${chanceTx(d.pNow, s.market)}${why}: no edge`;
   };
   const dropRow = d => { const s = d.s, now = dropNow(d);
@@ -2538,7 +2541,7 @@ function renderPicks(pb){
   const MKN = {sog: "Shots", points: "Points", saves: "Saves"};
   const mkSel = mks.length > 1 ? `<label class="x-pick x-mkp"><b>${mk ? MKN[mk] : "All stats"}</b><span class="cv" aria-hidden="true">▾</span><select id="pxMk" aria-label="Stat">${[["", "All stats"], ...mks.map(k => [k, MKN[k]])]
     .map(([v, l]) => `<option value="${v}" ${mk === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>` : "";
-  const appNames = apps0.length ? apps0.join(" or ") : "Pick6 or PrizePicks";
+  const appNames = app || (apps0.length ? apps0.join(" or ") : "Pick6 or PrizePicks"), oneApp = !!app || apps0.length === 1;
   let body;
   if (!items.length && !books.length && !um.length){
     const down = sourcesOff();
@@ -2550,7 +2553,7 @@ function renderPicks(pb){
   } else {
     const bar = `${pc0(takeP("sog"))}+`;
     const here = [app, mk ? MKN[mk].toLowerCase() : "", game ? "this game" : ""].filter(Boolean).join(", ");
-    const none = !items.length ? `${appNames} ${apps0.length === 1 ? "has" : "have"} not posted a line the model prices yet.`
+    const none = !items.length ? `${appNames} ${oneApp ? "has" : "have"} not posted a line the model prices yet.`
       : leans.length ? "None right now. Most nights have none; the leans below are the next best."
       : `None right now, and no leans either${here ? ` (${here})` : ""}: every line is close to a coin flip or pays too little.`;
     // By game: every game in start order with the props that meet the bars (plays, leans, checks) under it, shots first,
@@ -2563,7 +2566,10 @@ function renderPicks(pb){
     // every game of the day that has lines, or has not started yet (one with no lines yet says so; one that started
     // with its lines off the board has nothing left to bet); while searching, the games with a match
     const gStarted = g => !!g.start && Date.parse(g.start) <= t0;
-    const gList = games.filter(g => (!game || String(g.id) === game) && (qOn ? shown.some(r => r.game === g.id) : byGame[g.id] || !gStarted(g)));
+    // (All dates: a game with no lines only on the slate's own day, not every game of the week ahead)
+    const gList = games.filter(g => (!game || String(g.id) === game) && (qOn ? shown.some(r => r.game === g.id)
+      : byGame[g.id] || (!gStarted(g) && (day || g.date === (D.slate_day || TODAY_CT)))));
+    const multiDay = new Set(gList.map(g => g.date)).size > 1;       // then each header names its day
     const gWith = gList.filter(g => gCalls(g.id).length).length, nCalls = gList.reduce((a, g) => a + gCalls(g.id).length, 0);
     // the closest prop that falls short, and what it falls short on (noLeanTag: the pay, an old line, the books...)
     const nearTx = r => {
@@ -2573,13 +2579,13 @@ function renderPicks(pb){
       return `${esc(nm(r))} ${sideWord(v.side)} ${lineTx(r.line)} ${MK_LAB[r.market] || ""} ${chanceTx(v.p, r.market)}${why}`;
     };
     const what = mk === "points" ? "points prop" : mk === "saves" ? "saves line" : mk === "sog" ? "shots prop" : "shots or points prop";
-    const lnScope = [app, mk ? MKN[mk].toLowerCase() : ""].filter(Boolean).join(" ");
     const gRows = gList.flatMap(g => {
       const cs = gCalls(g.id), started = gStarted(g), has = shown.some(r => r.game === g.id);
       const right = started ? "started" : cs.length ? `${cs.length} ${cs.length === 1 ? "call" : "calls"}` : !has ? "no lines yet" : qOn ? "no matching call" : "nothing meets the bar";
-      const head = {divider: `<b>${esc(g.away)} @ ${esc(g.home)}</b> <span class="x-gt">${ctStart(g)}</span><span class="r">${right}</span>`, cls: "x-gh"};
+      const head = {divider: `<b>${esc(g.away)} @ ${esc(g.home)}</b> <span class="x-gt">${multiDay ? dayLabel(g.date).replace(/,.*/, "") + " " : ""}${ctStart(g)}</span><span class="r">${right}</span>`, cls: "x-gh"};
       if (cs.length) return [head, ...cs];
-      if (!has) return [head, {note: started ? "It has started: its lines are off the board." : `No ${lnScope ? lnScope + " " : ""}lines posted for this game yet.`}];
+      // the pick'em apps' lines (a sportsbook may have posted his lines already: Sportsbook only)
+      if (!has) return [head, {note: started ? "It has started: its lines are off the board." : `No ${app || "Pick6 or PrizePicks"}${mk ? " " + MKN[mk].toLowerCase() : ""} lines posted for this game yet.`}];
       const near = ["sog", "points"].filter(m => !mk || mk === m).map(m => gNear(g.id, m)).filter(Boolean);
       return [head, {note: `No ${qOn ? "matching " : ""}${what} in this game meets the bar${near.length ? `. Closest: ${near.map(nearTx).join(" · ")}` : ""}.`}];
     });
@@ -2587,13 +2593,15 @@ function renderPicks(pb){
     // A claim about the night, so from the night's picks (items), not the ones a game chip or a search leaves shown
     const pts = items.filter(r => r.market === "points"), ptsFull = pts.filter(r => (P.get(r) || {}).full);
     const ptsShort = pts.filter(r => !(P.get(r) || {}).full && (V.get(r) || {}).p >= RULE.lean_p - 1e-9);
-    // the best that pays 1x and falls short only on its chance (not one with no sportsbook price, say)
-    const ptsOnP = ptsFull.filter(r => !noLeanTag(r, V.get(r), P.get(r)));
-    const ptsBest = ptsOnP.length ? Math.max(...ptsOnP.map(r => (V.get(r) || {}).p ?? 0)) : null;
+    // the best points pick that pays 1x, and what holds it back when more than its chance does (noLeanTag)
+    const pOf = r => (V.get(r) || {}).p ?? 0, ptsTop = ptsFull.length ? ptsFull.reduce((m, r) => pOf(r) > pOf(m) ? r : m) : null;
+    const topTag = ptsTop ? noLeanTag(ptsTop, V.get(ptsTop), P.get(ptsTop)) : "";
+    const topWhy = !topTag ? "" : topTag === "no market" ? ", with no sportsbook price" : topTag.startsWith("market ") ? `, with the books at ${topTag.slice(7)}`
+      : topTag === "old line" ? ", on an old line" : topTag === "unders off" ? ", a LESS at a line where points unders are off" : "";
     const shortApps = [...new Set(ptsShort.map(r => ((P.get(r).apps || [])[0] || {}).app).filter(Boolean))];
     const noPts = (!mk || mk === "points") && pts.length > 0 && !pts.some(r => tier(r)), when = (whose === "tonight's" ? "tonight" : "on this day") + (app ? ` on ${app}` : "");
     const ptsNote = noPts ? `<p class="x-note">No points prop meets the bar ${when}: the apps price points close to even` +
-      `${ptsBest != null ? ` (the best paying 1x is ${chanceTx(ptsBest, "points")}; a lean needs ${pc0(RULE.lean_p)})` : ""}${ptsShort.length ? `, and the ${ptsShort.length} at ${pc0(RULE.lean_p)}+ pay under 1x${shortApps.length ? " on " + shortApps.map(esc).join(" or ") : ""}` : ""}.</p>` : "";
+      `${ptsTop ? ` (the best paying 1x is ${chanceTx(pOf(ptsTop), "points")}${topWhy}; a lean needs ${pc0(RULE.lean_p)})` : ""}${ptsShort.length ? `, and the ${ptsShort.length} at ${pc0(RULE.lean_p)}+ pay under 1x${shortApps.length ? " on " + shortApps.map(esc).join(" or ") : ""}` : ""}.</p>` : "";
     // a boosted Pick6 promo card listed as a lean below the usual bar: say why (leanTier's promo rule)
     const promoLow = gList.some(g => gCalls(g.id).some(r => tier(r) === "lean" && ((P.get(r) || {}).apps || []).some(a => a.promo) && (V.get(r) || {}).p < RULE.lean_p - 1e-9));
     // the count first, the list, then why (the bar, points, the side mix) under it
