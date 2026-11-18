@@ -2481,6 +2481,7 @@ function renderPicks(pb){
   const byGame = {}, callsBy = {};
   for (const r of items) if (inMk(r)){ byGame[r.game] = (byGame[r.game] || 0) + 1; if ((P.get(r) || {}).tier) callsBy[r.game] = (callsBy[r.game] || 0) + 1; }
   const view = PKX.view === "best" ? "best" : "game";
+  const chipDays = new Set(games.filter(g => byGame[g.id]).map(g => g.date)).size > 1;   // chips name their day when days mix
   const game = games.some(g => String(g.id) === PKX.game && byGame[g.id]) ? PKX.game : "";
   const fOn = !!(game || mk || app), qOn = !!Q();
   const keep = r => inMk(r) && (!game || String(r.game) === game) && matchQ(r.name, r.team, r.opp);
@@ -2634,7 +2635,7 @@ function renderPicks(pb){
     (items.length || books.length || um.length ? `<div class="x-filters">${seg("view", view, [["game", "By game"], ["best", "Best first"]], "View")}${apps0.length > 1 ? seg("app", app, [["", '<span class="lbl-l">Both apps</span><span class="lbl-s">Both</span>'], ...apps0.map(a => [a, a])], "App") : ""}${mkSel}` +
       `${fOn && (shown.length || bk.length) ? `<button type="button" class="x-link js-px-clear">Clear</button>` : ""}</div>` +
       (Object.keys(byGame).length > 1 ? `<div class="x-chips" role="group" aria-label="Game (the number is its calls)">${chip("", "All games", Object.values(callsBy).reduce((a, n) => a + n, 0))}${games.filter(g => byGame[g.id])
-        .map(g => chip(String(g.id), `${g.away} @ ${g.home} ${ctStart(g).replace(" CT", "")}`, callsBy[g.id] || 0)).join("")}</div>` : "") : "") + p6Note +
+        .map(g => chip(String(g.id), `${g.away} @ ${g.home} ${chipDays ? dayLabel(g.date).replace(/,.*/, "") + " " : ""}${ctStart(g).replace(" CT", "")}`, callsBy[g.id] || 0)).join("")}</div>` : "") : "") + p6Note +
     (!game && (!mk || mk === "saves") ? mvStrip(day, pb) : "") + body +
     `<p class="x-foot">Every call shown${(D.legs || {}).rules_from ? ` since ${dayLabel(D.legs.rules_from).replace(/^\w+, /, "")}` : " so far"}, graded: ${recTx("plays", recOf(SHOWN_REC ? "plays_shown" : (D.legs || {}).rules_from ? "takes_now" : "takes"))} · ${recTx("leans", recOf(SHOWN_REC ? "leans_shown" : "leans"))}. Times are Central.<br>` +
     `<button type="button" class="x-link js-rules">How picks work</button> · Line not here? <button type="button" class="x-link js-paste">Add your own</button></p>`;
