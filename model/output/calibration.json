@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-18 15:43 UTC",
+ "updated": "2026-11-18 15:58 UTC",
  "markets": {
   "saves": {
    "cal": {
@@ -7,11 +7,11 @@
     "n": 570,
     "n_over": 182,
     "n_under": 388,
-    "b_fit": 0.4125,
-    "b": 0.7861,
+    "b_fit": 0.4129,
+    "b": 0.7863,
     "b_shrink": 0.364,
-    "b_under_fit": 0.6019,
-    "b_under": 0.6911,
+    "b_under_fit": 0.6017,
+    "b_under": 0.6909,
     "b_under_shrink": 0.776,
     "shrink": 1.0,
     "mode": "full",
@@ -35,7 +35,7 @@
    },
    "platt_ref": {
     "a": -0.0421,
-    "b": 0.4801,
+    "b": 0.48,
     "n": 570
    },
    "tier_cap": "LOW",
@@ -881,7 +881,7 @@
     "blend fitted (new)": {
      "n": 449,
      "brier": 0.25052,
-     "logloss": 0.69419
+     "logloss": 0.6942
     },
     "blend fitted + line intercepts": {
      "n": 449,
