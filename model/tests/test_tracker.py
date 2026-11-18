@@ -172,6 +172,25 @@ class Shown(unittest.TestCase):
         got = {k: sorted(r["player_id"] for r in v) for k, v in tracker.shown_split(rows, tracker.shown_legs(rows, "lean")).items()}
         self.assertEqual(got, {"last": ["1", "3"], "gone": ["5"], "erased": ["2", "4"]})
 
+    def test_a_check_or_a_line_not_refreshed_is_not_a_dropped_call(self):
+        """The record's "erased" uses the page's rule (droppedCalls): a lean that became a check still stands, and a
+        line the build could not refresh proves nothing moved (Connor Brown, 2026-11-14 20:19: a reused PrizePicks board)."""
+        lean = dict(lean=True, pick_side="UNDER", pick_p=.59)
+        tracker.log_legs([self.leg(1, **lean), self.leg(2, **lean), self.leg(3, **lean), self.leg(4, **lean)], "2026-11-14T15:00:00+00:00")
+        tracker.log_legs([self.leg(1, pick_tier="check", role_change="F3→F1"), self.leg(2, cached=True, reason="cached PrizePicks line"),
+                          self.leg(3, p=.52), self.leg(4, **lean)], "2026-11-14T20:19:00+00:00")
+        rows = tracker._read_legs()
+        self.assertEqual([(r["player_id"], r["check"], r["cached"], r["lean"]) for r in rows],
+                         [("1", "1", "", ""), ("2", "", "1", ""), ("3", "", "", ""), ("4", "", "", "1")])
+        for r in rows:
+            r.update(actual=1, result="HIT")
+        got = {k: sorted(r["player_id"] for r in v) for k, v in tracker.shown_split(rows, tracker.shown_legs(rows, "lean")).items()}
+        self.assertEqual(got, {"last": ["1", "4"], "gone": ["2"], "erased": ["3"]})
+        # a cached snapshot never outranks a call on the same bet's other app
+        other = {**rows[3], "player_id": "2", "name": "P2", "source": "Pick6"}
+        got = {k: sorted(r["player_id"] for r in v) for k, v in tracker.shown_split(rows + [other], tracker.shown_legs(rows, "lean")).items()}
+        self.assertEqual(got["last"], ["1", "2", "4"])
+
     def test_since_keeps_calls_first_shown_under_the_current_rules(self):
         early = self.graded(1, "play", "OVER", 3, shown_at="2026-11-08T13:00:00+00:00")
         late = self.graded(2, "play", "OVER", 3, shown_at="2026-11-08T15:00:00+00:00")

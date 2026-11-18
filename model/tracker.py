@@ -714,7 +714,11 @@ LEG_FIELDS = ["date", "game", "built", "player_id", "name", "team", "opp", "mark
               "price_over", "price_under", "be", "ev", "mkt_src", "lean",
               # the strongest call the page EVER showed for this leg, frozen when first shown (never erased by a
               # later snapshot): "play" / "lean", when, which side, its chance and multiplier then; and the promo used
-              "shown", "shown_at", "shown_side", "shown_p", "shown_mult", "promo"]
+              "shown", "shown_at", "shown_side", "shown_p", "shown_mult", "promo",
+              # this snapshot's pick was a "check" (a lean held until his spot is confirmed; the page lists it with the
+              # leans), and its line or price was one this build could not refresh (cached: no call, the build could not
+              # see it). Both leave an earlier call standing (shown_split). Logged from 2026-11-18.
+              "check", "cached"]
 SHOWN_FIELDS = ("shown", "shown_at", "shown_side", "shown_p", "shown_mult")
 SHOWN_RANK = {"": 0, "lean": 1, "play": 2}
 BACKFILL = os.path.join(HERE, "data", "legs_shown.json")    # calls shown before the log kept them (rebuilt from history)
@@ -803,7 +807,8 @@ def log_legs(board_rows, built: str):
              "mkt_src": b.get("mkt_src") or "",
              # the player's pick when it is a lean (props_board.picks): not a TAKE, graded as its own record
              "lean": 1 if b.get("lean") else "",
-             "promo": b.get("pick_promo") or ""}
+             "promo": b.get("pick_promo") or "",
+             "check": 1 if b.get("pick_tier") == "check" else "", "cached": 1 if b.get("cached") else ""}
         k = _leg_key(r)
         prev = cur[idx[k]] if k in idx else None
         if prev is not None and prev.get("result"):
@@ -922,9 +927,14 @@ RULES_FROM = "2026-11-08"   # the first slate decided by the current shots proba
 RULES_LIVE_AT = "2026-11-08T14:47:23+00:00"   # the first build that ran them (calls shown earlier that day used the old rule)
 
 
+def _flag(v) -> bool:
+    """A 1 / "" column of the leg log."""
+    return str(v or "").strip() in ("1", "1.0", "True", "true")
+
+
 def _is_lean(r) -> bool:
     """A leg logged as the player's lean (the CSV stores 1 / "")."""
-    return str(r.get("lean") or "").strip() in ("1", "1.0", "True", "true")
+    return _flag(r.get("lean"))
 
 
 def playable_legs(rows):
@@ -984,17 +994,21 @@ def shown_split(rows, legs) -> dict:
       "gone"    its line left the board while it was still a call (the app took the line down or moved it: a leg
                 whose last snapshot is older than the game's latest build, as in playable_legs);
       "erased"  a later snapshot of the same line carried no call (the market or our own number moved against it).
-    Someone who bet a call when it was shown holds it in all three cases."""
+    Someone who bet a call when it was shown holds it in all three cases. The same rule as the page's "Dropped since
+    earlier" list (droppedCalls): a "check" snapshot (the lean holds once his spot is confirmed) is still a call, and a
+    snapshot of a line the build could not refresh (cached) proves nothing moved, so the call is "gone" at worst."""
     last = {}
     for r in rows:
         last[r.get("game")] = max(last.get(r.get("game"), ""), str(r.get("built") or ""))
     key = lambda x: (x["date"], str(x["player_id"]), x["market"], float(x["line"]), x.get("side"))
     state = {}
     for r in rows:
-        if _call_of(r):
+        if _call_of(r) or _flag(r.get("check")):
             k = key(r)
             on_last = str(r.get("built") or "") == last.get(r.get("game"))
             state[k] = "last" if on_last or state.get(k) == "last" else "gone"
+        elif _flag(r.get("cached")):
+            state.setdefault(key(r), "gone")
     out = {"last": [], "gone": [], "erased": []}
     for x in legs:
         out[state.get(key(x), "erased")].append(x)
