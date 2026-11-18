@@ -790,3 +790,9 @@ snap,market,source,player_id,name,team,teams,line,over,under,mo,mu
 2026-11-18T23:14:34+00:00,saves,DraftKings,8478406,Mackenzie Blackwood,COL,COL/UTA,25.5,-125,-110,,
 2026-11-18T23:14:34+00:00,saves,DraftKings,8482657,Sebastian Cossa,UTA,COL/UTA,24.5,-110,-120,,
 2026-11-18T23:14:34+00:00,saves,Pinnacle,8480280,Jeremy Swayman,BOS,BOS/DET,25.5,113,-150,,
+2026-11-18T23:29:39+00:00,saves,DraftKings,8480280,Jeremy Swayman,BOS,BOS/DET,25.5,-105,-130,,
+2026-11-18T23:29:39+00:00,saves,ESPN BET,8476945,Connor Hellebuyck,NJD,MTL/NJD,21.5,-130,100,,
+2026-11-18T23:29:39+00:00,saves,FanDuel,8480193,Daniil Tarasov,DET,BOS/DET,23.5,102,-136,,
+2026-11-18T23:29:39+00:00,saves,FanDuel,8480280,Jeremy Swayman,BOS,BOS/DET,25.5,100,-132,,
+2026-11-18T23:29:39+00:00,saves,PrizePicks,8480280,Jeremy Swayman,BOS,BOS/DET,,,,,
+2026-11-18T23:29:39+00:00,sog,PrizePicks,8483489,Fraser Minten,BOS,BOS/DET,1.5,,,1,1
