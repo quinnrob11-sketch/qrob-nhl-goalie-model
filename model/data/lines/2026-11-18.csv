@@ -796,3 +796,10 @@ snap,market,source,player_id,name,team,teams,line,over,under,mo,mu
 2026-11-18T23:29:39+00:00,saves,FanDuel,8480280,Jeremy Swayman,BOS,BOS/DET,25.5,100,-132,,
 2026-11-18T23:29:39+00:00,saves,PrizePicks,8480280,Jeremy Swayman,BOS,BOS/DET,,,,,
 2026-11-18T23:29:39+00:00,sog,PrizePicks,8483489,Fraser Minten,BOS,BOS/DET,1.5,,,1,1
+2026-11-18T23:44:39+00:00,points,DraftKings,8482511,Mason Lohrei,BOS,BOS/DET,0.5,230,-320,,
+2026-11-18T23:44:39+00:00,saves,DraftKings,8480193,Daniil Tarasov,DET,BOS/DET,22.5,-135,100,,
+2026-11-18T23:44:39+00:00,saves,DraftKings,8480280,Jeremy Swayman,BOS,BOS/DET,24.5,-135,100,,
+2026-11-18T23:44:39+00:00,saves,DraftKings,8478406,Mackenzie Blackwood,COL,COL/UTA,25.5,-130,-105,,
+2026-11-18T23:44:39+00:00,saves,FanDuel,8480193,Daniil Tarasov,DET,BOS/DET,22.5,-130,-102,,
+2026-11-18T23:44:39+00:00,saves,FanDuel,8484170,Jacob Fowler,MTL,MTL/NJD,27.5,-118,-112,,
+2026-11-18T23:44:39+00:00,saves,PrizePicks,8480280,Jeremy Swayman,BOS,BOS/DET,25.5,,,1,1
