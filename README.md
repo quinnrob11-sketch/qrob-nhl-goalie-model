@@ -15,10 +15,11 @@ saves), built from the lines Pick6 and PrizePicks post:
 - the chance, and a label: **Play** (passes every rule; rare), **Lean** (the likelier side at 55%+ with the
   market agreeing, about break-even), or **Check** (a lean on a player whose line just changed).
 
-It opens **By game**: every game of the day in start order, the props that meet the bar (plays, leans, checks) under
-each, shots first, then points, then saves. A game where nothing meets the bar says so and names its closest prop and
-why it falls short (under 55%, the books disagreeing, no sportsbook price, an old line, or an app paying under 1x),
-and a game whose lines are not posted yet says that, so no game is ever silently missing. A line above the list
+It opens **By game**: every game of the day still to play in start order (and a started game whose lines are still
+up), the props that meet the bar (plays, leans, checks) under each, shots first, then points, then saves. A game where
+nothing meets the bar says so and names its closest prop and why it falls short (under 55%, the books disagreeing, no
+sportsbook price, an old line, or an app paying under 1x), and a game whose lines are not posted yet says that; only a
+started game with nothing left to bet is left out. A line above the list
 counts the calls and the games they are in (while you search, the matching ones), and notes under it explain the
 bar, why points rarely qualify that night (the apps price points near even, and their likelier sides often pay under
 1x) and the night's side mix. **Best first** is the same calls in one list, strongest first. The game chips count
@@ -43,11 +44,14 @@ a build-your-own list and editable payout tables. It is a calculator: it places 
 **Dropped since earlier.** A play or lean the page showed earlier whose line is still up on the same app but is no
 longer the call is listed under the leans with "skip if not placed", each with what changed: the chance now, what
 fails when the chance held (the books, the pay), or his new call when it moved to another bet. Leans dropped that way
-hit 9 of 33 (27%) to Nov 16, against about 56% shown (`tracker.shown_open`, `D.shown`; the record's "erased",
+hit 7 of 27 (26%) to Nov 16, against about 56% shown (`tracker.shown_open`, `D.shown`; the record's "erased",
 `tracker.shown_split`). A call whose line the app took down is not listed: it stands for whoever bet it. Neither is a
-"check" (a lean held until his spot is confirmed; the record counts it as standing too), nor a call on a line this
-build could not refresh (a reused board or stale price proves nothing moved; it is judged again on the next fresh
-pull). A dropped call is never used as a slip partner. When most of the night's calls fall on one side and the
+"check" (a lean held until his spot is confirmed), nor a call on a line this build could not refresh (a reused board or
+stale price proves nothing moved; it is judged again on the next fresh pull). The record uses the same rule, app by
+app: a check still stands, and a call counts as gone, not dropped, only when every app that showed it ends on a line
+its build could not refresh. The leg log keeps both flags from Nov 18; earlier legs take them from the builds that
+logged them (`model/backfill_flags.py` → `model/data/legs_flags.json`). A dropped call is never used as a slip
+partner. When most of the night's calls fall on one side and the
 sportsbooks' own prices lean that way on most of the night's shots lines, a note says so (the board leans UNDER
 mainly because the lines do: shot counts skew low, so a player's typical night is below his average).
 
