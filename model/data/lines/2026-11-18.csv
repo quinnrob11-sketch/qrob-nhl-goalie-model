@@ -717,3 +717,12 @@ snap,market,source,player_id,name,team,teams,line,over,under,mo,mu
 2026-11-18T19:29:16+00:00,saves,FanDuel,8478406,Mackenzie Blackwood,COL,COL/UTA,25.5,-122,-108,,
 2026-11-18T19:29:16+00:00,saves,FanDuel,8482657,Sebastian Cossa,UTA,COL/UTA,25.5,-130,-102,,
 2026-11-18T19:29:16+00:00,sog,PrizePicks,8482078,Lucas Raymond,DET,BOS/DET,,,,,
+2026-11-18T19:44:06+00:00,saves,DraftKings,8478406,Mackenzie Blackwood,COL,COL/UTA,25.5,-125,-105,,
+2026-11-18T19:44:06+00:00,saves,DraftKings,8482657,Sebastian Cossa,UTA,COL/UTA,25.5,-130,-105,,
+2026-11-18T19:44:06+00:00,saves,PrizePicks,8480193,Daniil Tarasov,DET,BOS/DET,22.5,,,1,1
+2026-11-18T19:44:06+00:00,saves,PrizePicks,8482657,Sebastian Cossa,UTA,COL/UTA,25.5,,,1,1
+2026-11-18T19:44:06+00:00,sog,PrizePicks,8475754,Brock Nelson,COL,COL/UTA,,,,,
+2026-11-18T19:44:06+00:00,sog,PrizePicks,8475768,Jaden Schwartz,COL,COL/UTA,,,,,
+2026-11-18T19:44:06+00:00,sog,PrizePicks,8482078,Lucas Raymond,DET,BOS/DET,2.5,,,1,1
+2026-11-18T19:44:06+00:00,sog,PrizePicks,8479987,Morgan Geekie,BOS,BOS/DET,,,,,
+2026-11-18T19:44:06+00:00,sog,PrizePicks,8480865,Noah Dobson,MTL,MTL/NJD,,,,,
