@@ -610,3 +610,18 @@ snap,market,source,player_id,name,team,teams,line,over,under,mo,mu
 2026-11-18T16:58:49+00:00,saves,DraftKings,8480280,Jeremy Swayman,BOS,BOS/DET,25.5,-120,-115,,
 2026-11-18T16:58:49+00:00,sog,DraftKings,8484471,Emmitt Finnie,DET,BOS/DET,1.5,-175,130,,
 2026-11-18T16:58:50+00:00,sog,Pick6,8484471,Emmitt Finnie,DET,BOS/DET,1.5,,,0.8,1.2
+2026-11-18T17:13:58+00:00,points,PrizePicks,8478414,Timo Meier,NJD,MTL/NJD,,,,,
+2026-11-18T17:13:58+00:00,saves,DraftKings,8476945,Connor Hellebuyck,NJD,MTL/NJD,22.5,-110,-120,,
+2026-11-18T17:13:58+00:00,saves,DraftKings,8484170,Jacob Fowler,MTL,MTL/NJD,26.5,-120,-110,,
+2026-11-18T17:13:58+00:00,saves,ESPN BET,8476945,Connor Hellebuyck,NJD,MTL/NJD,22.5,-105,-125,,
+2026-11-18T17:13:58+00:00,saves,ESPN BET,8484170,Jacob Fowler,MTL,MTL/NJD,27.5,100,-130,,
+2026-11-18T17:13:58+00:00,saves,FanDuel,8476945,Connor Hellebuyck,NJD,MTL/NJD,22.5,-106,-125,,
+2026-11-18T17:13:58+00:00,saves,FanDuel,8484170,Jacob Fowler,MTL,MTL/NJD,26.5,-104,-128,,
+2026-11-18T17:13:58+00:00,saves,Pinnacle,8480193,Daniil Tarasov,DET,BOS/DET,23.5,-110,-120,,
+2026-11-18T17:13:58+00:00,saves,Pinnacle,8480280,Jeremy Swayman,BOS,BOS/DET,25.5,-110,-120,,
+2026-11-18T17:13:58+00:00,saves,PrizePicks,8484170,Jacob Fowler,MTL,MTL/NJD,26.5,,,1,1
+2026-11-18T17:13:58+00:00,sog,DraftKings,8480002,Nico Hischier,NJD,MTL/NJD,1.5,-180,130,,
+2026-11-18T17:13:58+00:00,sog,ESPN BET,8478414,Timo Meier,NJD,MTL/NJD,2.5,-180,135,,
+2026-11-18T17:13:58+00:00,sog,Pick6,8480002,Nico Hischier,NJD,MTL/NJD,1.5,,,0.8,1.2
+2026-11-18T17:13:58+00:00,sog,PrizePicks,8480074,Alexandre Texier,MTL,MTL/NJD,,,,,
+2026-11-18T17:13:58+00:00,sog,PrizePicks,8478542,Evan Rodrigues,NJD,MTL/NJD,1.5,,,1,1
