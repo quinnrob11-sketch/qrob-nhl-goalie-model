@@ -2067,7 +2067,7 @@ function factsTx(r, v){
   const from = r.mean_blend ? (r.mu_mkt == null ? "the model alone (no market price)" : `${Math.round(100 * (1 - mw))}% model + ${Math.round(100 * mw)}% ${msrc}, in expected shots`)
     : r.p_mkt == null ? "the model alone" : w >= 1 ? "model" : w <= 0 ? `${esc(src)} no‑vig` : `${Math.round(100 * w)}% model + ${Math.round(100 * (1 - w))}% ${esc(src)}`;
   const kv = [["Chance from", from], ["Model alone", pc0(sideP(r.p_model))],
-    ["Market no‑vig", r.p_mkt != null ? `${pc0(sideP(r.p_mkt))} <span class="muted">${esc(src)}</span>` : `none on ${n1(r.line)}`],
+    ["Market no‑vig", r.p_mkt != null ? `${mktTx(sideP(r.p_mkt))} <span class="muted">${esc(src)}</span>` : `none on ${n1(r.line)}`],
     ["Projection", r.proj == null ? "–" : `${n1(r.proj)} (${sgnD(r.proj - r.line)})`]];
   if (r.mean_blend && r.mu_mkt != null) kv.push(["Market expects", `${n1(r.mu_mkt)} shots <span class="muted">${msrc}</span>`]);
   const pl = SKATER[r.player_id];
@@ -2612,7 +2612,7 @@ function renderPicks(pb){
     const gameBody = !items.length && !qOn ? `<p class="x-none">${none}</p>` :
       (count ? `<p class="x-sum x-gsum">${count}${noPts && nCalls ? ` None in points ${when}.` : ""} <button type="button" class="x-link js-rules">How picks work</button></p>` : "") +
       (gRows.length ? xList(gRows, "pk", opt) +
-      `<div class="x-gfoot"><p class="x-note">A lean needs ${pc0(RULE.lean_p)}+ with the sportsbooks agreeing and a payout of at least 1x${promoLow ? `; a Pick6 promo card can lean below that when its chance × boost is ${RULE.promo_value}+ on our number and the books'` : ""}; a play needs more.</p>${ptsNote}${mixNote}</div>` : "");
+      `<div class="x-gfoot"><p class="x-note">A lean needs ${pc0(RULE.lean_p)}+, the sportsbooks at ${pc0(RULE.lean_mkt_min)}+ on the same side, and a payout of at least 1x${promoLow ? `; a Pick6 promo card can lean below that when its chance × boost is ${RULE.promo_value}+ on our number and the books'` : ""}; a play needs more.</p>${ptsNote}${mixNote}</div>` : "");
     body = (view === "game" ? gameBody : mixNote + (plays.length ? sec("Plays", plays.length, xList(plays, "pk", opt), `${bar} · the strongest`)
         : qOn ? "" : sec("Plays", 0, `<p class="x-none">${none}</p>`, items.length ? `${bar} · the strongest` : "")) +
       (leans.length ? sec("Leans", leans.length, xList(leans, "pk", opt), `${pc0(RULE.lean_p)}+ · the likelier side, not a play`) : "")) +
