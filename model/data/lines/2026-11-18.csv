@@ -697,3 +697,6 @@ snap,market,source,player_id,name,team,teams,line,over,under,mo,mu
 2026-11-18T18:44:26+00:00,sog,BetMGM,8483515,Juraj Slafkovsky,MTL,MTL/NJD,2.5,140,-190,,
 2026-11-18T18:44:26+00:00,sog,BetMGM,8482146,Luke Evangelista,NJD,MTL/NJD,1.5,-185,135,,
 2026-11-18T18:44:26+00:00,sog,DraftKings,8477476,Artturi Lehkonen,COL,COL/UTA,2.5,135,-185,,
+2026-11-18T18:59:13+00:00,saves,PrizePicks,8482657,Sebastian Cossa,UTA,COL/UTA,24.5,,,1,1
+2026-11-18T18:59:13+00:00,sog,PrizePicks,8475314,Anders Lee,UTA,COL/UTA,,,,,
+2026-11-18T18:59:13+00:00,sog,PrizePicks,8475768,Jaden Schwartz,COL,COL/UTA,1.5,,,1,1
