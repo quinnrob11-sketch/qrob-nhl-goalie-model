@@ -803,3 +803,11 @@ snap,market,source,player_id,name,team,teams,line,over,under,mo,mu
 2026-11-18T23:44:39+00:00,saves,FanDuel,8480193,Daniil Tarasov,DET,BOS/DET,22.5,-130,-102,,
 2026-11-18T23:44:39+00:00,saves,FanDuel,8484170,Jacob Fowler,MTL,MTL/NJD,27.5,-118,-112,,
 2026-11-18T23:44:39+00:00,saves,PrizePicks,8480280,Jeremy Swayman,BOS,BOS/DET,25.5,,,1,1
+2026-11-18T23:59:54+00:00,points,ESPN BET,8477956,David Pastrnak,BOS,BOS/DET,1.5,190,-260,,
+2026-11-18T23:59:54+00:00,points,Pinnacle,8478042,Viktor Arvidsson,DET,BOS/DET,,,,,
+2026-11-18T23:59:54+00:00,points,PrizePicks,8478042,Viktor Arvidsson,DET,BOS/DET,0.5,,,1,1
+2026-11-18T23:59:54+00:00,saves,DraftKings,8480193,Daniil Tarasov,DET,BOS/DET,23.5,100,-135,,
+2026-11-18T23:59:54+00:00,saves,DraftKings,8480280,Jeremy Swayman,BOS,BOS/DET,25.5,100,-135,,
+2026-11-18T23:59:54+00:00,saves,ESPN BET,8480280,Jeremy Swayman,BOS,BOS/DET,24.5,-130,100,,
+2026-11-18T23:59:54+00:00,saves,PrizePicks,8480280,Jeremy Swayman,BOS,BOS/DET,24.5,,,1,1
+2026-11-18T23:59:54+00:00,sog,DraftKings,8482175,JJ Peterka,BOS,BOS/DET,2.5,120,-160,,
