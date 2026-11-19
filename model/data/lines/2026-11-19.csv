@@ -2290,3 +2290,13 @@ snap,market,source,player_id,name,team,teams,line,over,under,mo,mu
 2026-11-19T16:16:19+00:00,saves,PrizePicks,8480045,Ukko-Pekka Luukkonen,BUF,BUF/WSH,25.5,,,1,1
 2026-11-19T16:16:19+00:00,sog,PrizePicks,8480995,Pontus Holmberg,TBL,EDM/TBL,,,,,
 2026-11-19T16:16:20+00:00,sog,Pick6,8477404,Jake Guentzel,TBL,EDM/TBL,,,,,
+2026-11-19T16:31:12+00:00,saves,DraftKings,8481668,Arturs Silovs,PIT,STL/PIT,21.5,-125,-110,,
+2026-11-19T16:31:12+00:00,saves,DraftKings,8481692,Dustin Wolf,CGY,MIN/CGY,27.5,-105,-130,,
+2026-11-19T16:31:12+00:00,saves,ESPN BET,8481692,Dustin Wolf,CGY,MIN/CGY,26.5,-130,100,,
+2026-11-19T16:31:12+00:00,saves,ESPN BET,8482076,Nico Daws,WPG,NYI/WPG,23.5,-130,100,,
+2026-11-19T16:31:12+00:00,saves,FanDuel,8481692,Dustin Wolf,CGY,MIN/CGY,26.5,-104,-128,,
+2026-11-19T16:31:12+00:00,saves,PrizePicks,8481692,Dustin Wolf,CGY,MIN/CGY,27.5,,,1,1
+2026-11-19T16:31:12+00:00,sog,DraftKings,8483445,Cutter Gauthier,ANA,ANA/COL,4.5,120,-165,,
+2026-11-19T16:31:12+00:00,sog,DraftKings,8478873,Troy Terry,ANA,ANA/COL,1.5,-190,140,,
+2026-11-19T16:31:15+00:00,sog,Pick6,8483445,Cutter Gauthier,ANA,ANA/COL,4.5,,,1.1,0.8
+2026-11-19T16:31:15+00:00,sog,Pick6,8478873,Troy Terry,ANA,ANA/COL,1.5,,,0.8,1.2
