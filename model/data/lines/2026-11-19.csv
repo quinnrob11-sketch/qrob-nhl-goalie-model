@@ -2261,3 +2261,20 @@ snap,market,source,player_id,name,team,teams,line,over,under,mo,mu
 2026-11-19T15:46:29+00:00,sog,Pick6,8480995,Pontus Holmberg,TBL,EDM/TBL,1.5,,,1,0.9
 2026-11-19T15:46:29+00:00,sog,Pick6,8484390,Roman Kantserov,CHI,CBJ/CHI,1.5,,,1,1
 2026-11-19T15:46:29+00:00,sog,Pick6,8483676,Stephen Halliday,OTT,PHI/OTT,1.5,,,1,0.9
+2026-11-19T16:01:25+00:00,points,DraftKings,8477404,Jake Guentzel,TBL,EDM/TBL,1.5,170,-235,,
+2026-11-19T16:01:25+00:00,points,ESPN BET,8482116,Tim Stützle,OTT,PHI/OTT,1.5,180,-250,,
+2026-11-19T16:01:25+00:00,points,PrizePicks,8478439,Travis Konecny,PHI,PHI/OTT,0.5,,,1,1
+2026-11-19T16:01:25+00:00,saves,DraftKings,8480313,Logan Thompson,WSH,BUF/WSH,24.5,-110,-120,,
+2026-11-19T16:01:25+00:00,saves,ESPN BET,8480313,Logan Thompson,WSH,BUF/WSH,24.5,-120,-110,,
+2026-11-19T16:01:25+00:00,saves,ESPN BET,8482076,Nico Daws,WPG,NYI/WPG,23.5,-125,-105,,
+2026-11-19T16:01:25+00:00,saves,FanDuel,8481668,Arturs Silovs,PIT,STL/PIT,21.5,-130,-102,,
+2026-11-19T16:01:25+00:00,saves,FanDuel,8482487,Jakub Dobes,MTL,MTL/CAR,28.5,-120,-110,,
+2026-11-19T16:01:25+00:00,saves,FanDuel,8481035,Samuel Ersson,OTT,PHI/OTT,19.5,-130,-102,,
+2026-11-19T16:01:25+00:00,saves,PrizePicks,8476932,Anthony Stolarz,TOR,LAK/TOR,24.5,,,1,1
+2026-11-19T16:01:25+00:00,saves,PrizePicks,8481668,Arturs Silovs,PIT,STL/PIT,23.5,,,1,1
+2026-11-19T16:01:25+00:00,saves,PrizePicks,8480313,Logan Thompson,WSH,BUF/WSH,24.5,,,1,1
+2026-11-19T16:01:25+00:00,saves,PrizePicks,8481035,Samuel Ersson,OTT,PHI/OTT,21.5,,,1,1
+2026-11-19T16:01:25+00:00,sog,PrizePicks,8481624,Ilya Mikheyev,TBL,EDM/TBL,1.5,,,1,1
+2026-11-19T16:01:25+00:00,sog,PrizePicks,8484390,Roman Kantserov,CHI,CBJ/CHI,,,,,
+2026-11-19T16:01:25+00:00,sog,PrizePicks,8478469,Thomas Chabot,OTT,PHI/OTT,,,,,
+2026-11-19T16:01:27+00:00,sog,Pick6,8484390,Roman Kantserov,CHI,CBJ/CHI,,,,,
