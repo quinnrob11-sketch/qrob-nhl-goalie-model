@@ -2884,3 +2884,7 @@ snap,market,source,player_id,name,team,teams,line,over,under,mo,mu
 2026-11-19T21:32:01+00:00,sog,ESPN BET,8480426,Charle-Edouard D'Astous,TBL,EDM/TBL,1.5,120,-155,,
 2026-11-19T21:32:01+00:00,sog,ESPN BET,8475166,John Tavares,TOR,LAK/TOR,2.5,135,-180,,
 2026-11-19T21:32:01+00:00,sog,PrizePicks,8475791,Taylor Hall,CAR,MTL/CAR,,,,,
+2026-11-19T21:33:24+00:00,points,PrizePicks,8482702,Logan Stankoven,CAR,MTL/CAR,0.5,,,1,1
+2026-11-19T21:33:24+00:00,saves,PrizePicks,8478499,Adin Hill,VGK,DAL/VGK,,,,,
+2026-11-19T21:33:24+00:00,saves,PrizePicks,8482661,Jesper Wallstedt,MIN,MIN/CGY,23.5,,,1,1
+2026-11-19T21:33:24+00:00,sog,PrizePicks,8480426,Charle-Edouard D'Astous,TBL,EDM/TBL,1.5,,,1,1
