@@ -9659,3 +9659,8 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-11-21,winner,UTA,UTA,ANA,model,,,,UTA,,0.63,,,,ANA 2-3 UTA,HIT,
 2026-11-21,winner,MIN,MIN,VAN,model,,,,MIN,,0.64,,,,MIN 3-4 VAN OT/SO,MISS,
 2026-11-21,winner,SJS,SJS,SEA,model,,,,SJS,,0.55,,,,SEA 3-4 SJS,HIT,
+2026-11-22,winner,CAR,CAR,NYR,model,,,,CAR,,0.59,,,,CAR 5-2 NYR,HIT,
+2026-11-22,winner,TBL,TBL,BUF,model,,,,TBL,,0.66,,,65%+,BUF 6-2 TBL,MISS,
+2026-11-22,winner,STL,STL,EDM,model,,,,STL,,0.56,,,,EDM 4-5 STL OT/SO,HIT,
+2026-11-22,winner,DAL,DAL,PIT,model,,,,DAL,,0.61,,,,PIT 0-1 DAL,HIT,
+2026-11-22,winner,VAN,VAN,CHI,model,,,,VAN,,0.54,,,,CHI 6-3 VAN,MISS,
