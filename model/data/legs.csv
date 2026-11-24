@@ -15393,12 +15393,12 @@ date,game,built,player_id,name,team,opp,market,line,source,mo,mu,side,mult,p_mod
 2026-11-23,2026020383,2026-11-24T01:26:31+00:00,8476905,Chandler Stephenson,SEA,ANA,sog,2.5,Pick6,3.0,0.0,UNDER,0.0,0.0775,,0.0775,0.9225,PASS,,needs review: role change F1→F3 (old → new line),F1→F3,,,,,0.5774,0.5977,,,,-,,,,,,1
 2026-11-23,2026020383,2026-11-24T01:26:31+00:00,8476905,Chandler Stephenson,SEA,ANA,sog,1.5,Pick6,1.3,0.7,UNDER,0.7,0.2394,,0.2394,0.7606,PASS,,needs review: role change F1→F3 (old → new line),F1→F3,,,,,0.8248,-0.0778,,,,-,,,,,,1
 2026-11-23,2026020383,2026-11-24T01:26:31+00:00,8476905,Chandler Stephenson,SEA,ANA,sog,0.5,Pick6,0.7,0.0,OVER,0.7,0.5848,,0.5848,0.5848,PASS,,needs review: role change F1→F3 (old → new line),F1→F3,,,,,0.8248,-0.291,,,,-,,,,,,1
-2026-11-23,2026020383,2026-11-24T01:56:24+00:00,8483445,Cutter Gauthier,ANA,SEA,sog,7.5,Pick6,3.7,0.0,UNDER,0.0,0.0787,,0.0787,0.9213,PASS,,LESS not offered on this line,,,,,,0.5774,0.5957,,,,-,,,,,,
-2026-11-23,2026020383,2026-11-24T01:56:24+00:00,8483445,Cutter Gauthier,ANA,SEA,sog,6.5,Pick6,2.3,0.0,UNDER,0.0,0.1452,,0.1452,0.8548,PASS,,LESS not offered on this line,,,,,,0.5774,0.4806,,,,-,,,,,,
-2026-11-23,2026020383,2026-11-24T01:56:24+00:00,8483445,Cutter Gauthier,ANA,SEA,sog,2.5,Pick6,0.6,0.0,OVER,0.6,0.7513,,0.7513,0.7513,PASS,,pays 0.6x,,,,,,0.9623,-0.2192,,,,-,,,,,,
-2026-11-23,2026020383,2026-11-24T01:56:24+00:00,8483445,Cutter Gauthier,ANA,SEA,sog,5.5,Pick6,1.4,0.0,UNDER,0.0,0.2492,,0.2492,0.7508,PASS,,LESS not offered on this line,,,,,,0.5774,0.3004,,,,-,,,,,,
-2026-11-23,2026020383,2026-11-24T01:56:24+00:00,8483445,Cutter Gauthier,ANA,SEA,sog,4.5,Pick6,1.0,0.9,UNDER,0.9,0.3946,,0.3946,0.6054,PASS,,pays 0.9x,,,,,,0.6415,-0.0562,,,,-,,,,,,
-2026-11-23,2026020383,2026-11-24T01:56:24+00:00,8483445,Cutter Gauthier,ANA,SEA,sog,3.5,Pick6,0.7,0.0,OVER,0.7,0.5713,,0.5713,0.5713,PASS,,pays 0.7x,,,,,,0.8248,-0.3073,,,,-,,,,,,
+2026-11-23,2026020383,2026-11-24T02:11:35+00:00,8483445,Cutter Gauthier,ANA,SEA,sog,7.5,Pick6,3.7,0.0,UNDER,0.0,0.0787,,0.0787,0.9213,PASS,,LESS not offered on this line,,,,,,0.5774,0.5957,,,,-,,,,,,
+2026-11-23,2026020383,2026-11-24T02:11:35+00:00,8483445,Cutter Gauthier,ANA,SEA,sog,6.5,Pick6,2.3,0.0,UNDER,0.0,0.1452,,0.1452,0.8548,PASS,,LESS not offered on this line,,,,,,0.5774,0.4806,,,,-,,,,,,
+2026-11-23,2026020383,2026-11-24T02:11:35+00:00,8483445,Cutter Gauthier,ANA,SEA,sog,2.5,Pick6,0.6,0.0,OVER,0.6,0.7513,,0.7513,0.7513,PASS,,pays 0.6x,,,,,,0.9623,-0.2192,,,,-,,,,,,
+2026-11-23,2026020383,2026-11-24T02:11:35+00:00,8483445,Cutter Gauthier,ANA,SEA,sog,5.5,Pick6,1.4,0.0,UNDER,0.0,0.2492,,0.2492,0.7508,PASS,,LESS not offered on this line,,,,,,0.5774,0.3004,,,,-,,,,,,
+2026-11-23,2026020383,2026-11-24T02:11:35+00:00,8483445,Cutter Gauthier,ANA,SEA,sog,4.5,Pick6,1.0,0.9,UNDER,0.9,0.3946,,0.3946,0.6054,PASS,,pays 0.9x,,,,,,0.6415,-0.0562,,,,-,,,,,,
+2026-11-23,2026020383,2026-11-24T02:11:35+00:00,8483445,Cutter Gauthier,ANA,SEA,sog,3.5,Pick6,0.7,0.0,OVER,0.7,0.5713,,0.5713,0.5713,PASS,,pays 0.7x,,,,,,0.8248,-0.3073,,,,-,,,,,,
 2026-11-23,2026020383,2026-11-24T01:26:31+00:00,8481605,Jackson LaCombe,ANA,SEA,sog,3.5,Pick6,5.4,0.0,UNDER,0.0,0.0648,,0.0648,0.9352,PASS,,LESS not offered on this line,,,,,,0.5774,0.6197,,,,-,,,,,,1
 2026-11-23,2026020383,2026-11-24T01:26:31+00:00,8481605,Jackson LaCombe,ANA,SEA,sog,2.5,Pick6,2.2,0.0,UNDER,0.0,0.1818,,0.1818,0.8182,PASS,,LESS not offered on this line,,,,,,0.5774,0.4172,,,,-,,,,,,1
 2026-11-23,2026020383,2026-11-24T01:26:31+00:00,8481605,Jackson LaCombe,ANA,SEA,sog,0.5,Pick6,0.6,0.0,OVER,0.6,0.7532,,0.7532,0.7532,PASS,,pays 0.6x,,,,,,0.9623,-0.2173,,,,-,,,,,,1
@@ -15436,17 +15436,17 @@ date,game,built,player_id,name,team,opp,market,line,source,mo,mu,side,mult,p_mod
 2026-11-23,2026020383,2026-11-24T01:26:31+00:00,8478407,Vince Dunn,SEA,ANA,sog,3.5,Pick6,2.2,0.0,UNDER,0.0,0.1285,,0.1285,0.8715,PASS,,LESS not offered on this line,,,,,,0.5774,0.5096,,,,-,,,,,,1
 2026-11-23,2026020383,2026-11-24T01:26:31+00:00,8478407,Vince Dunn,SEA,ANA,sog,2.5,Pick6,1.2,0.0,UNDER,0.0,0.2957,,0.2957,0.7043,PASS,,LESS not offered on this line,,,,,,0.5774,0.2199,,,,-,,,,,,1
 2026-11-23,2026020383,2026-11-24T01:26:31+00:00,8478407,Vince Dunn,SEA,ANA,sog,1.5,Pick6,0.8,1.2,OVER,0.8,0.5598,,0.5598,0.5598,PASS,,pays 0.8x,,,,,,0.7217,-0.2244,,,,-,,,,,,1
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8478493,Joel Eriksson Ek,MIN,SJS,points,2.5,Pick6,4.7,0.0,UNDER,0.0,0.0662,,0.0662,0.9338,PASS,,LESS not offered on this line,,,,,,0.5774,0.6174,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8478493,Joel Eriksson Ek,MIN,SJS,points,1.5,Pick6,1.7,0.0,UNDER,0.0,0.2339,,0.2339,0.7661,PASS,,LESS not offered on this line,,,,,,0.5774,0.3269,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8478493,Joel Eriksson Ek,MIN,SJS,points,0.5,Pick6,0.8,1.2,OVER,0.8,0.5299,,0.5299,0.5299,PASS,,pays 0.8x,,,,,,0.7217,-0.2657,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8478864,Kirill Kaprizov,MIN,SJS,points,3.5,Pick6,5.5,0.0,UNDER,0.0,0.0772,,0.0772,0.9228,PASS,,LESS not offered on this line,,,,,,0.5774,0.5983,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8478864,Kirill Kaprizov,MIN,SJS,points,2.5,Pick6,2.2,0.0,UNDER,0.0,0.1955,,0.1955,0.8045,PASS,,LESS not offered on this line,,,,,,0.5774,0.3935,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8478864,Kirill Kaprizov,MIN,SJS,points,0.5,Pick6,0.6,0.0,OVER,0.6,0.7866,,0.7866,0.7866,PASS,,pays 0.6x,,,,,,0.9623,-0.1825,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8478864,Kirill Kaprizov,MIN,SJS,points,1.5,Pick6,1.0,0.9,UNDER,0.9,0.439,,0.439,0.561,PASS,,pays 0.9x,,,,,,0.6415,-0.1255,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8484801,Macklin Celebrini,SJS,MIN,points,2.5,Pick6,2.9,0.0,UNDER,0.0,0.1627,,0.1627,0.8373,PASS,,LESS not offered on this line,,,,,,0.5774,0.4503,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8484801,Macklin Celebrini,SJS,MIN,points,0.5,Pick6,0.6,0.0,OVER,0.6,0.743,,0.743,0.743,PASS,,pays 0.6x,,,,,,0.9623,-0.2279,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8484801,Macklin Celebrini,SJS,MIN,points,1.5,Pick6,1.2,0.7,UNDER,0.7,0.3954,,0.3954,0.6046,PASS,,pays 0.7x,,,,,,0.8248,-0.2669,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8484801,Macklin Celebrini,SJS,MIN,points,3.5,Pick6,8.1,0.0,UNDER,0.0,0.059,,0.059,0.941,PASS,,LESS not offered on this line,,,,,,0.5774,0.6298,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8478493,Joel Eriksson Ek,MIN,SJS,points,2.5,Pick6,4.7,0.0,UNDER,0.0,0.0662,,0.0662,0.9338,PASS,,LESS not offered on this line,,,,,,0.5774,0.6174,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8478493,Joel Eriksson Ek,MIN,SJS,points,1.5,Pick6,1.7,0.0,UNDER,0.0,0.2339,,0.2339,0.7661,PASS,,LESS not offered on this line,,,,,,0.5774,0.3269,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8478493,Joel Eriksson Ek,MIN,SJS,points,0.5,Pick6,0.8,1.2,OVER,0.8,0.5299,,0.5299,0.5299,PASS,,pays 0.8x,,,,,,0.7217,-0.2657,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8478864,Kirill Kaprizov,MIN,SJS,points,3.5,Pick6,5.5,0.0,UNDER,0.0,0.0772,,0.0772,0.9228,PASS,,LESS not offered on this line,,,,,,0.5774,0.5983,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8478864,Kirill Kaprizov,MIN,SJS,points,2.5,Pick6,2.2,0.0,UNDER,0.0,0.1955,,0.1955,0.8045,PASS,,LESS not offered on this line,,,,,,0.5774,0.3935,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8478864,Kirill Kaprizov,MIN,SJS,points,0.5,Pick6,0.6,0.0,OVER,0.6,0.7866,,0.7866,0.7866,PASS,,pays 0.6x,,,,,,0.9623,-0.1825,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8478864,Kirill Kaprizov,MIN,SJS,points,1.5,Pick6,1.0,0.9,UNDER,0.9,0.439,,0.439,0.561,PASS,,pays 0.9x,,,,,,0.6415,-0.1255,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8484801,Macklin Celebrini,SJS,MIN,points,2.5,Pick6,2.9,0.0,UNDER,0.0,0.1627,,0.1627,0.8373,PASS,,LESS not offered on this line,,,,,,0.5774,0.4503,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8484801,Macklin Celebrini,SJS,MIN,points,0.5,Pick6,0.6,0.0,OVER,0.6,0.743,,0.743,0.743,PASS,,pays 0.6x,,,,,,0.9623,-0.2279,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8484801,Macklin Celebrini,SJS,MIN,points,1.5,Pick6,1.2,0.7,UNDER,0.7,0.3954,,0.3954,0.6046,PASS,,pays 0.7x,,,,,,0.8248,-0.2669,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8484801,Macklin Celebrini,SJS,MIN,points,3.5,Pick6,8.1,0.0,UNDER,0.0,0.059,,0.059,0.941,PASS,,LESS not offered on this line,,,,,,0.5774,0.6298,,,,-,,,,,,
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8476399,Blake Coleman,MIN,SJS,sog,4.5,Pick6,5.7,0.0,UNDER,0.0,0.0883,,0.0883,0.9117,PASS,,LESS not offered on this line,,,,,,0.5774,0.5791,,,,-,,,,,,1
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8476399,Blake Coleman,MIN,SJS,sog,3.5,Pick6,2.6,0.0,UNDER,0.0,0.1971,,0.1971,0.8029,PASS,,LESS not offered on this line,,,,,,0.5774,0.3907,,,,-,,,,,,1
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8476399,Blake Coleman,MIN,SJS,sog,1.5,Pick6,0.8,1.1,OVER,0.8,0.6377,,0.6377,0.6377,PASS,,pays 0.8x,,,,,,0.7217,-0.1163,,,,-,,,,,,1
@@ -15467,29 +15467,29 @@ date,game,built,player_id,name,team,opp,market,line,source,mo,mu,side,mult,p_mod
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8476885,Jacob Trouba,SJS,MIN,sog,2.5,Pick6,1.7,0.0,UNDER,0.0,0.2471,,0.2471,0.7529,PASS,,LESS not offered on this line,,,,,,0.5774,0.3041,,,,-,,,,,,1
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8476885,Jacob Trouba,SJS,MIN,sog,1.5,Pick6,1.0,1.0,OVER,1.0,0.5054,,0.5054,0.5054,PASS,,no market price on this line (model-only picks have not won),,,,,,0.5774,-0.1246,,,,-,,,,,,1
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8478493,Joel Eriksson Ek,MIN,SJS,sog,2.5,Pick6,0.8,1.1,OVER,0.8,0.5429,,0.5429,0.5429,PASS,,pays 0.8x,,,,,,0.7217,-0.2477,,,,-,,,,,,1
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8478864,Kirill Kaprizov,MIN,SJS,sog,7.5,Pick6,8.5,0.0,UNDER,0.0,0.025,,0.025,0.975,PASS,,LESS not offered on this line,,,,,,0.5774,0.6887,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8478864,Kirill Kaprizov,MIN,SJS,sog,6.5,Pick6,4.5,0.0,UNDER,0.0,0.0581,,0.0581,0.9419,PASS,,LESS not offered on this line,,,,,,0.5774,0.6314,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8478864,Kirill Kaprizov,MIN,SJS,sog,5.5,Pick6,2.5,0.0,UNDER,0.0,0.1236,,0.1236,0.8764,PASS,,LESS not offered on this line,,,,,,0.5774,0.5179,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8478864,Kirill Kaprizov,MIN,SJS,sog,4.5,Pick6,1.5,0.0,UNDER,0.0,0.2379,,0.2379,0.7621,PASS,,LESS not offered on this line,,,,,,0.5774,0.32,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8478864,Kirill Kaprizov,MIN,SJS,sog,2.5,Pick6,0.7,0.0,OVER,0.7,0.6202,,0.6202,0.6202,PASS,,pays 0.7x,,,,,,0.8248,-0.2481,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8478864,Kirill Kaprizov,MIN,SJS,sog,3.5,Pick6,1.0,0.9,UNDER,0.9,0.4089,,0.4089,0.5911,PASS,,pays 0.9x,,,,,,0.6415,-0.0786,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8484801,Macklin Celebrini,SJS,MIN,sog,7.5,Pick6,8.3,0.0,UNDER,0.0,0.0538,,0.0538,0.9462,PASS,,LESS not offered on this line,,,,,,0.5774,0.6389,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8484801,Macklin Celebrini,SJS,MIN,sog,6.5,Pick6,4.2,0.0,UNDER,0.0,0.1056,,0.1056,0.8944,PASS,,LESS not offered on this line,,,,,,0.5774,0.5491,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8484801,Macklin Celebrini,SJS,MIN,sog,5.5,Pick6,2.3,0.0,UNDER,0.0,0.193,,0.193,0.807,PASS,,LESS not offered on this line,,,,,,0.5774,0.3977,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8484801,Macklin Celebrini,SJS,MIN,sog,2.5,Pick6,0.7,0.0,OVER,0.7,0.6924,,0.6924,0.6924,PASS,,pays 0.7x,,,,,,0.8248,-0.1605,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8484801,Macklin Celebrini,SJS,MIN,sog,4.5,Pick6,1.4,0.0,UNDER,0.0,0.325,,0.325,0.675,PASS,,LESS not offered on this line,,,,,,0.5774,0.1691,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8484801,Macklin Celebrini,SJS,MIN,sog,3.5,Pick6,1.0,1.0,UNDER,1.0,0.4993,,0.4993,0.5007,PASS,,no market price on this line (model-only picks have not won),,,,,,0.5774,-0.1327,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8478864,Kirill Kaprizov,MIN,SJS,sog,7.5,Pick6,8.5,0.0,UNDER,0.0,0.025,,0.025,0.975,PASS,,LESS not offered on this line,,,,,,0.5774,0.6887,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8478864,Kirill Kaprizov,MIN,SJS,sog,6.5,Pick6,4.5,0.0,UNDER,0.0,0.0581,,0.0581,0.9419,PASS,,LESS not offered on this line,,,,,,0.5774,0.6314,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8478864,Kirill Kaprizov,MIN,SJS,sog,5.5,Pick6,2.5,0.0,UNDER,0.0,0.1236,,0.1236,0.8764,PASS,,LESS not offered on this line,,,,,,0.5774,0.5179,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8478864,Kirill Kaprizov,MIN,SJS,sog,4.5,Pick6,1.5,0.0,UNDER,0.0,0.2379,,0.2379,0.7621,PASS,,LESS not offered on this line,,,,,,0.5774,0.32,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8478864,Kirill Kaprizov,MIN,SJS,sog,2.5,Pick6,0.7,0.0,OVER,0.7,0.6202,,0.6202,0.6202,PASS,,pays 0.7x,,,,,,0.8248,-0.2481,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8478864,Kirill Kaprizov,MIN,SJS,sog,3.5,Pick6,1.0,0.9,UNDER,0.9,0.4089,,0.4089,0.5911,PASS,,pays 0.9x,,,,,,0.6415,-0.0786,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8484801,Macklin Celebrini,SJS,MIN,sog,7.5,Pick6,8.3,0.0,UNDER,0.0,0.0538,,0.0538,0.9462,PASS,,LESS not offered on this line,,,,,,0.5774,0.6389,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8484801,Macklin Celebrini,SJS,MIN,sog,6.5,Pick6,4.2,0.0,UNDER,0.0,0.1056,,0.1056,0.8944,PASS,,LESS not offered on this line,,,,,,0.5774,0.5491,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8484801,Macklin Celebrini,SJS,MIN,sog,5.5,Pick6,2.3,0.0,UNDER,0.0,0.193,,0.193,0.807,PASS,,LESS not offered on this line,,,,,,0.5774,0.3977,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8484801,Macklin Celebrini,SJS,MIN,sog,2.5,Pick6,0.7,0.0,OVER,0.7,0.6924,,0.6924,0.6924,PASS,,pays 0.7x,,,,,,0.8248,-0.1605,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8484801,Macklin Celebrini,SJS,MIN,sog,4.5,Pick6,1.4,0.0,UNDER,0.0,0.325,,0.325,0.675,PASS,,LESS not offered on this line,,,,,,0.5774,0.1691,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8484801,Macklin Celebrini,SJS,MIN,sog,3.5,Pick6,1.0,1.0,UNDER,1.0,0.4993,,0.4993,0.5007,PASS,,no market price on this line (model-only picks have not won),,,,,,0.5774,-0.1327,,,,-,,,,,,
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8478975,Mason Marchment,SJS,MIN,sog,4.5,Pick6,7.2,0.0,UNDER,0.0,0.0606,,0.0606,0.9394,PASS,,LESS not offered on this line,,,,,,0.5774,0.6271,,,,-,,,,,,1
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8478975,Mason Marchment,SJS,MIN,sog,3.5,Pick6,3.1,0.0,UNDER,0.0,0.1481,,0.1481,0.8519,PASS,,LESS not offered on this line,,,,,,0.5774,0.4756,,,,-,,,,,,1
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8478975,Mason Marchment,SJS,MIN,sog,0.5,Pick6,0.6,0.0,OVER,0.6,0.844,,0.844,0.844,PASS,,pays 0.6x,,,,,,0.9623,-0.1229,,,,-,,,,,,1
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8478975,Mason Marchment,SJS,MIN,sog,2.5,Pick6,1.5,0.0,UNDER,0.0,0.3158,,0.3158,0.6842,PASS,,LESS not offered on this line,,,,,,0.5774,0.1851,,,,-,,,,,,1
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8478975,Mason Marchment,SJS,MIN,sog,1.5,Pick6,0.9,1.0,OVER,0.9,0.5706,,0.5706,0.5706,PASS,,pays 0.9x,,,,,,0.6415,-0.1106,,,,-,,,,,,1
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8481557,Matt Boldy,MIN,SJS,sog,7.5,Pick6,7.2,0.0,UNDER,0.0,0.0549,,0.0549,0.9451,PASS,,LESS not offered on this line,,,,,,0.5774,0.6369,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8481557,Matt Boldy,MIN,SJS,sog,6.5,Pick6,3.8,0.0,UNDER,0.0,0.1075,,0.1075,0.8925,PASS,,LESS not offered on this line,,,,,,0.5774,0.5459,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8481557,Matt Boldy,MIN,SJS,sog,5.5,Pick6,2.2,0.0,UNDER,0.0,0.1958,,0.1958,0.8042,PASS,,LESS not offered on this line,,,,,,0.5774,0.393,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8481557,Matt Boldy,MIN,SJS,sog,2.5,Pick6,0.7,0.0,OVER,0.7,0.6957,,0.6957,0.6957,PASS,,pays 0.7x,,,,,,0.8248,-0.1565,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8481557,Matt Boldy,MIN,SJS,sog,4.5,Pick6,1.4,0.0,UNDER,0.0,0.3286,,0.3286,0.6714,PASS,,LESS not offered on this line,,,,,,0.5774,0.1629,,,,-,,,,,,
-2026-11-23,2026020384,2026-11-24T01:56:24+00:00,8481557,Matt Boldy,MIN,SJS,sog,3.5,Pick6,1.0,1.0,OVER,1.0,0.5031,,0.5031,0.5031,PASS,,no market price on this line (model-only picks have not won),,,,,,0.5774,-0.1286,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8481557,Matt Boldy,MIN,SJS,sog,7.5,Pick6,7.2,0.0,UNDER,0.0,0.0549,,0.0549,0.9451,PASS,,LESS not offered on this line,,,,,,0.5774,0.6369,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8481557,Matt Boldy,MIN,SJS,sog,6.5,Pick6,3.8,0.0,UNDER,0.0,0.1075,,0.1075,0.8925,PASS,,LESS not offered on this line,,,,,,0.5774,0.5459,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8481557,Matt Boldy,MIN,SJS,sog,5.5,Pick6,2.2,0.0,UNDER,0.0,0.1958,,0.1958,0.8042,PASS,,LESS not offered on this line,,,,,,0.5774,0.393,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8481557,Matt Boldy,MIN,SJS,sog,2.5,Pick6,0.7,0.0,OVER,0.7,0.6957,,0.6957,0.6957,PASS,,pays 0.7x,,,,,,0.8248,-0.1565,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8481557,Matt Boldy,MIN,SJS,sog,4.5,Pick6,1.4,0.0,UNDER,0.0,0.3286,,0.3286,0.6714,PASS,,LESS not offered on this line,,,,,,0.5774,0.1629,,,,-,,,,,,
+2026-11-23,2026020384,2026-11-24T02:11:35+00:00,8481557,Matt Boldy,MIN,SJS,sog,3.5,Pick6,1.0,1.0,OVER,1.0,0.5031,,0.5031,0.5031,PASS,,no market price on this line (model-only picks have not won),,,,,,0.5774,-0.1286,,,,-,,,,,,
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8485702,Max Shabanov,MIN,SJS,sog,4.5,Pick6,6.7,0.0,UNDER,0.0,0.0294,,0.0294,0.9706,PASS,,LESS not offered on this line,,,,,,0.5774,0.6811,,,,-,,,,,,1
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8485702,Max Shabanov,MIN,SJS,sog,3.5,Pick6,3.0,0.0,UNDER,0.0,0.0846,,0.0846,0.9154,PASS,,LESS not offered on this line,,,,,,0.5774,0.5855,,,,-,,,,,,1
 2026-11-23,2026020384,2026-11-24T01:26:31+00:00,8485702,Max Shabanov,MIN,SJS,sog,2.5,Pick6,1.5,0.0,UNDER,0.0,0.2129,,0.2129,0.7871,PASS,,LESS not offered on this line,,,,,,0.5774,0.3634,,,,-,,,,,,1
