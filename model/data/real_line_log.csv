@@ -9671,3 +9671,4 @@ date,market,player,team,opp,book,line,mult,price,side,model_proj,model_p,p_cal,e
 2026-11-23,winner,UTA,UTA,WPG,model,,,,UTA,,0.51,,,,UTA 2-4 WPG,MISS,
 2026-11-23,winner,SEA,SEA,ANA,model,,,,SEA,,0.51,,,,ANA 2-3 SEA,HIT,
 2026-11-23,winner,MIN,MIN,SJS,model,,,,MIN,,0.58,,,,MIN 5-2 SJS,HIT,
+2026-11-24,winner,EDM,EDM,VGK,model,,,,EDM,,0.51,,,,VGK 5-3 EDM,MISS,
