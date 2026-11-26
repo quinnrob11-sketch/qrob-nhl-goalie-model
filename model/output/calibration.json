@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-26 02:17 UTC",
+ "updated": "2026-11-26 02:32 UTC",
  "markets": {
   "saves": {
    "cal": {
@@ -7,10 +7,10 @@
     "n": 600,
     "n_over": 198,
     "n_under": 402,
-    "b_fit": 0.3243,
-    "b": 0.7324,
+    "b_fit": 0.3239,
+    "b": 0.7323,
     "b_shrink": 0.396,
-    "b_under_fit": 0.5584,
+    "b_under_fit": 0.5583,
     "b_under": 0.6449,
     "b_under_shrink": 0.804,
     "shrink": 1.0,
@@ -35,7 +35,7 @@
    },
    "platt_ref": {
     "a": -0.0487,
-    "b": 0.4163,
+    "b": 0.4161,
     "n": 600
    },
    "tier_cap": "LOW",
@@ -877,7 +877,7 @@
     "raw model": {
      "n": 479,
      "brier": 0.25468,
-     "logloss": 0.70291
+     "logloss": 0.70292
     },
     "calibrated model": {
      "n": 479,
@@ -891,7 +891,7 @@
     },
     "blend 0.6 (old)": {
      "n": 479,
-     "brier": 0.25174,
+     "brier": 0.25175,
      "logloss": 0.69671
     },
     "blend fitted (new)": {
@@ -902,7 +902,7 @@
     "blend fitted + line intercepts": {
      "n": 479,
      "brier": 0.25053,
-     "logloss": 0.69421
+     "logloss": 0.69422
     }
    },
    "reliability": {
