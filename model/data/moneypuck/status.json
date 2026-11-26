@@ -1,5 +1,5 @@
 {
- "at": "2026-11-26T05:01:53+00:00",
+ "at": "2026-11-26T05:17:09+00:00",
  "files": {
   "team_games_ANA": "fresh",
   "team_games_BOS": "fresh",
@@ -9,14 +9,6 @@
   "team_games_CHI": "fresh",
   "team_games_COL": "fresh",
   "team_games_CBJ": "fresh",
-  "team_games_DAL": "fresh",
-  "team_games_DET": "fresh",
-  "team_games_EDM": "fresh",
-  "team_games_FLA": "fresh",
-  "team_games_LAK": "fresh",
-  "team_games_MIN": "fresh",
-  "team_games_MTL": "fresh",
-  "team_games_NSH": "fresh",
   "team_games_NJD": "fresh",
   "team_games_NYI": "fresh",
   "team_games_NYR": "fresh",
@@ -32,7 +24,15 @@
   "team_games_VAN": "fresh",
   "team_games_VGK": "fresh",
   "team_games_WSH": "fresh",
-  "team_games_WPG": "fresh"
+  "team_games_WPG": "fresh",
+  "team_games_DAL": "ok (3784 KB, 23 games)",
+  "team_games_EDM": "ok (3793 KB, 27 games)",
+  "team_games_FLA": "ok (3787 KB, 24 games)",
+  "team_games_LAK": "ok (1148 KB, 22 games)",
+  "team_games_DET": "ok (3780 KB, 23 games)",
+  "team_games_MIN": "ok (3783 KB, 26 games)",
+  "team_games_MTL": "ok (3795 KB, 25 games)",
+  "team_games_NSH": "ok (3777 KB, 23 games)"
  },
  "teams_at": {
   "BUF": "2026-11-26T02:31:39+00:00",
@@ -43,14 +43,14 @@
   "CAR": "2026-11-26T02:31:39+00:00",
   "CBJ": "2026-11-26T02:31:39+00:00",
   "COL": "2026-11-26T02:31:39+00:00",
-  "DAL": "2026-11-25T09:10:37+00:00",
-  "DET": "2026-11-25T09:10:37+00:00",
-  "FLA": "2026-11-25T09:10:37+00:00",
-  "EDM": "2026-11-25T09:10:37+00:00",
-  "LAK": "2026-11-25T09:10:37+00:00",
-  "MIN": "2026-11-25T09:10:37+00:00",
-  "MTL": "2026-11-25T09:10:37+00:00",
-  "NSH": "2026-11-25T09:10:37+00:00",
+  "DAL": "2026-11-26T05:17:06+00:00",
+  "DET": "2026-11-26T05:17:06+00:00",
+  "FLA": "2026-11-26T05:17:06+00:00",
+  "EDM": "2026-11-26T05:17:06+00:00",
+  "LAK": "2026-11-26T05:17:06+00:00",
+  "MIN": "2026-11-26T05:17:06+00:00",
+  "MTL": "2026-11-26T05:17:06+00:00",
+  "NSH": "2026-11-26T05:17:06+00:00",
   "NJD": "2026-11-25T12:44:42+00:00",
   "NYI": "2026-11-25T12:44:42+00:00",
   "OTT": "2026-11-25T12:44:42+00:00",
@@ -68,5 +68,5 @@
   "WSH": "2026-11-25T13:44:38+00:00",
   "WPG": "2026-11-25T13:44:38+00:00"
  },
- "recent_rows": 769
+ "recent_rows": 770
 }
