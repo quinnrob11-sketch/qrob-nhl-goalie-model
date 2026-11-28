@@ -1,5 +1,5 @@
 {
- "at": "2026-11-28T01:06:05+00:00",
+ "at": "2026-11-28T01:21:03+00:00",
  "files": {
   "team_games_ANA": "fresh",
   "team_games_BOS": "fresh",
@@ -17,6 +17,14 @@
   "team_games_MIN": "fresh",
   "team_games_MTL": "fresh",
   "team_games_NSH": "fresh",
+  "team_games_NJD": "fresh",
+  "team_games_NYI": "fresh",
+  "team_games_NYR": "fresh",
+  "team_games_OTT": "fresh",
+  "team_games_PHI": "fresh",
+  "team_games_PIT": "fresh",
+  "team_games_SJS": "fresh",
+  "team_games_SEA": "fresh",
   "team_games_STL": "fresh",
   "team_games_TBL": "fresh",
   "team_games_TOR": "fresh",
@@ -24,15 +32,7 @@
   "team_games_VAN": "fresh",
   "team_games_VGK": "fresh",
   "team_games_WSH": "fresh",
-  "team_games_WPG": "fresh",
-  "team_games_NJD": "ok (1154 KB, 25 games)",
-  "team_games_OTT": "ok (3802 KB, 26 games)",
-  "team_games_NYI": "ok (3777 KB, 24 games)",
-  "team_games_NYR": "ok (3787 KB, 24 games)",
-  "team_games_SJS": "ok (1161 KB, 27 games)",
-  "team_games_PHI": "ok (3799 KB, 27 games)",
-  "team_games_PIT": "ok (3783 KB, 24 games)",
-  "team_games_SEA": "ok (1145 KB, 22 games)"
+  "team_games_WPG": "fresh"
  },
  "teams_at": {
   "BUF": "2026-11-27T18:35:20+00:00",
